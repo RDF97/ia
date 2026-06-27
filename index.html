@@ -1,0 +1,3297 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Homie · Mockups Apple HIG</title>
+<style>
+/* =========================================================================
+   HOMIE · MOCKUPS APPLE HIG
+   Sistema de diseño "Quiet" alineado con Apple Human Interface Guidelines
+   ========================================================================= */
+
+:root {
+  /* Apple HIG light system colors */
+  --bg-app: #F2F2F7;
+  --bg-card: #FFFFFF;
+  --bg-elevated: #FFFFFF;
+  --bg-grouped: #F2F2F7;
+  --bg-secondary-grouped: #FFFFFF;
+  --separator: #C6C6C8;
+  --separator-opaque: #D1D1D6;
+  --label: #000000;
+  --label-secondary: rgba(60, 60, 67, 0.60);
+  --label-tertiary: rgba(60, 60, 67, 0.30);
+  --label-quaternary: rgba(60, 60, 67, 0.18);
+  --fill-1: rgba(120, 120, 128, 0.20);
+  --fill-2: rgba(120, 120, 128, 0.16);
+  --fill-3: rgba(118, 118, 128, 0.12);
+  --fill-4: rgba(116, 116, 128, 0.08);
+
+  /* System colors */
+  --blue: #007AFF;
+  --green: #34C759;
+  --orange: #FF9500;
+  --red: #FF3B30;
+  --yellow: #FFCC00;
+  --teal: #5AC8FA;
+  --purple: #AF52DE;
+  --pink: #FF2D55;
+
+  /* Homie brand accent */
+  --accent: #1F4D52;
+  --accent-soft: rgba(31, 77, 82, 0.10);
+
+  /* Typography */
+  --font-system: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
+                 'Segoe UI', 'Inter', 'Roboto', sans-serif;
+  --font-mono: 'SF Mono', 'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+  /* Spacing scale (Apple-aligned) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+
+  /* Continuous corner radii (squircle-ish) */
+  --r-sm: 8px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 18px;
+  --r-2xl: 22px;
+  --r-pill: 999px;
+}
+
+[data-theme="dark"] {
+  --bg-app: #000000;
+  --bg-card: #1C1C1E;
+  --bg-elevated: #2C2C2E;
+  --bg-grouped: #000000;
+  --bg-secondary-grouped: #1C1C1E;
+  --separator: #38383A;
+  --separator-opaque: #38383A;
+  --label: #FFFFFF;
+  --label-secondary: rgba(235, 235, 245, 0.60);
+  --label-tertiary: rgba(235, 235, 245, 0.30);
+  --label-quaternary: rgba(235, 235, 245, 0.18);
+  --fill-1: rgba(120, 120, 128, 0.36);
+  --fill-2: rgba(120, 120, 128, 0.32);
+  --fill-3: rgba(118, 118, 128, 0.24);
+  --fill-4: rgba(118, 118, 128, 0.18);
+  --accent: #3FA5AD;
+  --accent-soft: rgba(63, 165, 173, 0.18);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+
+html, body {
+  font-family: var(--font-system);
+  font-size: 17px;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--label);
+  background: linear-gradient(135deg, #ECECEC 0%, #DADADA 100%);
+  min-height: 100vh;
+}
+
+[data-theme="dark"] body {
+  background: linear-gradient(135deg, #1A1A1C 0%, #0A0A0B 100%);
+}
+
+/* ============= LAYOUT ============= */
+.stage {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--sp-12);
+  padding: var(--sp-8) var(--sp-6);
+}
+
+.panel-left, .panel-right {
+  max-width: 320px;
+  color: var(--label);
+}
+
+.panel-left { justify-self: end; }
+.panel-right { justify-self: start; }
+
+.brand-mark {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: var(--sp-6);
+}
+.brand-mark .logo {
+  width: 44px; height: 44px; border-radius: var(--r-lg);
+  background: var(--accent);
+  display: grid; place-items: center;
+  color: #fff; font-weight: 700; font-size: 22px;
+  box-shadow: 0 4px 14px rgba(31,77,82,0.25);
+}
+.brand-mark h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
+.brand-mark .ver { color: var(--label-secondary); font-size: 13px; margin-top: 2px; }
+
+.panel-left p, .panel-right p {
+  color: var(--label-secondary); font-size: 14px; line-height: 1.55;
+  margin-bottom: var(--sp-3);
+}
+
+.screen-list { list-style: none; display: flex; flex-direction: column; gap: 6px; margin-top: var(--sp-4); }
+.screen-list li {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: var(--r-md);
+  cursor: pointer; transition: background 0.18s ease;
+  user-select: none;
+}
+.screen-list li:hover { background: var(--fill-3); }
+.screen-list li.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.screen-list .num {
+  width: 22px; height: 22px; border-radius: 999px;
+  background: var(--fill-2); color: var(--label-secondary);
+  display: grid; place-items: center; font-size: 12px; font-weight: 600;
+}
+.screen-list li.active .num { background: var(--accent); color: #fff; }
+
+.theme-toggle {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px; border-radius: var(--r-pill);
+  background: var(--bg-card); border: 1px solid var(--separator);
+  cursor: pointer; font: inherit; color: var(--label);
+  font-size: 14px; font-weight: 500;
+  transition: all 0.15s ease;
+}
+.theme-toggle:hover { background: var(--fill-3); }
+
+.tip { font-size: 12px; color: var(--label-tertiary); margin-top: var(--sp-4); line-height: 1.5; }
+
+/* ============= PHONE FRAME ============= */
+.phone {
+  width: 393px;
+  height: 852px;
+  background: #0A0A0B;
+  border-radius: 56px;
+  padding: 11px;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.06) inset,
+    0 0 0 1px rgba(255,255,255,0.04) inset,
+    0 30px 80px rgba(0,0,0,0.35),
+    0 8px 24px rgba(0,0,0,0.20);
+  position: relative;
+}
+
+.phone-screen {
+  background: var(--bg-app);
+  height: 100%;
+  border-radius: 46px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Dynamic Island */
+.dynamic-island {
+  position: absolute;
+  top: 11px; left: 50%;
+  transform: translateX(-50%);
+  width: 124px; height: 36px;
+  background: #000;
+  border-radius: 999px;
+  z-index: 100;
+}
+
+/* Status bar */
+.status-bar {
+  height: 54px;
+  padding: 14px 28px 0;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 17px; font-weight: 600;
+  flex-shrink: 0;
+  z-index: 2;
+}
+.status-bar .time { letter-spacing: -0.4px; }
+.status-bar .right { display: flex; align-items: center; gap: 6px; }
+.status-bar .right svg { width: 18px; height: 12px; fill: currentColor; }
+
+/* Screen content area */
+.screen-area {
+  flex: 1; overflow-y: auto; overflow-x: hidden;
+  padding-bottom: 110px;
+  scrollbar-width: thin;
+}
+.screen-area::-webkit-scrollbar { width: 0; }
+
+/* Tab bar */
+.tab-bar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 88px;
+  background: rgba(255,255,255,0.78);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(180%);
+  border-top: 0.5px solid var(--separator);
+  display: flex;
+  padding: 6px 8px 28px;
+  z-index: 50;
+}
+[data-theme="dark"] .tab-bar {
+  background: rgba(28,28,30,0.78);
+}
+.tab {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 6px 0;
+  border: none; background: none;
+  color: var(--label-secondary);
+  font: inherit; font-size: 10px; font-weight: 500;
+  cursor: pointer;
+  letter-spacing: -0.1px;
+  transition: color 0.15s ease;
+}
+.tab svg { width: 26px; height: 26px; stroke: currentColor; stroke-width: 1.7; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.tab.active { color: var(--accent); }
+.tab.active svg { stroke-width: 2; }
+
+/* Home indicator */
+.home-indicator {
+  position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+  width: 134px; height: 5px; border-radius: 3px;
+  background: var(--label);
+  opacity: 0.85;
+  z-index: 60;
+}
+
+/* FAB */
+.fab {
+  position: absolute;
+  bottom: 110px; right: 20px;
+  width: 56px; height: 56px;
+  border-radius: 18px;
+  background: var(--accent);
+  display: grid; place-items: center;
+  color: #fff;
+  border: none; cursor: pointer;
+  box-shadow: 0 8px 24px rgba(31,77,82,0.35), 0 2px 6px rgba(0,0,0,0.10);
+  z-index: 40;
+  transition: transform 0.12s ease;
+}
+.fab:active { transform: scale(0.94); }
+.fab svg { width: 24px; height: 24px; stroke: currentColor; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ============= SCREEN COMMONS ============= */
+.screen { display: none; padding: 0; }
+.screen.active { display: block; animation: fadeIn 0.22s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.screen-header {
+  padding: 8px 20px 4px;
+}
+.large-title {
+  font-size: 34px; font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+  color: var(--label);
+}
+.subtitle-line {
+  font-size: 13px; color: var(--label-secondary);
+  margin-top: 4px; font-weight: 400;
+}
+
+.section-title {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--label-secondary);
+  font-weight: 500;
+  padding: 16px 20px 8px;
+}
+
+.card {
+  background: var(--bg-card);
+  border-radius: var(--r-xl);
+  margin: 0 16px 12px;
+  padding: 16px;
+  border: 0.5px solid transparent;
+}
+
+.list-card {
+  background: var(--bg-card);
+  border-radius: var(--r-lg);
+  margin: 0 16px 16px;
+  overflow: hidden;
+}
+.list-row {
+  padding: 12px 16px;
+  display: flex; align-items: center; gap: 12px;
+  border-bottom: 0.5px solid var(--separator);
+  min-height: 44px;
+}
+.list-row:last-child { border-bottom: none; }
+.list-row .row-content { flex: 1; min-width: 0; }
+.list-row .row-title { font-size: 16px; color: var(--label); font-weight: 400; }
+.list-row .row-sub { font-size: 13px; color: var(--label-secondary); margin-top: 2px; }
+.list-row .row-trailing { font-size: 15px; color: var(--label-secondary); font-variant-numeric: tabular-nums; }
+
+/* Avatar */
+.avatar {
+  width: 32px; height: 32px;
+  border-radius: 999px;
+  display: grid; place-items: center;
+  font-weight: 600; font-size: 13px;
+  color: #fff;
+  flex-shrink: 0;
+}
+.avatar.ru { background: linear-gradient(135deg, #5AC8FA, #007AFF); }
+.avatar.ma { background: linear-gradient(135deg, #FF6B9D, #C56CF0); }
+.avatar.shared { background: linear-gradient(135deg, #1F4D52, #5AC8FA); }
+.avatar.sm { width: 26px; height: 26px; font-size: 11px; }
+.avatar.lg { width: 44px; height: 44px; font-size: 17px; }
+.avatar-pair {
+  display: inline-flex;
+}
+.avatar-pair .avatar:nth-child(2) {
+  margin-left: -10px;
+  border: 2px solid var(--bg-app);
+}
+
+/* Icon container (SF Symbols-style colored squares) */
+.icon-tile {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  display: grid; place-items: center;
+  color: #fff; flex-shrink: 0;
+}
+.icon-tile svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.9; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.icon-tile.blue { background: var(--blue); }
+.icon-tile.green { background: var(--green); }
+.icon-tile.orange { background: var(--orange); }
+.icon-tile.red { background: var(--red); }
+.icon-tile.yellow { background: var(--yellow); color: #000; }
+.icon-tile.purple { background: var(--purple); }
+.icon-tile.teal { background: var(--teal); }
+.icon-tile.pink { background: var(--pink); }
+.icon-tile.gray { background: #8E8E93; }
+.icon-tile.accent { background: var(--accent); }
+
+/* Pill button */
+.pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--fill-3);
+  font-size: 14px; font-weight: 500;
+  color: var(--label);
+  border: none; cursor: pointer;
+}
+.pill svg { width: 12px; height: 12px; stroke: currentColor; stroke-width: 2.2; fill: none; }
+
+/* Segment control */
+.segmented {
+  display: flex;
+  background: var(--fill-3);
+  border-radius: 9px;
+  padding: 2px;
+  margin: 8px 16px 16px;
+}
+.segmented button {
+  flex: 1; border: none; background: none;
+  padding: 7px 10px;
+  font: inherit; font-size: 13px; font-weight: 500;
+  color: var(--label);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.segmented button.on {
+  background: var(--bg-card);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+}
+
+/* Progress bar */
+.progress {
+  height: 6px;
+  background: var(--fill-3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress > span {
+  display: block; height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+}
+.progress.warn > span { background: var(--orange); }
+.progress.over > span { background: var(--red); }
+.progress.ok > span { background: var(--green); }
+
+/* ============= INICIO ============= */
+.greeting {
+  padding: 6px 20px 18px;
+  display: flex; align-items: flex-end; justify-content: space-between;
+}
+.greeting .text .hello { font-size: 28px; font-weight: 700; letter-spacing: -0.4px; line-height: 1.1; }
+.greeting .text .home-name { color: var(--label-secondary); font-size: 14px; margin-top: 4px; }
+
+.tile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin: 0 16px 16px;
+}
+.tile {
+  background: var(--bg-card);
+  border-radius: var(--r-lg);
+  padding: 12px;
+  min-height: 78px;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.tile .t-label { font-size: 11px; color: var(--label-secondary); text-transform: uppercase; letter-spacing: 0.4px; font-weight: 500; }
+.tile .t-value { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; font-variant-numeric: tabular-nums; margin-top: 4px; }
+.tile .t-trend { font-size: 11px; font-weight: 500; }
+.tile .t-trend.up { color: var(--red); }
+.tile .t-trend.down { color: var(--green); }
+
+.event-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 0.5px solid var(--separator); }
+.event-row:last-child { border-bottom: none; }
+.event-row .when {
+  font-size: 13px; font-weight: 600; color: var(--label-secondary);
+  width: 48px; flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.event-row .what { font-size: 15px; color: var(--label); flex: 1; }
+.event-row .who { font-size: 12px; color: var(--label-secondary); margin-top: 1px; }
+.event-row .stripe { width: 3px; height: 32px; border-radius: 2px; background: var(--accent); flex-shrink: 0; }
+.event-row .stripe.ru { background: var(--blue); }
+.event-row .stripe.ma { background: var(--pink); }
+.event-row .stripe.shared { background: var(--accent); }
+
+.card .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.card .card-title { font-size: 17px; font-weight: 600; letter-spacing: -0.2px; }
+.card .card-action { font-size: 14px; color: var(--accent); font-weight: 500; }
+
+/* ============= GASTOS ============= */
+.budget-big {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.budget-big .amount {
+  font-size: 36px; font-weight: 700; letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.budget-big .of { color: var(--label-secondary); font-size: 14px; margin-bottom: 2px; }
+.budget-foot { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--label-secondary); }
+
+.cat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0 16px 16px;
+}
+.cat-tile {
+  background: var(--bg-card);
+  border-radius: var(--r-lg);
+  padding: 12px;
+}
+.cat-tile .ct-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.cat-tile .ct-name { font-size: 13px; font-weight: 500; }
+.cat-tile .ct-amt { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; margin-bottom: 6px; letter-spacing: -0.2px; }
+.cat-tile .ct-of { color: var(--label-secondary); font-size: 12px; }
+
+.debt-card {
+  background: var(--accent-soft);
+  border-radius: var(--r-xl);
+  margin: 0 16px 16px;
+  padding: 14px 16px;
+  display: flex; align-items: center; gap: 12px;
+}
+.debt-card .who { flex: 1; }
+.debt-card .who .label { color: var(--label-secondary); font-size: 12px; }
+.debt-card .who .amount { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; color: var(--label); font-variant-numeric: tabular-nums; margin-top: 1px; }
+.debt-card .who .amount strong { color: var(--accent); }
+.debt-card button {
+  border: none; background: var(--accent); color: #fff;
+  padding: 8px 16px; border-radius: 999px;
+  font: inherit; font-size: 14px; font-weight: 600;
+  cursor: pointer;
+}
+
+/* ============= COMPRA ============= */
+.shop-list { padding: 0 16px; }
+.shop-section { margin-bottom: 18px; }
+.shop-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 4px 8px;
+}
+.shop-head .name { font-size: 14px; font-weight: 600; letter-spacing: -0.2px; }
+.shop-head .when { font-size: 12px; color: var(--label-secondary); }
+
+.shop-item {
+  background: var(--bg-card);
+  padding: 12px 16px;
+  display: flex; align-items: center; gap: 12px;
+  border-bottom: 0.5px solid var(--separator);
+}
+.shop-section .shop-item:first-of-type { border-radius: var(--r-lg) var(--r-lg) 0 0; }
+.shop-section .shop-item:last-of-type { border-radius: 0 0 var(--r-lg) var(--r-lg); border-bottom: none; }
+.shop-section .shop-item:only-of-type { border-radius: var(--r-lg); }
+
+.shop-check {
+  width: 22px; height: 22px;
+  border-radius: 999px;
+  border: 1.7px solid var(--label-tertiary);
+  flex-shrink: 0;
+  display: grid; place-items: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.shop-check.done {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.shop-check.done::after {
+  content: '';
+  width: 10px; height: 6px;
+  border: 2px solid white;
+  border-top: none; border-right: none;
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+
+.shop-item .name { flex: 1; font-size: 15px; }
+.shop-item.done .name { color: var(--label-tertiary); text-decoration: line-through; }
+.shop-item .meta { font-size: 12px; color: var(--label-secondary); margin-top: 2px; }
+.shop-item .qty { font-size: 13px; color: var(--label-secondary); font-variant-numeric: tabular-nums; }
+
+.quick-add {
+  position: absolute;
+  bottom: 102px; left: 16px; right: 16px;
+  background: rgba(255,255,255,0.92);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border: 0.5px solid var(--separator);
+  border-radius: 999px;
+  padding: 10px 14px;
+  display: flex; align-items: center; gap: 10px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  z-index: 40;
+}
+[data-theme="dark"] .quick-add { background: rgba(28,28,30,0.92); }
+.quick-add input {
+  flex: 1; border: none; outline: none; background: transparent;
+  font: inherit; font-size: 15px; color: var(--label);
+}
+.quick-add input::placeholder { color: var(--label-tertiary); }
+.quick-add .mic {
+  width: 32px; height: 32px;
+  border-radius: 999px;
+  background: var(--accent);
+  display: grid; place-items: center;
+  cursor: pointer;
+}
+.quick-add .mic svg { width: 14px; height: 14px; stroke: white; stroke-width: 2.2; fill: none; }
+
+/* ============= TAREAS ============= */
+.task-row {
+  background: var(--bg-card);
+  padding: 12px 16px;
+  display: flex; align-items: center; gap: 12px;
+  border-bottom: 0.5px solid var(--separator);
+}
+.task-section .task-row:first-of-type { border-radius: var(--r-lg) var(--r-lg) 0 0; }
+.task-section .task-row:last-of-type { border-radius: 0 0 var(--r-lg) var(--r-lg); border-bottom: none; }
+.task-section { margin: 0 16px 16px; }
+.task-content { flex: 1; min-width: 0; }
+.task-title { font-size: 15px; color: var(--label); }
+.task-meta { font-size: 12px; color: var(--label-secondary); margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+.task-meta .dot { width: 3px; height: 3px; border-radius: 999px; background: var(--label-tertiary); }
+.task-row.done .task-title { color: var(--label-tertiary); text-decoration: line-through; }
+
+.balance-card {
+  background: var(--bg-card);
+  border-radius: var(--r-xl);
+  margin: 0 16px 16px;
+  padding: 16px;
+}
+.balance-row {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 12px;
+}
+.balance-row:first-of-type { margin-top: 14px; }
+.balance-row .who { width: 60px; font-size: 13px; color: var(--label); font-weight: 500; }
+.balance-row .bar {
+  flex: 1; height: 8px;
+  background: var(--fill-3);
+  border-radius: 4px; overflow: hidden;
+}
+.balance-row .bar span { display: block; height: 100%; border-radius: 4px; }
+.balance-row .bar .ru-fill { background: var(--blue); }
+.balance-row .bar .ma-fill { background: var(--pink); }
+.balance-row .pct { width: 40px; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--label-secondary); }
+
+/* ============= CALENDARIO ============= */
+.cal-month-head {
+  padding: 6px 20px 12px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.cal-month-head .month { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+.cal-month-head .nav { display: flex; gap: 18px; align-items: center; color: var(--accent); }
+.cal-month-head .nav svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2.4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+.cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); padding: 0 12px; }
+.cal-weekdays div { text-align: center; padding: 6px 0; font-size: 11px; font-weight: 600; color: var(--label-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); padding: 0 8px; gap: 2px; }
+.cal-day {
+  aspect-ratio: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 17px;
+  color: var(--label);
+  position: relative;
+}
+.cal-day.muted { color: var(--label-tertiary); }
+.cal-day.today {
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+}
+.cal-day.selected {
+  background: var(--fill-2);
+  font-weight: 600;
+}
+.cal-day .dots { display: flex; gap: 2px; height: 4px; align-items: center; }
+.cal-day .dots span { width: 4px; height: 4px; border-radius: 999px; }
+.cal-day.today .dots span { background: white !important; }
+.dot-ru { background: var(--blue); }
+.dot-ma { background: var(--pink); }
+.dot-shared { background: var(--accent); }
+
+.cal-divider { height: 6px; background: var(--bg-grouped); margin: 8px 0 0; }
+
+.agenda-day { padding: 14px 20px 8px; font-size: 15px; font-weight: 600; }
+.agenda-list { padding: 0 16px; }
+.agenda-item {
+  display: flex; align-items: stretch; gap: 12px;
+  padding: 10px 4px;
+  border-bottom: 0.5px solid var(--separator);
+}
+.agenda-item:last-child { border-bottom: none; }
+.agenda-item .ag-time {
+  font-size: 13px; font-weight: 600;
+  color: var(--label-secondary);
+  width: 48px; flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  padding-top: 2px;
+}
+.agenda-item .ag-stripe { width: 3px; border-radius: 2px; flex-shrink: 0; }
+.agenda-item .ag-stripe.ru { background: var(--blue); }
+.agenda-item .ag-stripe.ma { background: var(--pink); }
+.agenda-item .ag-stripe.shared { background: var(--accent); }
+.agenda-item .ag-content { flex: 1; }
+.agenda-item .ag-title { font-size: 15px; font-weight: 500; }
+.agenda-item .ag-place { font-size: 13px; color: var(--label-secondary); margin-top: 2px; }
+
+/* ============= UPLOAD TICKET CARD (Compra) ============= */
+.upload-ticket {
+  margin: 0 16px 16px;
+  background: linear-gradient(135deg, var(--accent) 0%, #2A6E75 100%);
+  border-radius: var(--r-xl);
+  padding: 14px 16px;
+  color: white;
+  box-shadow: 0 6px 20px rgba(31,77,82,0.20);
+}
+.upload-ticket .uh {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 10px;
+}
+.upload-ticket .uh .icon {
+  width: 32px; height: 32px;
+  background: rgba(255,255,255,0.18);
+  border-radius: 10px;
+  display: grid; place-items: center;
+}
+.upload-ticket .uh .icon svg { width: 18px; height: 18px; stroke: white; stroke-width: 2; fill: none; }
+.upload-ticket .uh .title { font-size: 15px; font-weight: 600; }
+.upload-ticket .uh .sub { font-size: 12px; opacity: 0.85; margin-top: 1px; }
+.upload-actions { display: flex; gap: 6px; }
+.upload-btn {
+  flex: 1;
+  background: rgba(255,255,255,0.18);
+  border: none; cursor: pointer;
+  padding: 8px 8px;
+  border-radius: 10px;
+  color: white;
+  font: inherit; font-size: 12px; font-weight: 500;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  transition: background 0.15s ease;
+}
+.upload-btn:hover { background: rgba(255,255,255,0.28); }
+.upload-btn svg { width: 18px; height: 18px; stroke: white; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ============= HEADER BD BUTTON (Compra) ============= */
+.header-icon-btn {
+  width: 32px; height: 32px;
+  border-radius: 999px;
+  background: var(--fill-3);
+  display: grid; place-items: center;
+  cursor: pointer; border: none;
+  color: var(--accent);
+}
+.header-icon-btn svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ============= EDIT PRESUPUESTO BUTTON (Gastos) ============= */
+.budget-edit {
+  position: absolute; top: 14px; right: 14px;
+  width: 30px; height: 30px;
+  border-radius: 999px;
+  background: var(--fill-3);
+  display: grid; place-items: center;
+  cursor: pointer; border: none;
+  color: var(--label-secondary);
+}
+.budget-edit svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2; fill: none; }
+
+.card.relative { position: relative; }
+
+/* ============= BOTTOM SHEET ============= */
+.sheet-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.40);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s ease;
+  z-index: 100;
+  border-radius: 46px;
+  overflow: hidden;
+}
+.sheet-backdrop.open { opacity: 1; pointer-events: auto; }
+
+.sheet {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: var(--bg-app);
+  border-radius: 14px 14px 0 0;
+  max-height: 88%;
+  display: flex; flex-direction: column;
+  transform: translateY(100%);
+  transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+  overflow: hidden;
+}
+[data-theme="dark"] .sheet { background: #1C1C1E; }
+.sheet-backdrop.open .sheet { transform: translateY(0); }
+
+.sheet-handle {
+  width: 36px; height: 5px;
+  background: var(--label-quaternary);
+  border-radius: 999px;
+  margin: 8px auto 4px;
+  flex-shrink: 0;
+}
+
+.sheet-head {
+  padding: 12px 20px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 0.5px solid var(--separator);
+  flex-shrink: 0;
+}
+.sheet-head .title {
+  font-size: 17px; font-weight: 600; letter-spacing: -0.2px;
+  color: var(--label);
+}
+.sheet-head .done {
+  font-size: 16px; font-weight: 600; color: var(--accent);
+  border: none; background: none; cursor: pointer;
+}
+.sheet-head .cancel {
+  font-size: 16px; color: var(--accent);
+  border: none; background: none; cursor: pointer;
+}
+
+.sheet-body {
+  flex: 1; overflow-y: auto; padding: 0 0 32px;
+}
+
+/* Action sheet (Apple-style) */
+.action-sheet {
+  position: absolute; bottom: 8px; left: 8px; right: 8px;
+  background: transparent;
+  transform: translateY(120%);
+  transition: transform 0.30s cubic-bezier(0.32, 0.72, 0, 1);
+  z-index: 110;
+  border-radius: 14px;
+}
+.sheet-backdrop.open .action-sheet { transform: translateY(0); }
+
+.action-group {
+  background: rgba(255,255,255,0.85);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(180%);
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+[data-theme="dark"] .action-group { background: rgba(44,44,46,0.85); }
+.action-title {
+  text-align: center; padding: 14px 16px 8px;
+  font-size: 13px; color: var(--label-secondary);
+  border-bottom: 0.5px solid var(--separator);
+}
+.action-btn {
+  width: 100%; padding: 16px;
+  border: none; background: transparent;
+  font: inherit; font-size: 18px; font-weight: 400;
+  color: var(--accent);
+  cursor: pointer;
+  border-bottom: 0.5px solid var(--separator);
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.action-btn:last-child { border-bottom: none; }
+.action-btn:hover { background: rgba(0,0,0,0.04); }
+.action-btn.danger { color: var(--red); }
+.action-btn.bold { font-weight: 600; }
+.action-btn svg { width: 22px; height: 22px; stroke: currentColor; stroke-width: 1.7; fill: none; }
+
+/* ============= SEARCH BAR ============= */
+.search-bar {
+  margin: 8px 16px 12px;
+  background: var(--fill-3);
+  border-radius: 10px;
+  padding: 8px 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.search-bar svg { width: 16px; height: 16px; stroke: var(--label-secondary); stroke-width: 2; fill: none; flex-shrink: 0; }
+.search-bar input {
+  flex: 1; border: none; background: transparent;
+  font: inherit; font-size: 15px; color: var(--label); outline: none;
+}
+.search-bar input::placeholder { color: var(--label-tertiary); }
+
+/* ============= BD PRODUCTOS ============= */
+.product-row {
+  padding: 12px 20px;
+  display: flex; align-items: center; gap: 12px;
+  border-bottom: 0.5px solid var(--separator);
+  cursor: pointer;
+}
+.product-row:hover { background: var(--fill-4); }
+.product-row .info { flex: 1; min-width: 0; }
+.product-row .pname { font-size: 16px; font-weight: 500; }
+.product-row .pmeta { font-size: 12px; color: var(--label-secondary); margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+.product-row .pmeta .badge {
+  font-size: 10px; font-weight: 600; padding: 1px 5px;
+  background: var(--red); color: white; border-radius: 4px;
+}
+.product-row .pmeta .badge.ok { background: var(--green); }
+.product-row .ptrail { text-align: right; flex-shrink: 0; }
+.product-row .pprice { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.product-row .pchange { font-size: 11px; font-weight: 500; }
+.product-row .pchange.up { color: var(--red); }
+.product-row .pchange.down { color: var(--green); }
+
+/* Mini sparkline */
+.sparkline {
+  width: 48px; height: 18px;
+}
+
+/* ============= BUDGET EDITOR ============= */
+.budget-row-edit {
+  padding: 14px 16px;
+  display: flex; align-items: center; gap: 12px;
+  background: var(--bg-card);
+  border-bottom: 0.5px solid var(--separator);
+}
+.budget-row-edit:first-of-type { border-radius: var(--r-lg) var(--r-lg) 0 0; }
+.budget-row-edit:last-of-type { border-radius: 0 0 var(--r-lg) var(--r-lg); border-bottom: none; }
+.budget-row-edit .info { flex: 1; }
+.budget-row-edit .bname { font-size: 15px; font-weight: 500; }
+.budget-row-edit .bspent { font-size: 12px; color: var(--label-secondary); margin-top: 2px; }
+.budget-row-edit .stepper {
+  display: flex; align-items: center; gap: 0;
+  background: var(--fill-3);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.budget-row-edit .stepper button {
+  width: 30px; height: 30px;
+  border: none; background: none;
+  font: inherit; font-size: 18px; font-weight: 500;
+  color: var(--accent);
+  cursor: pointer;
+}
+.budget-row-edit .stepper .val {
+  min-width: 64px; text-align: center;
+  font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums;
+  color: var(--label);
+  border-left: 0.5px solid var(--separator);
+  border-right: 0.5px solid var(--separator);
+  padding: 6px 8px;
+}
+
+.budget-summary {
+  padding: 16px;
+  margin: 0 16px 16px;
+  background: var(--accent-soft);
+  border-radius: var(--r-lg);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.budget-summary .label { font-size: 12px; color: var(--label-secondary); text-transform: uppercase; letter-spacing: 0.4px; }
+.budget-summary .total { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--accent); margin-top: 2px; }
+
+/* ============= SUPER BADGES & RANKINGS ============= */
+.super-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 11px; font-weight: 600;
+  color: white;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.1px;
+}
+.super-badge.mercadona { background: #FF6B00; }
+.super-badge.dia { background: #1F8C4D; }
+.super-badge.lidl { background: #0050AA; }
+.super-badge.carrefour { background: #E2001A; }
+.super-badge.alcampo { background: #C8102E; }
+.super-badge.eroski { background: #ED1C24; }
+.super-badge.aldi { background: #00488C; }
+
+.super-logo {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  display: grid; place-items: center;
+  color: white; font-weight: 700; font-size: 13px;
+  flex-shrink: 0;
+  letter-spacing: -0.4px;
+}
+.super-logo.mercadona { background: #FF6B00; }
+.super-logo.dia { background: #1F8C4D; }
+.super-logo.lidl { background: #0050AA; }
+.super-logo.carrefour { background: #E2001A; }
+.super-logo.alcampo { background: #C8102E; }
+.super-logo.eroski { background: #ED1C24; }
+.super-logo.aldi { background: #00488C; }
+
+.best-super-card {
+  margin: 8px 16px 16px;
+  background: linear-gradient(135deg, #1F8C4D 0%, #2EB766 100%);
+  border-radius: var(--r-xl);
+  padding: 16px;
+  color: white;
+  box-shadow: 0 8px 24px rgba(31,140,77,0.25);
+}
+.best-super-card .head {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 12px;
+}
+.best-super-card .crown {
+  width: 36px; height: 36px;
+  background: rgba(255,255,255,0.20);
+  border-radius: 10px;
+  display: grid; place-items: center;
+}
+.best-super-card .crown svg { width: 20px; height: 20px; stroke: white; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.best-super-card .label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  opacity: 0.85;
+  font-weight: 500;
+}
+.best-super-card .super-name {
+  font-size: 24px; font-weight: 700; letter-spacing: -0.4px;
+  margin-top: 2px;
+}
+.best-super-card .stats {
+  display: flex; gap: 18px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.20);
+}
+.best-super-card .stat .num { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.best-super-card .stat .lbl { font-size: 11px; opacity: 0.85; margin-top: 1px; }
+
+.super-rank-row {
+  padding: 12px 16px;
+  display: flex; align-items: center; gap: 12px;
+  border-bottom: 0.5px solid var(--separator);
+  cursor: pointer;
+}
+.super-rank-row:last-child { border-bottom: none; }
+.super-rank-row:hover { background: var(--fill-4); }
+.super-rank-row .rank-num {
+  font-size: 17px; font-weight: 700;
+  width: 20px; text-align: center;
+  color: var(--label-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.super-rank-row .sname-block { flex: 1; min-width: 0; }
+.super-rank-row .sname-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 4px;
+}
+.super-rank-row .sname { font-size: 16px; font-weight: 600; }
+.super-rank-row .smeta { font-size: 12px; color: var(--label-secondary); }
+.super-rank-row .sbar {
+  height: 4px; background: var(--fill-3);
+  border-radius: 2px; overflow: hidden; margin-top: 6px;
+}
+.super-rank-row .sbar span { display: block; height: 100%; border-radius: 2px; }
+.super-rank-row .strail {
+  text-align: right; flex-shrink: 0;
+}
+.super-rank-row .scount {
+  font-size: 17px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--label);
+}
+.super-rank-row .ssavings {
+  font-size: 11px; color: var(--green); font-weight: 500;
+  margin-top: 1px;
+}
+
+.tip-card {
+  margin: 0 16px 16px;
+  background: var(--accent-soft);
+  border-radius: var(--r-lg);
+  padding: 14px 16px;
+  display: flex; align-items: flex-start; gap: 12px;
+}
+.tip-card .ti-icon {
+  width: 28px; height: 28px;
+  background: var(--accent);
+  color: white;
+  border-radius: 8px;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+.tip-card .ti-icon svg { width: 14px; height: 14px; stroke: white; stroke-width: 2; fill: none; }
+.tip-card .ti-text {
+  font-size: 13px;
+  color: var(--label);
+  line-height: 1.5;
+}
+.tip-card .ti-text strong { color: var(--accent); }
+
+/* Segmented inside sheet */
+.sheet-segmented {
+  display: flex;
+  background: var(--fill-3);
+  border-radius: 9px;
+  padding: 2px;
+  margin: 0 16px 12px;
+}
+.sheet-segmented button {
+  flex: 1; border: none; background: none;
+  padding: 7px 10px;
+  font: inherit; font-size: 14px; font-weight: 500;
+  color: var(--label);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.sheet-segmented button.on {
+  background: var(--bg-card);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+}
+
+.subview { display: none; }
+.subview.active { display: block; }
+
+/* Enhanced product row */
+.product-row .cheapest {
+  font-size: 11px;
+  color: var(--label-secondary);
+  margin-top: 4px;
+  display: flex; align-items: center; gap: 6px;
+}
+
+/* ============= PRODUCT DETAIL ============= */
+.product-detail .hero {
+  background: var(--bg-card);
+  margin: 16px;
+  padding: 16px;
+  border-radius: var(--r-xl);
+}
+.product-detail .hero .pname { font-size: 20px; font-weight: 600; letter-spacing: -0.2px; }
+.product-detail .hero .pbrand { font-size: 13px; color: var(--label-secondary); margin-top: 2px; }
+.product-detail .hero .pchart {
+  height: 80px;
+  margin: 14px 0 8px;
+}
+.product-detail .hero .pstat {
+  display: flex; justify-content: space-between;
+  font-size: 13px; color: var(--label-secondary);
+}
+.product-detail .hero .pstat strong { color: var(--label); font-size: 15px; font-variant-numeric: tabular-nums; }
+
+.supers-list {
+  margin: 0 16px 16px;
+  background: var(--bg-card);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.super-row {
+  padding: 12px 16px;
+  display: flex; align-items: center; gap: 12px;
+  border-bottom: 0.5px solid var(--separator);
+}
+.super-row:last-child { border-bottom: none; }
+.super-row .sname { flex: 1; font-size: 15px; font-weight: 500; }
+.super-row .sprice { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.super-row .sdate { font-size: 11px; color: var(--label-tertiary); margin-left: 8px; }
+.super-row.best { background: rgba(52,199,89,0.08); }
+.super-row.best .sprice { color: var(--green); }
+
+/* ============= OCR PROCESSING ============= */
+.ocr-result {
+  margin: 0 16px;
+}
+.ocr-receipt {
+  background: var(--bg-card);
+  padding: 16px;
+  border-radius: var(--r-lg);
+  margin-bottom: 12px;
+}
+.ocr-status {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; color: var(--green);
+  margin-bottom: 12px;
+}
+.ocr-status svg { width: 18px; height: 18px; stroke: var(--green); stroke-width: 2.2; fill: none; }
+.ocr-meta {
+  display: flex; justify-content: space-between;
+  font-size: 13px; padding: 6px 0;
+  border-bottom: 0.5px solid var(--separator);
+}
+.ocr-meta:last-of-type { border-bottom: none; }
+.ocr-meta .l { color: var(--label-secondary); }
+.ocr-meta .v { color: var(--label); font-weight: 500; }
+
+.ocr-items {
+  background: var(--bg-card);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.ocr-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 0.5px solid var(--separator);
+}
+.ocr-item:last-child { border-bottom: none; }
+.ocr-item .check {
+  width: 22px; height: 22px; border-radius: 999px;
+  background: var(--accent); display: grid; place-items: center;
+  flex-shrink: 0;
+}
+.ocr-item .check::after {
+  content: ''; width: 10px; height: 6px;
+  border: 2px solid white; border-top: none; border-right: none;
+  transform: rotate(-45deg) translate(1px,-1px);
+}
+.ocr-item .name { flex: 1; font-size: 14px; }
+.ocr-item .price { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.primary-cta {
+  margin: 0 16px;
+  background: var(--accent);
+  color: white;
+  border: none; cursor: pointer;
+  padding: 14px;
+  border-radius: 14px;
+  font: inherit; font-size: 16px; font-weight: 600;
+  text-align: center;
+  width: calc(100% - 32px);
+}
+
+/* ============= LUZ (precios electricidad) ============= */
+.luz-hero {
+  margin: 8px 16px 12px;
+  border-radius: var(--r-xl);
+  padding: 16px;
+  color: white;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  background: linear-gradient(135deg, #34C759 0%, #2BA84A 100%);
+  transition: background 0.3s ease;
+}
+.luz-hero.mid { background: linear-gradient(135deg, #FF9500 0%, #E8850B 100%); }
+.luz-hero.hi  { background: linear-gradient(135deg, #FF3B30 0%, #D9281E 100%); }
+.luz-hero-top { display: flex; align-items: flex-start; justify-content: space-between; }
+.luz-hero-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; opacity: 0.9; font-weight: 500; }
+.luz-hero-price { font-size: 34px; font-weight: 700; letter-spacing: -0.6px; margin-top: 2px; font-variant-numeric: tabular-nums; line-height: 1; }
+.luz-hero-price small { font-size: 15px; font-weight: 600; opacity: 0.9; letter-spacing: 0; }
+.luz-status {
+  font-size: 13px; font-weight: 700;
+  background: rgba(255,255,255,0.22);
+  padding: 5px 12px; border-radius: 999px;
+  letter-spacing: -0.1px; white-space: nowrap;
+}
+.luz-hero-foot {
+  display: flex; justify-content: space-between;
+  font-size: 13px; opacity: 0.95;
+  margin-top: 14px; padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.22);
+  font-variant-numeric: tabular-nums;
+}
+
+.luz-quick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 16px 8px; }
+.luz-quick-item { background: var(--bg-card); border-radius: var(--r-lg); padding: 12px; display: flex; flex-direction: column; gap: 2px; }
+.luz-quick-item .lq-label { font-size: 11px; color: var(--label-secondary); text-transform: uppercase; letter-spacing: 0.4px; font-weight: 500; }
+.luz-quick-item .lq-value { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; font-variant-numeric: tabular-nums; }
+.luz-quick-item .lq-price { font-size: 13px; font-variant-numeric: tabular-nums; font-weight: 500; }
+.luz-quick-item.cheap .lq-value, .luz-quick-item.cheap .lq-price { color: var(--green); }
+.luz-quick-item.exp .lq-value, .luz-quick-item.exp .lq-price { color: var(--red); }
+
+/* Hourly bar chart */
+.luz-chart {
+  display: flex; align-items: flex-end; gap: 2px;
+  height: 132px; padding-top: 18px;
+}
+.luz-bar { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; position: relative; cursor: pointer; }
+.luz-bar .fill { width: 100%; border-radius: 3px 3px 1px 1px; min-height: 3px; background: var(--green); transition: opacity 0.15s ease; }
+.luz-bar.mid .fill { background: var(--orange); }
+.luz-bar.hi .fill { background: var(--red); }
+.luz-bar.now .fill { outline: 2px solid var(--label); outline-offset: 1px; }
+.luz-bar:hover .fill { opacity: 0.65; }
+.luz-bar .bubble {
+  position: absolute; top: -16px; left: 50%; transform: translateX(-50%);
+  font-size: 10px; font-weight: 700; color: var(--label);
+  background: var(--fill-2); padding: 1px 5px; border-radius: 999px;
+  white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.luz-axis { display: flex; justify-content: space-between; margin-top: 8px; font-size: 10px; color: var(--label-tertiary); font-variant-numeric: tabular-nums; padding: 0 2px; }
+.luz-legend { display: flex; justify-content: center; gap: 16px; margin-top: 12px; font-size: 12px; color: var(--label-secondary); }
+.luz-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.luz-legend i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+.luz-legend i.ok { background: var(--green); }
+.luz-legend i.mid { background: var(--orange); }
+.luz-legend i.hi { background: var(--red); }
+
+/* Appliance recommendation cards */
+.luz-appliances { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 16px 16px; }
+.luz-appliance {
+  background: var(--bg-card); border-radius: var(--r-lg); padding: 12px;
+  display: flex; flex-direction: column; gap: 6px; cursor: pointer;
+  border: 0.5px solid transparent; transition: border-color 0.15s ease;
+}
+.luz-appliance:hover { border-color: var(--separator); }
+.luz-appliance .la-head { display: flex; align-items: center; gap: 8px; }
+.luz-appliance .la-name { font-size: 14px; font-weight: 600; letter-spacing: -0.2px; }
+.luz-appliance .la-window { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--accent); }
+.luz-appliance .la-meta { font-size: 12px; color: var(--label-secondary); font-variant-numeric: tabular-nums; }
+.luz-appliance .la-save { font-size: 12px; font-weight: 600; color: var(--green); }
+
+/* Planner sheet */
+.luz-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 16px 16px; }
+.luz-pick {
+  background: var(--bg-card); border-radius: var(--r-lg); padding: 14px 12px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  border: 1.5px solid transparent; cursor: pointer; font: inherit;
+  color: var(--label); transition: all 0.15s ease;
+}
+.luz-pick.on { border-color: var(--accent); background: var(--accent-soft); }
+.luz-pick .lp-name { font-size: 13px; font-weight: 500; }
+.luz-result {
+  margin: 0 16px 16px; background: var(--accent-soft);
+  border-radius: var(--r-xl); padding: 16px;
+}
+.luz-result .lr-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--label-secondary); font-weight: 500; }
+.luz-result .lr-window { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; color: var(--accent); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.luz-result .lr-stats { display: flex; gap: 20px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--separator); }
+.luz-result .lr-stat .num { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.luz-result .lr-stat .lbl { font-size: 11px; color: var(--label-secondary); margin-top: 1px; }
+
+/* Toggle (reused) */
+.luz-toggle { width: 44px; height: 26px; border-radius: 999px; position: relative; flex-shrink: 0; background: var(--fill-2); cursor: pointer; transition: background 0.2s ease; }
+.luz-toggle .knob { position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; background: white; border-radius: 999px; box-shadow: 0 1px 3px rgba(0,0,0,0.20); transition: left 0.2s ease; }
+.luz-toggle.on { background: var(--accent); }
+.luz-toggle.on .knob { left: 20px; }
+
+/* ============= RESPONSIVE ============= */
+@media (max-width: 1100px) {
+  .stage { grid-template-columns: 1fr; gap: var(--sp-6); padding: var(--sp-4); }
+  .panel-left, .panel-right { justify-self: center; }
+}
+@media (max-width: 440px) {
+  .phone { width: 100vw; height: 100vh; border-radius: 0; padding: 0; box-shadow: none; }
+  .phone-screen { border-radius: 0; }
+  .dynamic-island { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <!-- LEFT PANEL: brand + screen nav -->
+  <aside class="panel-left">
+    <div class="brand-mark">
+      <div class="logo">H</div>
+      <div>
+        <h1>Homie</h1>
+        <div class="ver">Mockups · Apple HIG · v1.4</div>
+      </div>
+    </div>
+    <p>Prototipo navegable de las 6 pantallas principales. Toca las pestañas inferiores o usa el menú lateral para cambiar.</p>
+    <ul class="screen-list" id="screenList">
+      <li data-screen="inicio" class="active"><span class="num">1</span> Inicio</li>
+      <li data-screen="gastos"><span class="num">2</span> Gastos</li>
+      <li data-screen="compra"><span class="num">3</span> Compra</li>
+      <li data-screen="tareas"><span class="num">4</span> Tareas</li>
+      <li data-screen="calendario"><span class="num">5</span> Calendario</li>
+      <li data-screen="luz"><span class="num">6</span> Luz</li>
+    </ul>
+    <p class="tip">Todos los datos son ejemplos. Tipografía SF Pro · Squircles continuos · Materiales translúcidos · Spring animations.</p>
+  </aside>
+
+  <!-- PHONE -->
+  <div class="phone">
+    <div class="phone-screen">
+      <div class="dynamic-island"></div>
+
+      <div class="status-bar">
+        <span class="time">9:41</span>
+        <span class="right">
+          <!-- signal -->
+          <svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="0.5"/><rect x="4" y="6" width="3" height="6" rx="0.5"/><rect x="8" y="3" width="3" height="9" rx="0.5"/><rect x="12" y="0" width="3" height="12" rx="0.5"/></svg>
+          <!-- wifi -->
+          <svg viewBox="0 0 16 12"><path d="M8 11.5a1.4 1.4 0 100-2.8 1.4 1.4 0 000 2.8zM3.5 6.5a6.4 6.4 0 019 0M.5 3.5a10.6 10.6 0 0115 0" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <!-- battery -->
+          <svg viewBox="0 0 26 12" width="26"><rect x="0.5" y="0.5" width="22" height="11" rx="2.5" fill="none" stroke="currentColor"/><rect x="2" y="2" width="18" height="8" rx="1.2" fill="currentColor"/><rect x="23" y="3.5" width="2" height="5" rx="1" fill="currentColor" opacity="0.5"/></svg>
+        </span>
+      </div>
+
+      <div class="screen-area" id="screenArea">
+
+        <!-- ============= INICIO ============= -->
+        <section class="screen active" id="screen-inicio">
+          <div class="greeting">
+            <div class="text">
+              <div class="hello">Hola, Ruben 👋</div>
+              <div class="home-name">Casa Ruben · María</div>
+            </div>
+            <div class="avatar-pair">
+              <div class="avatar ru">R</div>
+              <div class="avatar ma">M</div>
+            </div>
+          </div>
+
+          <div class="tile-grid">
+            <div class="tile">
+              <div class="t-label">Gastos mes</div>
+              <div>
+                <div class="t-value">1.240€</div>
+                <div class="t-trend up">+12% vs abril</div>
+              </div>
+            </div>
+            <div class="tile">
+              <div class="t-label">Tareas hoy</div>
+              <div>
+                <div class="t-value">2</div>
+                <div class="t-trend">1 tuya · 1 María</div>
+              </div>
+            </div>
+            <div class="tile">
+              <div class="t-label">Compra</div>
+              <div>
+                <div class="t-value">8</div>
+                <div class="t-trend">Mercadona, jueves</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title">Hoy · jueves 14</div>
+              <span class="card-action">Ver todo</span>
+            </div>
+            <div class="event-row">
+              <div class="stripe ma"></div>
+              <div class="when">09:00</div>
+              <div>
+                <div class="what">Reunión equipo</div>
+                <div class="who">María · Google Meet</div>
+              </div>
+            </div>
+            <div class="event-row">
+              <div class="stripe ru"></div>
+              <div class="when">19:00</div>
+              <div>
+                <div class="what">Pasar aspirador</div>
+                <div class="who">Tarea · tú</div>
+              </div>
+            </div>
+            <div class="event-row">
+              <div class="stripe shared"></div>
+              <div class="when">21:00</div>
+              <div>
+                <div class="what">Cena con Marta y Carlos</div>
+                <div class="who">La Tagliatella · 4 personas</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title">Pendientes de compra</div>
+              <span class="card-action">Ver lista</span>
+            </div>
+            <div class="event-row">
+              <div class="icon-tile gray" style="margin-right: -4px">
+                <svg viewBox="0 0 24 24"><path d="M3 7h18M5 7l1 12a2 2 0 002 2h8a2 2 0 002-2l1-12M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2"/></svg>
+              </div>
+              <div style="flex:1">
+                <div class="what">Leche entera 1 L · Pan integral · Huevos M…</div>
+                <div class="who">8 productos en Mercadona</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title">Quién debe a quién</div>
+            </div>
+            <div class="event-row" style="border-bottom: none; padding: 4px 0;">
+              <div class="avatar sm ma">M</div>
+              <div style="flex:1">
+                <div class="what">María te debe <strong style="color: var(--accent)">47,50 €</strong></div>
+                <div class="who">Cena Tagliatella (compartido)</div>
+              </div>
+              <button class="pill">Liquidar</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============= GASTOS ============= -->
+        <section class="screen" id="screen-gastos">
+          <div class="screen-header">
+            <div class="large-title">Gastos</div>
+            <div style="margin-top: 8px;">
+              <button class="pill">Mayo 2026
+                <svg viewBox="0 0 12 12"><path d="M3 5l3 3 3-3"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="card relative">
+            <button class="budget-edit" data-open-sheet="budget-edit" title="Editar presupuesto">
+              <svg viewBox="0 0 24 24"><path d="M11 4H5a2 2 0 00-2 2v13a2 2 0 002 2h13a2 2 0 002-2v-6M19 3l3 3L11 17H8v-3L19 3z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="budget-big">
+              <div>
+                <div style="font-size: 12px; color: var(--label-secondary); margin-bottom: 4px;">PRESUPUESTO MENSUAL</div>
+                <div class="amount">1.240€</div>
+              </div>
+              <div class="of">de 1.500€</div>
+            </div>
+            <div class="progress warn"><span style="width: 83%"></span></div>
+            <div class="budget-foot">
+              <span>83% usado</span>
+              <span>260 € restantes</span>
+            </div>
+          </div>
+
+          <div class="section-title" style="display:flex; justify-content: space-between; align-items: baseline;">
+            <span>Por categoría</span>
+            <button class="pill" data-open-sheet="budget-edit" style="background: var(--accent-soft); color: var(--accent); font-weight: 600;">
+              <svg viewBox="0 0 12 12" style="width:10px;height:10px;stroke:currentColor;stroke-width:2;fill:none"><path d="M2 6h8M6 2v8"/></svg>
+              Editar presupuesto
+            </button>
+          </div>
+          <div class="cat-grid">
+            <div class="cat-tile">
+              <div class="ct-head">
+                <div class="icon-tile orange" style="width:24px;height:24px;border-radius:6px">
+                  <svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M5 8h14l-1 12H6L5 8zM8 8V5a2 2 0 012-2h4a2 2 0 012 2v3"/></svg>
+                </div>
+                <span class="ct-name">Alimentación</span>
+              </div>
+              <div class="ct-amt">320€ <span class="ct-of">/ 400€</span></div>
+              <div class="progress ok"><span style="width:80%"></span></div>
+            </div>
+            <div class="cat-tile">
+              <div class="ct-head">
+                <div class="icon-tile red" style="width:24px;height:24px;border-radius:6px">
+                  <svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M4 11h16M5 11V8a2 2 0 012-2h10a2 2 0 012 2v3M5 11v6a2 2 0 002 2h10a2 2 0 002-2v-6"/></svg>
+                </div>
+                <span class="ct-name">Restaurantes</span>
+              </div>
+              <div class="ct-amt">220€ <span class="ct-of">/ 200€</span></div>
+              <div class="progress over"><span style="width:100%"></span></div>
+            </div>
+            <div class="cat-tile">
+              <div class="ct-head">
+                <div class="icon-tile blue" style="width:24px;height:24px;border-radius:6px">
+                  <svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M3 11l9-7 9 7M5 10v9a1 1 0 001 1h12a1 1 0 001-1v-9"/></svg>
+                </div>
+                <span class="ct-name">Hogar</span>
+              </div>
+              <div class="ct-amt">450€ <span class="ct-of">/ 500€</span></div>
+              <div class="progress ok"><span style="width:90%"></span></div>
+            </div>
+            <div class="cat-tile">
+              <div class="ct-head">
+                <div class="icon-tile green" style="width:24px;height:24px;border-radius:6px">
+                  <svg viewBox="0 0 24 24" style="width:14px;height:14px"><circle cx="8" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M2 9h15l3 4v4h-3M10 17H6M2 9v8h2"/></svg>
+                </div>
+                <span class="ct-name">Transporte</span>
+              </div>
+              <div class="ct-amt">80€ <span class="ct-of">/ 150€</span></div>
+              <div class="progress ok"><span style="width:53%"></span></div>
+            </div>
+          </div>
+
+          <div class="debt-card">
+            <div class="avatar ma">M</div>
+            <div class="who">
+              <div class="label">María te debe</div>
+              <div class="amount"><strong>47,50 €</strong></div>
+            </div>
+            <button>Liquidar</button>
+          </div>
+
+          <div class="section-title">Movimientos recientes</div>
+          <div class="list-card">
+            <div class="list-row">
+              <div class="icon-tile orange">
+                <svg viewBox="0 0 24 24"><path d="M5 8h14l-1 12H6L5 8zM8 8V5a2 2 0 012-2h4a2 2 0 012 2v3"/></svg>
+              </div>
+              <div class="row-content">
+                <div class="row-title">Mercadona</div>
+                <div class="row-sub">Hoy · Ruben · Alimentación</div>
+              </div>
+              <div class="row-trailing" style="color: var(--red); font-weight:500">−54,30 €</div>
+            </div>
+            <div class="list-row">
+              <div class="icon-tile red">
+                <svg viewBox="0 0 24 24"><path d="M4 11h16M5 11V8a2 2 0 012-2h10a2 2 0 012 2v3M5 11v6a2 2 0 002 2h10a2 2 0 002-2v-6"/></svg>
+              </div>
+              <div class="row-content">
+                <div class="row-title">La Tagliatella</div>
+                <div class="row-sub">Ayer · María (compartido)</div>
+              </div>
+              <div class="row-trailing" style="color: var(--red); font-weight:500">−38,00 €</div>
+            </div>
+            <div class="list-row">
+              <div class="icon-tile blue">
+                <svg viewBox="0 0 24 24"><circle cx="8" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M2 9h15l3 4v4h-3M10 17H6M2 9v8h2"/></svg>
+              </div>
+              <div class="row-content">
+                <div class="row-title">Repsol gasolina</div>
+                <div class="row-sub">Ayer · Ruben · Transporte</div>
+              </div>
+              <div class="row-trailing" style="color: var(--red); font-weight:500">−45,00 €</div>
+            </div>
+            <div class="list-row">
+              <div class="icon-tile green">
+                <svg viewBox="0 0 24 24"><path d="M12 2v20M5 9l7-7 7 7"/></svg>
+              </div>
+              <div class="row-content">
+                <div class="row-title">Nómina mayo</div>
+                <div class="row-sub">Lunes · Ruben · Ingreso</div>
+              </div>
+              <div class="row-trailing" style="color: var(--green); font-weight:500">+1.850 €</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============= COMPRA ============= -->
+        <section class="screen" id="screen-compra">
+          <div class="screen-header">
+            <div style="display:flex; align-items: flex-end; justify-content: space-between;">
+              <div>
+                <div class="large-title">Compra</div>
+                <div class="subtitle-line">11 productos · sincronizado</div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <button class="header-icon-btn" data-open-sheet="productos" title="Base de datos de productos">
+                  <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>
+                </button>
+                <div class="avatar-pair">
+                  <div class="avatar sm ru">R</div>
+                  <div class="avatar sm ma">M</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Upload ticket card -->
+          <div class="upload-ticket">
+            <div class="uh">
+              <div class="icon">
+                <svg viewBox="0 0 24 24"><path d="M5 7l1.5-3h11L19 7M5 7h14v13a2 2 0 01-2 2H7a2 2 0 01-2-2V7zM8 11h8M8 15h5"/></svg>
+              </div>
+              <div style="flex:1">
+                <div class="title">Subir ticket</div>
+                <div class="sub">OCR automático · vincula precios y supermercado</div>
+              </div>
+            </div>
+            <div class="upload-actions">
+              <button class="upload-btn" data-open-sheet="ocr-result">
+                <svg viewBox="0 0 24 24"><path d="M3 9l3-3h4l1-2h4l1 2h4l3 3v10a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="14" r="4"/></svg>
+                Cámara
+              </button>
+              <button class="upload-btn" data-open-sheet="ocr-result">
+                <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8" cy="11" r="2"/><path d="M3 16l5-4 5 4 3-3 5 4"/></svg>
+                Galería
+              </button>
+              <button class="upload-btn" data-open-sheet="ocr-result">
+                <svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>
+                PDF
+              </button>
+            </div>
+          </div>
+
+          <div class="shop-list">
+            <div class="shop-section">
+              <div class="shop-head">
+                <div class="name">Mercadona</div>
+                <div class="when">Jueves · en 2 días</div>
+              </div>
+              <div class="shop-item">
+                <div class="shop-check"></div>
+                <div style="flex:1">
+                  <div class="name" style="font-size:15px">Leche entera 1 L</div>
+                  <div class="meta">Hacendado · última 1,15 €</div>
+                </div>
+                <div class="qty">×2</div>
+              </div>
+              <div class="shop-item">
+                <div class="shop-check"></div>
+                <div style="flex:1">
+                  <div class="name" style="font-size:15px">Pan integral</div>
+                  <div class="meta">Bimbo · última 2,10 €</div>
+                </div>
+                <div class="qty">×1</div>
+              </div>
+              <div class="shop-item">
+                <div class="shop-check"></div>
+                <div style="flex:1">
+                  <div class="name" style="font-size:15px">Huevos M docena</div>
+                  <div class="meta">📉 Oferta · 2,29 € (era 2,79 €)</div>
+                </div>
+                <div class="qty">×1</div>
+              </div>
+              <div class="shop-item">
+                <div class="shop-check"></div>
+                <div style="flex:1">
+                  <div class="name" style="font-size:15px">Plátanos 1 kg</div>
+                  <div class="meta">Canarios · última 1,89 €</div>
+                </div>
+                <div class="qty">×1</div>
+              </div>
+              <div class="shop-item">
+                <div class="shop-check"></div>
+                <div style="flex:1">
+                  <div class="name" style="font-size:15px">Yogur natural pack 8</div>
+                  <div class="meta">Hacendado · última 1,75 €</div>
+                </div>
+                <div class="qty">×1</div>
+              </div>
+              <div class="shop-item done">
+                <div class="shop-check done"></div>
+                <div style="flex:1">
+                  <div class="name" style="font-size:15px">Aceite oliva 1 L</div>
+                  <div class="meta">Comprado por María</div>
+                </div>
+                <div class="qty">✓</div>
+              </div>
+            </div>
+
+            <div class="shop-section">
+              <div class="shop-head">
+                <div class="name">Otros</div>
+                <div class="when">3 productos</div>
+              </div>
+              <div class="shop-item">
+                <div class="shop-check"></div>
+                <div style="flex:1">
+                  <div class="name" style="font-size:15px">Bombilla LED E27</div>
+                  <div class="meta">IKEA o Leroy Merlin</div>
+                </div>
+                <div class="qty">×3</div>
+              </div>
+              <div class="shop-item">
+                <div class="shop-check"></div>
+                <div style="flex:1">
+                  <div class="name" style="font-size:15px">Pothos para el salón</div>
+                  <div class="meta">Vivero del barrio</div>
+                </div>
+                <div class="qty">×1</div>
+              </div>
+              <div class="shop-item">
+                <div class="shop-check"></div>
+                <div style="flex:1">
+                  <div class="name" style="font-size:15px">Pilas AAA pack 4</div>
+                  <div class="meta">Para el mando de la tele</div>
+                </div>
+                <div class="qty">×1</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="quick-add">
+            <span style="color: var(--label-tertiary)">＋</span>
+            <input type="text" placeholder="Añadir a la lista…">
+            <div class="mic">
+              <svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 00-3 3v7a3 3 0 006 0V5a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v3M8 22h8"/></svg>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============= TAREAS ============= -->
+        <section class="screen" id="screen-tareas">
+          <div class="screen-header">
+            <div class="large-title">Tareas</div>
+            <div class="subtitle-line">5 pendientes · 3 esta semana</div>
+          </div>
+
+          <div class="segmented">
+            <button class="on">Hoy</button>
+            <button>Semana</button>
+            <button>Todas</button>
+          </div>
+
+          <div class="section-title">Hoy · jueves 14</div>
+          <div class="task-section">
+            <div class="task-row">
+              <div class="shop-check"></div>
+              <div class="task-content">
+                <div class="task-title">Sacar basura</div>
+                <div class="task-meta">
+                  <div class="avatar sm ru">R</div>
+                  <span>Tú</span><div class="dot"></div><span>rotativa</span><div class="dot"></div><span>20:00</span>
+                </div>
+              </div>
+              <div class="icon-tile" style="width:6px;height:6px;background:var(--orange);border-radius:999px"></div>
+            </div>
+            <div class="task-row">
+              <div class="shop-check"></div>
+              <div class="task-content">
+                <div class="task-title">Pasar aspirador salón y pasillo</div>
+                <div class="task-meta">
+                  <div class="avatar sm ma">M</div>
+                  <span>María</span><div class="dot"></div><span>19:00</span>
+                </div>
+              </div>
+            </div>
+            <div class="task-row done">
+              <div class="shop-check done"></div>
+              <div class="task-content">
+                <div class="task-title">Tender lavadora</div>
+                <div class="task-meta">
+                  <div class="avatar sm ru">R</div>
+                  <span>Tú</span><div class="dot"></div><span>completada 11:32</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">Mañana · viernes 15</div>
+          <div class="task-section">
+            <div class="task-row">
+              <div class="shop-check"></div>
+              <div class="task-content">
+                <div class="task-title">Llamar a la gestoría</div>
+                <div class="task-meta">
+                  <div class="avatar sm shared">RM</div>
+                  <span>Compartida</span>
+                </div>
+              </div>
+            </div>
+            <div class="task-row">
+              <div class="shop-check"></div>
+              <div class="task-content">
+                <div class="task-title">Cambiar bombilla del baño</div>
+                <div class="task-meta">
+                  <div class="avatar sm ru">R</div>
+                  <span>Tú</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">Esta semana</div>
+          <div class="task-section">
+            <div class="task-row">
+              <div class="shop-check"></div>
+              <div class="task-content">
+                <div class="task-title">Comprar regalo cumple Sara</div>
+                <div class="task-meta">
+                  <div class="avatar sm ma">M</div>
+                  <span>María</span><div class="dot"></div><span>sábado</span>
+                </div>
+              </div>
+            </div>
+            <div class="task-row">
+              <div class="shop-check"></div>
+              <div class="task-content">
+                <div class="task-title">Limpieza profunda baño</div>
+                <div class="task-meta">
+                  <div class="avatar sm shared">RM</div>
+                  <span>Compartida</span><div class="dot"></div><span>recurrente · sábados</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="balance-card">
+            <div class="card-head">
+              <div class="card-title">Equilibrio del hogar</div>
+              <span class="card-action">4 semanas</span>
+            </div>
+            <div class="balance-row">
+              <div class="who">Tú</div>
+              <div class="bar"><span class="ru-fill" style="width:55%"></span></div>
+              <div class="pct">55%</div>
+            </div>
+            <div class="balance-row">
+              <div class="who">María</div>
+              <div class="bar"><span class="ma-fill" style="width:45%"></span></div>
+              <div class="pct">45%</div>
+            </div>
+            <div style="font-size: 12px; color: var(--label-secondary); margin-top: 10px;">
+              Reparto bastante equilibrado. Sigue así. 🙌
+            </div>
+          </div>
+        </section>
+
+        <!-- ============= CALENDARIO ============= -->
+        <section class="screen" id="screen-calendario">
+          <div class="screen-header" style="padding-bottom: 0;">
+            <div class="large-title">Calendario</div>
+          </div>
+
+          <div class="cal-month-head">
+            <div class="month">Mayo 2026</div>
+            <div class="nav">
+              <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+            </div>
+          </div>
+
+          <div class="cal-weekdays">
+            <div>L</div><div>M</div><div>X</div><div>J</div><div>V</div><div>S</div><div>D</div>
+          </div>
+          <div class="cal-grid" id="calGrid">
+            <!-- Generated by JS -->
+          </div>
+
+          <div class="cal-divider"></div>
+
+          <div class="agenda-day">Jueves 14 de mayo</div>
+          <div class="agenda-list">
+            <div class="agenda-item">
+              <div class="ag-time">09:00</div>
+              <div class="ag-stripe ma"></div>
+              <div class="ag-content">
+                <div class="ag-title">Reunión equipo</div>
+                <div class="ag-place">María · Google Meet · 1 h</div>
+              </div>
+            </div>
+            <div class="agenda-item">
+              <div class="ag-time">14:30</div>
+              <div class="ag-stripe ru"></div>
+              <div class="ag-content">
+                <div class="ag-title">Comida con Carlos</div>
+                <div class="ag-place">Tú · Casa Pepe</div>
+              </div>
+            </div>
+            <div class="agenda-item">
+              <div class="ag-time">19:00</div>
+              <div class="ag-stripe ru"></div>
+              <div class="ag-content">
+                <div class="ag-title">Pasar aspirador</div>
+                <div class="ag-place">Tarea · tú</div>
+              </div>
+            </div>
+            <div class="agenda-item">
+              <div class="ag-time">21:00</div>
+              <div class="ag-stripe shared"></div>
+              <div class="ag-content">
+                <div class="ag-title">Cena con Marta y Carlos</div>
+                <div class="ag-place">La Tagliatella · Princesa, 5 · 4 personas</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============= LUZ ============= -->
+        <section class="screen" id="screen-luz">
+          <div class="screen-header">
+            <div class="large-title">Luz</div>
+            <div class="subtitle-line" id="luzSubtitle">PVPC · precio regulado · €/kWh</div>
+          </div>
+
+          <!-- Precio ahora -->
+          <div class="luz-hero" id="luzHero">
+            <div class="luz-hero-top">
+              <div>
+                <div class="luz-hero-label">Precio ahora</div>
+                <div class="luz-hero-price"><span id="luzNowPrice">0,000</span> <small>€/kWh</small></div>
+              </div>
+              <div class="luz-status" id="luzStatus">—</div>
+            </div>
+            <div class="luz-hero-foot">
+              <span id="luzNowHour">—</span>
+              <span id="luzNowVs">—</span>
+            </div>
+          </div>
+
+          <!-- Más barata / más cara -->
+          <div class="luz-quick">
+            <div class="luz-quick-item cheap">
+              <div class="lq-label">Hora más barata</div>
+              <div class="lq-value" id="luzCheapHour">—</div>
+              <div class="lq-price" id="luzCheapPrice">—</div>
+            </div>
+            <div class="luz-quick-item exp">
+              <div class="lq-label">Hora más cara</div>
+              <div class="lq-value" id="luzExpHour">—</div>
+              <div class="lq-price" id="luzExpPrice">—</div>
+            </div>
+          </div>
+
+          <!-- Selector día -->
+          <div class="segmented" id="luzDaySeg" style="margin-top: 12px;">
+            <button class="on" data-luz-day="today">Hoy</button>
+            <button data-luz-day="tomorrow">Mañana</button>
+          </div>
+
+          <!-- Gráfico por horas -->
+          <div class="section-title" id="luzChartTitle">Precio por horas · Hoy</div>
+          <div class="card">
+            <div class="luz-chart" id="luzChart"></div>
+            <div class="luz-axis"><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div>
+            <div class="luz-legend">
+              <span><i class="ok"></i>Barato</span>
+              <span><i class="mid"></i>Medio</span>
+              <span><i class="hi"></i>Caro</span>
+            </div>
+          </div>
+
+          <!-- Mejores tramos -->
+          <div class="section-title">Mejores tramos para consumir</div>
+          <div class="list-card" id="luzStretches"></div>
+
+          <!-- Electrodomésticos -->
+          <div class="section-title" style="display:flex; justify-content: space-between; align-items: baseline;">
+            <span>Electrodomésticos</span>
+            <button class="pill" data-open-sheet="luz-planner" style="background: var(--accent-soft); color: var(--accent); font-weight: 600;">
+              <svg viewBox="0 0 12 12" style="width:10px;height:10px;stroke:currentColor;stroke-width:2;fill:none"><path d="M2 6h8M6 2v8"/></svg>
+              Programar
+            </button>
+          </div>
+          <div class="luz-appliances" id="luzAppliances"></div>
+
+          <!-- Avisos -->
+          <div class="section-title">Avisos automáticos</div>
+          <div style="margin: 0 16px 16px; background: var(--bg-card); border-radius: 14px; padding: 4px 14px;">
+            <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0;">
+              <div class="icon-tile green" style="width:28px;height:28px;border-radius:8px">
+                <svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+              </div>
+              <div style="flex:1; font-size:14px;">Avisar cuando llegue la <strong>hora más barata</strong></div>
+              <div class="luz-toggle on"><div class="knob"></div></div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 0.5px solid var(--separator)">
+              <div class="icon-tile orange" style="width:28px;height:28px;border-radius:8px">
+                <svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 8v5l3 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <div style="flex:1; font-size:14px;">Recordatorio de <strong>electrodoméstico programado</strong></div>
+              <div class="luz-toggle on"><div class="knob"></div></div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 0.5px solid var(--separator)">
+              <div class="icon-tile red" style="width:28px;height:28px;border-radius:8px">
+                <svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 2l10 18H2L12 2zM12 9v5M12 17.5v.5"/></svg>
+              </div>
+              <div style="flex:1; font-size:14px;">Avisar de <strong>tramos caros</strong> (evita consumir)</div>
+              <div class="luz-toggle"><div class="knob"></div></div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 0.5px solid var(--separator)">
+              <div class="icon-tile blue" style="width:28px;height:28px;border-radius:8px">
+                <svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M5 8h14M5 12h14M5 16h9"/></svg>
+              </div>
+              <div style="flex:1; font-size:14px;">Resumen de <strong>precios de mañana</strong> a las 20:30</div>
+              <div class="luz-toggle on"><div class="knob"></div></div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- FAB (only on certain screens) -->
+      <button class="fab" id="fab" title="Acción rápida">
+        <svg id="fabIcon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+
+      <!-- ============= BOTTOM SHEETS ============= -->
+
+      <!-- SHEET: BD de productos + supermercados -->
+      <div class="sheet-backdrop" data-sheet="productos">
+        <div class="sheet" style="height: 88%;">
+          <div class="sheet-handle"></div>
+          <div class="sheet-head">
+            <button class="cancel sheet-close">Cancelar</button>
+            <div class="title">Mi BD</div>
+            <button class="done sheet-close">Listo</button>
+          </div>
+
+          <div class="sheet-segmented" id="bdSeg">
+            <button class="on" data-subview-btn="productos">Productos</button>
+            <button data-subview-btn="supermercados">Supermercados</button>
+          </div>
+
+          <div class="sheet-body">
+            <!-- ===== SUBVIEW: PRODUCTOS ===== -->
+            <div class="subview active" data-subview="productos">
+              <div class="search-bar" style="margin-top: 0">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                <input type="text" placeholder="Buscar producto, marca o supermercado…">
+              </div>
+
+              <div style="padding: 4px 20px 6px; font-size: 12px; color: var(--label-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Más comprados</div>
+
+              <div class="product-row" data-open-sheet="producto-detalle">
+                <div class="info">
+                  <div class="pname">Leche entera 1 L</div>
+                  <div class="pmeta">Hacendado · 12 compras · 3 supers</div>
+                  <div class="cheapest">Más barato: <span class="super-badge dia">Día 1,09 €</span></div>
+                </div>
+                <svg class="sparkline" viewBox="0 0 48 18"><polyline points="0,8 8,9 16,7 24,8 32,6 40,5 48,4" fill="none" stroke="var(--green)" stroke-width="1.5"/></svg>
+                <div class="ptrail">
+                  <div class="pprice">1,15 €</div>
+                  <div class="pchange down">−8% vs media</div>
+                </div>
+              </div>
+
+              <div class="product-row" data-open-sheet="producto-detalle">
+                <div class="info">
+                  <div class="pname">Pan integral Bimbo</div>
+                  <div class="pmeta">Bimbo · 8 compras · 2 supers</div>
+                  <div class="cheapest">Más barato: <span class="super-badge mercadona">Mercadona 1,95 €</span></div>
+                </div>
+                <svg class="sparkline" viewBox="0 0 48 18"><polyline points="0,12 8,11 16,10 24,9 32,8 40,8 48,7" fill="none" stroke="var(--orange)" stroke-width="1.5"/></svg>
+                <div class="ptrail">
+                  <div class="pprice">2,10 €</div>
+                  <div class="pchange up">+4% vs media</div>
+                </div>
+              </div>
+
+              <div class="product-row" data-open-sheet="producto-detalle">
+                <div class="info">
+                  <div class="pname">Huevos M docena</div>
+                  <div class="pmeta">
+                    Hacendado · 6 compras
+                    <span class="badge">OFERTA</span>
+                  </div>
+                  <div class="cheapest">Más barato: <span class="super-badge mercadona">Mercadona 2,29 €</span> (hoy)</div>
+                </div>
+                <svg class="sparkline" viewBox="0 0 48 18"><polyline points="0,6 8,7 16,8 24,9 32,10 40,8 48,12" fill="none" stroke="var(--green)" stroke-width="1.5"/></svg>
+                <div class="ptrail">
+                  <div class="pprice">2,29 €</div>
+                  <div class="pchange down">−18% vs media</div>
+                </div>
+              </div>
+
+              <div class="product-row" data-open-sheet="producto-detalle">
+                <div class="info">
+                  <div class="pname">Aceite oliva virgen extra 1 L</div>
+                  <div class="pmeta">Carbonell · 4 compras · 3 supers</div>
+                  <div class="cheapest">Más barato: <span class="super-badge dia">Día 8,49 €</span></div>
+                </div>
+                <svg class="sparkline" viewBox="0 0 48 18"><polyline points="0,15 8,13 16,11 24,9 32,7 40,5 48,3" fill="none" stroke="var(--red)" stroke-width="1.5"/></svg>
+                <div class="ptrail">
+                  <div class="pprice">8,95 €</div>
+                  <div class="pchange up">+22% vs ene</div>
+                </div>
+              </div>
+
+              <div class="product-row" data-open-sheet="producto-detalle">
+                <div class="info">
+                  <div class="pname">Plátanos canarios 1 kg</div>
+                  <div class="pmeta">A granel · 18 compras · 4 supers</div>
+                  <div class="cheapest">Más barato: <span class="super-badge lidl">Lidl 1,69 €</span></div>
+                </div>
+                <svg class="sparkline" viewBox="0 0 48 18"><polyline points="0,8 8,7 16,9 24,8 32,6 40,7 48,5" fill="none" stroke="var(--green)" stroke-width="1.5"/></svg>
+                <div class="ptrail">
+                  <div class="pprice">1,89 €</div>
+                  <div class="pchange down">−3% vs media</div>
+                </div>
+              </div>
+
+              <div class="product-row" data-open-sheet="producto-detalle">
+                <div class="info">
+                  <div class="pname">Yogur natural pack 8</div>
+                  <div class="pmeta">Hacendado · 14 compras · 1 super</div>
+                  <div class="cheapest">Solo en: <span class="super-badge mercadona">Mercadona 1,75 €</span></div>
+                </div>
+                <svg class="sparkline" viewBox="0 0 48 18"><polyline points="0,9 8,9 16,9 24,9 32,9 40,9 48,9" fill="none" stroke="var(--label-secondary)" stroke-width="1.5"/></svg>
+                <div class="ptrail">
+                  <div class="pprice">1,75 €</div>
+                  <div class="pchange" style="color:var(--label-secondary)">estable</div>
+                </div>
+              </div>
+
+              <div class="product-row" data-open-sheet="producto-detalle">
+                <div class="info">
+                  <div class="pname">Detergente líquido 50 dosis</div>
+                  <div class="pmeta">Ariel · 3 compras · 2 supers
+                    <span class="badge ok">−20%</span>
+                  </div>
+                  <div class="cheapest">Más barato: <span class="super-badge carrefour">Carrefour 9,99 €</span> (hoy)</div>
+                </div>
+                <svg class="sparkline" viewBox="0 0 48 18"><polyline points="0,4 8,5 16,7 24,6 32,8 40,11 48,13" fill="none" stroke="var(--green)" stroke-width="1.5"/></svg>
+                <div class="ptrail">
+                  <div class="pprice">9,99 €</div>
+                  <div class="pchange down">−20% hoy</div>
+                </div>
+              </div>
+
+              <div class="product-row" data-open-sheet="producto-detalle">
+                <div class="info">
+                  <div class="pname">Café molido natural 250 g</div>
+                  <div class="pmeta">Hacendado · 9 compras · 2 supers</div>
+                  <div class="cheapest">Más barato: <span class="super-badge dia">Día 2,89 €</span></div>
+                </div>
+                <svg class="sparkline" viewBox="0 0 48 18"><polyline points="0,10 8,9 16,11 24,10 32,8 40,9 48,8" fill="none" stroke="var(--green)" stroke-width="1.5"/></svg>
+                <div class="ptrail">
+                  <div class="pprice">3,10 €</div>
+                  <div class="pchange down">−5% vs media</div>
+                </div>
+              </div>
+
+              <div class="product-row" data-open-sheet="producto-detalle">
+                <div class="info">
+                  <div class="pname">Pasta espaguetis 500 g</div>
+                  <div class="pmeta">Barilla · 5 compras · 4 supers</div>
+                  <div class="cheapest">Más barato: <span class="super-badge aldi">Aldi 1,25 €</span></div>
+                </div>
+                <svg class="sparkline" viewBox="0 0 48 18"><polyline points="0,7 8,8 16,7 24,9 32,10 40,9 48,11" fill="none" stroke="var(--orange)" stroke-width="1.5"/></svg>
+                <div class="ptrail">
+                  <div class="pprice">1,55 €</div>
+                  <div class="pchange up">+9% vs media</div>
+                </div>
+              </div>
+
+              <div style="padding: 18px 20px 6px; font-size: 12px; color: var(--label-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Estadísticas</div>
+              <div style="margin: 0 16px; background: var(--bg-card); border-radius: 14px; padding: 14px;">
+                <div style="display: flex; justify-content: space-between; padding: 6px 0;">
+                  <span style="font-size: 14px; color: var(--label-secondary)">Productos seguidos</span>
+                  <span style="font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums">142</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; border-top: 0.5px solid var(--separator)">
+                  <span style="font-size: 14px; color: var(--label-secondary)">Ahorrado este mes</span>
+                  <span style="font-size: 15px; font-weight: 600; color: var(--green); font-variant-numeric: tabular-nums">+38,20 €</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 6px 0; border-top: 0.5px solid var(--separator)">
+                  <span style="font-size: 14px; color: var(--label-secondary)">Súper recomendado</span>
+                  <span style="font-size: 15px; font-weight: 600">Día (en 7/10)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ===== SUBVIEW: SUPERMERCADOS ===== -->
+            <div class="subview" data-subview="supermercados">
+
+              <!-- Best supermarket card -->
+              <div class="best-super-card">
+                <div class="head">
+                  <div class="crown">
+                    <svg viewBox="0 0 24 24"><path d="M3 9l4 5 5-7 5 7 4-5v10H3V9z"/></svg>
+                  </div>
+                  <div>
+                    <div class="label">Tu súper recomendado</div>
+                    <div class="super-name">Día</div>
+                  </div>
+                </div>
+                <div style="font-size: 13px; opacity: 0.95; line-height: 1.45; margin-bottom: 14px;">
+                  Tiene el precio más bajo en <strong>7 de 10</strong> productos que compráis habitualmente. Si trasladaras tu compra principal aquí, ahorrarías <strong>~12,40 €/mes</strong>.
+                </div>
+                <div class="stats">
+                  <div class="stat">
+                    <div class="num">7/10</div>
+                    <div class="lbl">Productos más baratos</div>
+                  </div>
+                  <div class="stat">
+                    <div class="num">12,40€</div>
+                    <div class="lbl">Ahorro mensual</div>
+                  </div>
+                  <div class="stat">
+                    <div class="num">2,5km</div>
+                    <div class="lbl">Más cercano</div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="padding: 4px 20px 8px; font-size: 12px; color: var(--label-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Ranking · productos más baratos</div>
+
+              <div style="margin: 0 16px 16px; background: var(--bg-card); border-radius: 14px; overflow: hidden;">
+                <div class="super-rank-row">
+                  <div class="rank-num">1</div>
+                  <div class="super-logo dia">Día</div>
+                  <div class="sname-block">
+                    <div class="sname-row">
+                      <span class="sname">Día</span>
+                    </div>
+                    <div class="smeta">Leche · Aceite · Café · Pollo · Yogur líquido · Plátanos · Atún</div>
+                    <div class="sbar"><span style="width: 47%; background: #1F8C4D"></span></div>
+                  </div>
+                  <div class="strail">
+                    <div class="scount">7</div>
+                    <div class="ssavings">−12,40 €</div>
+                  </div>
+                </div>
+
+                <div class="super-rank-row">
+                  <div class="rank-num">2</div>
+                  <div class="super-logo mercadona">M</div>
+                  <div class="sname-block">
+                    <div class="sname-row">
+                      <span class="sname">Mercadona</span>
+                    </div>
+                    <div class="smeta">Pan · Huevos · Yogur natural · Salsa tomate</div>
+                    <div class="sbar"><span style="width: 27%; background: #FF6B00"></span></div>
+                  </div>
+                  <div class="strail">
+                    <div class="scount">4</div>
+                    <div class="ssavings">−5,80 €</div>
+                  </div>
+                </div>
+
+                <div class="super-rank-row">
+                  <div class="rank-num">3</div>
+                  <div class="super-logo lidl">L</div>
+                  <div class="sname-block">
+                    <div class="sname-row">
+                      <span class="sname">Lidl</span>
+                    </div>
+                    <div class="smeta">Plátanos canarios · Frutos secos · Chocolate</div>
+                    <div class="sbar"><span style="width: 20%; background: #0050AA"></span></div>
+                  </div>
+                  <div class="strail">
+                    <div class="scount">3</div>
+                    <div class="ssavings">−3,20 €</div>
+                  </div>
+                </div>
+
+                <div class="super-rank-row">
+                  <div class="rank-num">4</div>
+                  <div class="super-logo aldi">A</div>
+                  <div class="sname-block">
+                    <div class="sname-row">
+                      <span class="sname">Aldi</span>
+                    </div>
+                    <div class="smeta">Pasta · Cereales</div>
+                    <div class="sbar"><span style="width: 13%; background: #00488C"></span></div>
+                  </div>
+                  <div class="strail">
+                    <div class="scount">2</div>
+                    <div class="ssavings">−2,10 €</div>
+                  </div>
+                </div>
+
+                <div class="super-rank-row">
+                  <div class="rank-num">5</div>
+                  <div class="super-logo carrefour">C</div>
+                  <div class="sname-block">
+                    <div class="sname-row">
+                      <span class="sname">Carrefour</span>
+                    </div>
+                    <div class="smeta">Detergente (hoy en oferta)</div>
+                    <div class="sbar"><span style="width: 7%; background: #E2001A"></span></div>
+                  </div>
+                  <div class="strail">
+                    <div class="scount">1</div>
+                    <div class="ssavings">−2,00 €</div>
+                  </div>
+                </div>
+
+                <div class="super-rank-row" style="opacity: 0.55">
+                  <div class="rank-num">6</div>
+                  <div class="super-logo alcampo">Al</div>
+                  <div class="sname-block">
+                    <div class="sname-row">
+                      <span class="sname">Alcampo</span>
+                    </div>
+                    <div class="smeta">Sin productos más baratos en tu cesta habitual</div>
+                  </div>
+                  <div class="strail">
+                    <div class="scount" style="color: var(--label-tertiary)">0</div>
+                  </div>
+                </div>
+
+                <div class="super-rank-row" style="opacity: 0.55">
+                  <div class="rank-num">7</div>
+                  <div class="super-logo eroski">E</div>
+                  <div class="sname-block">
+                    <div class="sname-row">
+                      <span class="sname">Eroski</span>
+                    </div>
+                    <div class="smeta">Sin productos más baratos en tu cesta habitual</div>
+                  </div>
+                  <div class="strail">
+                    <div class="scount" style="color: var(--label-tertiary)">0</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tip-card">
+                <div class="ti-icon">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                </div>
+                <div class="ti-text">
+                  Si hicieras <strong>compra dividida</strong> (cosas frescas en Mercadona + resto en Día) ahorrarías hasta <strong>18,20 €/mes</strong>. Homie te lo organiza por listas si activas el plan inteligente.
+                </div>
+              </div>
+
+              <div style="padding: 4px 20px 8px; font-size: 12px; color: var(--label-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Distribución de compra actual</div>
+              <div style="margin: 0 16px 16px; background: var(--bg-card); border-radius: 14px; padding: 14px;">
+                <div style="display: flex; align-items: center; gap: 10px; padding: 6px 0;">
+                  <div class="super-logo mercadona" style="width:24px;height:24px;border-radius:6px;font-size:10px">M</div>
+                  <span style="flex:1; font-size:14px;">Mercadona</span>
+                  <span style="font-size: 13px; color: var(--label-secondary); font-variant-numeric: tabular-nums;">68 % · 850 €</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 0.5px solid var(--separator)">
+                  <div class="super-logo dia" style="width:24px;height:24px;border-radius:6px;font-size:10px">D</div>
+                  <span style="flex:1; font-size:14px;">Día</span>
+                  <span style="font-size: 13px; color: var(--label-secondary); font-variant-numeric: tabular-nums;">18 % · 220 €</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 0.5px solid var(--separator)">
+                  <div class="super-logo lidl" style="width:24px;height:24px;border-radius:6px;font-size:10px">L</div>
+                  <span style="flex:1; font-size:14px;">Lidl</span>
+                  <span style="font-size: 13px; color: var(--label-secondary); font-variant-numeric: tabular-nums;">10 % · 130 €</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 0.5px solid var(--separator)">
+                  <div class="super-logo carrefour" style="width:24px;height:24px;border-radius:6px;font-size:10px">C</div>
+                  <span style="flex:1; font-size:14px;">Carrefour · otros</span>
+                  <span style="font-size: 13px; color: var(--label-secondary); font-variant-numeric: tabular-nums;">4 % · 40 €</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- SHEET: Producto detalle -->
+      <div class="sheet-backdrop" data-sheet="producto-detalle">
+        <div class="sheet" style="height: 80%;">
+          <div class="sheet-handle"></div>
+          <div class="sheet-head">
+            <button class="cancel sheet-close">Volver</button>
+            <div class="title">Detalle</div>
+            <button class="done sheet-close">Listo</button>
+          </div>
+          <div class="sheet-body product-detail">
+            <div class="hero">
+              <div class="pname">Leche entera 1 L</div>
+              <div class="pbrand">Hacendado · 1 litro · brick</div>
+
+              <svg class="pchart" viewBox="0 0 320 80" preserveAspectRatio="none">
+                <!-- grid -->
+                <line x1="0" y1="20" x2="320" y2="20" stroke="var(--separator)" stroke-width="0.5" stroke-dasharray="2,2"/>
+                <line x1="0" y1="50" x2="320" y2="50" stroke="var(--separator)" stroke-width="0.5" stroke-dasharray="2,2"/>
+                <!-- area -->
+                <polyline
+                  points="0,40 40,35 80,42 120,38 160,30 200,28 240,22 280,18 320,15"
+                  fill="none" stroke="var(--accent)" stroke-width="2"/>
+                <polygon points="0,40 40,35 80,42 120,38 160,30 200,28 240,22 280,18 320,15 320,80 0,80"
+                  fill="var(--accent)" opacity="0.10"/>
+                <!-- dots -->
+                <circle cx="320" cy="15" r="3.5" fill="var(--accent)"/>
+              </svg>
+
+              <div class="pstat">
+                <div>
+                  <div style="font-size:11px; color: var(--label-secondary); text-transform: uppercase; letter-spacing: 0.3px;">Último precio</div>
+                  <strong>1,15 €</strong>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-size:11px; color: var(--label-secondary); text-transform: uppercase; letter-spacing: 0.3px;">Media 6 meses</div>
+                  <strong>1,25 €</strong>
+                </div>
+              </div>
+            </div>
+
+            <div style="padding: 0 20px 10px; font-size: 12px; color: var(--label-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Comparativa supermercados</div>
+            <div class="supers-list">
+              <div class="super-row best">
+                <div class="icon-tile" style="width:28px;height:28px;background:#1F8C4D;color:white;border-radius:8px;font-size:11px;font-weight:700">Día</div>
+                <div class="sname">Día</div>
+                <div>
+                  <div class="sprice">1,09 €</div>
+                  <div class="sdate">hace 4 días</div>
+                </div>
+              </div>
+              <div class="super-row">
+                <div class="icon-tile" style="width:28px;height:28px;background:#FF6B00;color:white;border-radius:8px;font-size:11px;font-weight:700">M</div>
+                <div class="sname">Mercadona</div>
+                <div>
+                  <div class="sprice">1,15 €</div>
+                  <div class="sdate">hoy</div>
+                </div>
+              </div>
+              <div class="super-row">
+                <div class="icon-tile" style="width:28px;height:28px;background:#0050AA;color:white;border-radius:8px;font-size:11px;font-weight:700">L</div>
+                <div class="sname">Lidl</div>
+                <div>
+                  <div class="sprice">1,19 €</div>
+                  <div class="sdate">hace 8 días</div>
+                </div>
+              </div>
+              <div class="super-row">
+                <div class="icon-tile" style="width:28px;height:28px;background:#E2001A;color:white;border-radius:8px;font-size:11px;font-weight:700">C</div>
+                <div class="sname">Carrefour</div>
+                <div>
+                  <div class="sprice">1,29 €</div>
+                  <div class="sdate">hace 2 sem</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="padding: 0 20px 10px; font-size: 12px; color: var(--label-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Últimas compras</div>
+            <div class="supers-list">
+              <div class="super-row">
+                <div class="sname">14 may · Mercadona</div>
+                <div class="sprice">1,15 €</div>
+              </div>
+              <div class="super-row">
+                <div class="sname">7 may · Mercadona</div>
+                <div class="sprice">1,15 €</div>
+              </div>
+              <div class="super-row">
+                <div class="sname">28 abr · Día</div>
+                <div class="sprice">1,09 €</div>
+              </div>
+              <div class="super-row">
+                <div class="sname">15 abr · Lidl</div>
+                <div class="sprice">1,19 €</div>
+              </div>
+            </div>
+
+            <button class="primary-cta">Añadir a la lista</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SHEET: OCR result -->
+      <div class="sheet-backdrop" data-sheet="ocr-result">
+        <div class="sheet" style="height: 84%;">
+          <div class="sheet-handle"></div>
+          <div class="sheet-head">
+            <button class="cancel sheet-close">Cancelar</button>
+            <div class="title">Ticket detectado</div>
+            <button class="done sheet-close">Guardar</button>
+          </div>
+          <div class="sheet-body ocr-result">
+            <div class="ocr-receipt">
+              <div class="ocr-status">
+                <svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>
+                OCR completado · 12 líneas detectadas
+              </div>
+              <div class="ocr-meta">
+                <span class="l">Supermercado</span>
+                <span class="v">Mercadona · Princesa 28</span>
+              </div>
+              <div class="ocr-meta">
+                <span class="l">Fecha</span>
+                <span class="v">14 may 2026 · 18:42</span>
+              </div>
+              <div class="ocr-meta">
+                <span class="l">Total</span>
+                <span class="v" style="font-size: 17px; font-weight: 700">54,30 €</span>
+              </div>
+              <div class="ocr-meta">
+                <span class="l">Categoría</span>
+                <span class="v">Alimentación</span>
+              </div>
+              <div class="ocr-meta">
+                <span class="l">Pagado por</span>
+                <span class="v">Ruben · cuenta compartida</span>
+              </div>
+            </div>
+
+            <div style="padding: 4px 4px 8px; font-size: 12px; color: var(--label-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Productos detectados (se añadirán a la BD)</div>
+            <div class="ocr-items">
+              <div class="ocr-item">
+                <div class="check"></div>
+                <div class="name">Leche entera 1 L · Hacendado · ×2</div>
+                <div class="price">2,30 €</div>
+              </div>
+              <div class="ocr-item">
+                <div class="check"></div>
+                <div class="name">Pan integral Bimbo</div>
+                <div class="price">2,10 €</div>
+              </div>
+              <div class="ocr-item">
+                <div class="check"></div>
+                <div class="name">Huevos M docena · Hacendado</div>
+                <div class="price">2,29 €</div>
+              </div>
+              <div class="ocr-item">
+                <div class="check"></div>
+                <div class="name">Plátanos canarios 1 kg</div>
+                <div class="price">1,89 €</div>
+              </div>
+              <div class="ocr-item">
+                <div class="check"></div>
+                <div class="name">Yogur natural pack 8 · Hacendado</div>
+                <div class="price">1,75 €</div>
+              </div>
+              <div class="ocr-item">
+                <div class="check"></div>
+                <div class="name">Aceite oliva virgen extra 1 L · Carbonell</div>
+                <div class="price">8,95 €</div>
+              </div>
+              <div class="ocr-item">
+                <div class="check"></div>
+                <div class="name">Pollo entero · Hacendado · 1,8 kg</div>
+                <div class="price">7,80 €</div>
+              </div>
+            </div>
+
+            <button class="primary-cta sheet-close">Guardar gasto + actualizar BD</button>
+            <div style="text-align:center; font-size:12px; color: var(--label-secondary); margin-top: 12px;">
+              Los precios y supermercado se vincularán automáticamente a la BD.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SHEET: Budget edit -->
+      <div class="sheet-backdrop" data-sheet="budget-edit">
+        <div class="sheet" style="height: 86%;">
+          <div class="sheet-handle"></div>
+          <div class="sheet-head">
+            <button class="cancel sheet-close">Cancelar</button>
+            <div class="title">Presupuesto mensual</div>
+            <button class="done sheet-close">Guardar</button>
+          </div>
+          <div class="sheet-body">
+            <div class="budget-summary">
+              <div>
+                <div class="label">Presupuesto total</div>
+                <div class="total" id="budgetTotal">1.500 €</div>
+              </div>
+              <div style="text-align: right;">
+                <div class="label">Mes anterior</div>
+                <div style="font-size: 14px; color: var(--label); font-weight: 500;">1.350 €</div>
+              </div>
+            </div>
+
+            <div style="padding: 0 20px 8px; font-size: 12px; color: var(--label-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Por categoría</div>
+
+            <div style="margin: 0 16px 16px; background: var(--bg-card); border-radius: 14px; overflow: hidden;">
+              <div class="budget-row-edit">
+                <div class="icon-tile orange" style="width:32px;height:32px;border-radius:8px">
+                  <svg viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M5 8h14l-1 12H6L5 8zM8 8V5a2 2 0 012-2h4a2 2 0 012 2v3"/></svg>
+                </div>
+                <div class="info">
+                  <div class="bname">Alimentación</div>
+                  <div class="bspent">Gastado: 320 € / 400 €</div>
+                </div>
+                <div class="stepper">
+                  <button data-step="alimentacion" data-dir="-1">−</button>
+                  <span class="val" data-cat="alimentacion">400 €</span>
+                  <button data-step="alimentacion" data-dir="1">+</button>
+                </div>
+              </div>
+              <div class="budget-row-edit">
+                <div class="icon-tile red" style="width:32px;height:32px;border-radius:8px">
+                  <svg viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M4 11h16M5 11V8a2 2 0 012-2h10a2 2 0 012 2v3M5 11v6a2 2 0 002 2h10a2 2 0 002-2v-6"/></svg>
+                </div>
+                <div class="info">
+                  <div class="bname">Restaurantes</div>
+                  <div class="bspent" style="color: var(--red)">Gastado: 220 € · superado</div>
+                </div>
+                <div class="stepper">
+                  <button data-step="restaurantes" data-dir="-1">−</button>
+                  <span class="val" data-cat="restaurantes">200 €</span>
+                  <button data-step="restaurantes" data-dir="1">+</button>
+                </div>
+              </div>
+              <div class="budget-row-edit">
+                <div class="icon-tile blue" style="width:32px;height:32px;border-radius:8px">
+                  <svg viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M3 11l9-7 9 7M5 10v9a1 1 0 001 1h12a1 1 0 001-1v-9"/></svg>
+                </div>
+                <div class="info">
+                  <div class="bname">Hogar</div>
+                  <div class="bspent">Gastado: 450 € / 500 €</div>
+                </div>
+                <div class="stepper">
+                  <button data-step="hogar" data-dir="-1">−</button>
+                  <span class="val" data-cat="hogar">500 €</span>
+                  <button data-step="hogar" data-dir="1">+</button>
+                </div>
+              </div>
+              <div class="budget-row-edit">
+                <div class="icon-tile green" style="width:32px;height:32px;border-radius:8px">
+                  <svg viewBox="0 0 24 24" style="width:16px;height:16px"><circle cx="8" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M2 9h15l3 4v4h-3M10 17H6M2 9v8h2"/></svg>
+                </div>
+                <div class="info">
+                  <div class="bname">Transporte</div>
+                  <div class="bspent">Gastado: 80 € / 150 €</div>
+                </div>
+                <div class="stepper">
+                  <button data-step="transporte" data-dir="-1">−</button>
+                  <span class="val" data-cat="transporte">150 €</span>
+                  <button data-step="transporte" data-dir="1">+</button>
+                </div>
+              </div>
+              <div class="budget-row-edit">
+                <div class="icon-tile purple" style="width:32px;height:32px;border-radius:8px">
+                  <svg viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M19 9l-7 7-7-7M12 3v13"/></svg>
+                </div>
+                <div class="info">
+                  <div class="bname">Ocio</div>
+                  <div class="bspent">Gastado: 95 € / 100 €</div>
+                </div>
+                <div class="stepper">
+                  <button data-step="ocio" data-dir="-1">−</button>
+                  <span class="val" data-cat="ocio">100 €</span>
+                  <button data-step="ocio" data-dir="1">+</button>
+                </div>
+              </div>
+              <div class="budget-row-edit">
+                <div class="icon-tile pink" style="width:32px;height:32px;border-radius:8px">
+                  <svg viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M6 3l-2 7h16l-2-7M4 10v9a1 1 0 001 1h14a1 1 0 001-1v-9"/></svg>
+                </div>
+                <div class="info">
+                  <div class="bname">Ropa</div>
+                  <div class="bspent">Gastado: 75 € / 150 €</div>
+                </div>
+                <div class="stepper">
+                  <button data-step="ropa" data-dir="-1">−</button>
+                  <span class="val" data-cat="ropa">150 €</span>
+                  <button data-step="ropa" data-dir="1">+</button>
+                </div>
+              </div>
+              <div class="budget-row-edit">
+                <div class="icon-tile teal" style="width:32px;height:32px;border-radius:8px">
+                  <svg viewBox="0 0 24 24" style="width:16px;height:16px"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+                </div>
+                <div class="info">
+                  <div class="bname">Salud</div>
+                  <div class="bspent">Gastado: 0 € / 100 €</div>
+                </div>
+                <div class="stepper">
+                  <button data-step="salud" data-dir="-1">−</button>
+                  <span class="val" data-cat="salud">100 €</span>
+                  <button data-step="salud" data-dir="1">+</button>
+                </div>
+              </div>
+            </div>
+
+            <div style="padding: 0 20px 8px; font-size: 12px; color: var(--label-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Avisos</div>
+            <div style="margin: 0 16px; background: var(--bg-card); border-radius: 14px; padding: 14px;">
+              <div style="display: flex; align-items: center; gap: 12px; padding: 6px 0;">
+                <div class="icon-tile yellow" style="width:28px;height:28px;border-radius:8px">
+                  <svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 2l10 18H2L12 2zM12 9v5M12 17.5v.5"/></svg>
+                </div>
+                <div style="flex:1; font-size:14px;">Avisar al alcanzar el <strong>80%</strong></div>
+                <div style="width: 44px; height: 26px; background: var(--accent); border-radius: 999px; position: relative;">
+                  <div style="position:absolute; top:2px; right:2px; width:22px; height:22px; background:white; border-radius:999px; box-shadow: 0 1px 3px rgba(0,0,0,0.20);"></div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 6px 0; border-top: 0.5px solid var(--separator)">
+                <div class="icon-tile red" style="width:28px;height:28px;border-radius:8px">
+                  <svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 2l10 18H2L12 2z"/></svg>
+                </div>
+                <div style="flex:1; font-size:14px;">Avisar al <strong>superar</strong> el presupuesto</div>
+                <div style="width: 44px; height: 26px; background: var(--accent); border-radius: 999px; position: relative;">
+                  <div style="position:absolute; top:2px; right:2px; width:22px; height:22px; background:white; border-radius:999px; box-shadow: 0 1px 3px rgba(0,0,0,0.20);"></div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 6px 0; border-top: 0.5px solid var(--separator)">
+                <div class="icon-tile gray" style="width:28px;height:28px;border-radius:8px">
+                  <svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 2v20M5 9l7-7 7 7"/></svg>
+                </div>
+                <div style="flex:1; font-size:14px;">Enviar sobrante a <strong>Plan de ahorro</strong></div>
+                <div style="width: 44px; height: 26px; background: var(--fill-2); border-radius: 999px; position: relative;">
+                  <div style="position:absolute; top:2px; left:2px; width:22px; height:22px; background:white; border-radius:999px; box-shadow: 0 1px 3px rgba(0,0,0,0.20);"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SHEET: Planificador de electrodomésticos -->
+      <div class="sheet-backdrop" data-sheet="luz-planner">
+        <div class="sheet" style="height: 78%;">
+          <div class="sheet-handle"></div>
+          <div class="sheet-head">
+            <button class="cancel sheet-close">Cancelar</button>
+            <div class="title">Programar consumo</div>
+            <button class="done sheet-close">Listo</button>
+          </div>
+          <div class="sheet-body">
+            <div style="padding: 4px 20px 8px; font-size: 12px; color: var(--label-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">¿Qué quieres poner?</div>
+            <div class="luz-picker" id="luzPicker"></div>
+
+            <div style="padding: 4px 20px 8px; font-size: 12px; color: var(--label-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Mejor momento</div>
+            <div class="luz-result">
+              <div class="lr-label" id="luzPlanWhen">Hoy</div>
+              <div class="lr-window" id="luzPlanWindow">—</div>
+              <div style="font-size: 13px; color: var(--label); margin-top: 6px;" id="luzPlanDesc">Selecciona un electrodoméstico.</div>
+              <div class="lr-stats">
+                <div class="lr-stat">
+                  <div class="num" id="luzPlanCost">—</div>
+                  <div class="lbl">Coste estimado</div>
+                </div>
+                <div class="lr-stat">
+                  <div class="num" style="color: var(--green)" id="luzPlanSave">—</div>
+                  <div class="lbl">Ahorro vs hora cara</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin: 0 16px 16px; background: var(--bg-card); border-radius: 14px; padding: 4px 14px;">
+              <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0;">
+                <div class="icon-tile accent" style="width:28px;height:28px;border-radius:8px">
+                  <svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9zM13.7 21a2 2 0 01-3.4 0"/></svg>
+                </div>
+                <div style="flex:1; font-size:14px;">Avisarme <strong>10 min antes</strong> de empezar</div>
+                <div class="luz-toggle on" data-toggle><div class="knob"></div></div>
+              </div>
+            </div>
+
+            <button class="primary-cta sheet-close" id="luzPlanCta">Programar aviso</button>
+            <div style="text-align:center; font-size:12px; color: var(--label-secondary); margin-top: 12px; padding: 0 20px;">
+              Homie te avisará a la hora óptima según el precio PVPC del día.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab bar -->
+      <nav class="tab-bar">
+        <button class="tab active" data-screen="inicio">
+          <svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7M5 10v9a1 1 0 001 1h12a1 1 0 001-1v-9"/></svg>
+          Inicio
+        </button>
+        <button class="tab" data-screen="gastos">
+          <svg viewBox="0 0 24 24"><path d="M12 2v20M16 6H9.5a3.5 3.5 0 100 7H14a3.5 3.5 0 110 7H7"/></svg>
+          Gastos
+        </button>
+        <button class="tab" data-screen="compra">
+          <svg viewBox="0 0 24 24"><path d="M5 6h14l-1.5 11a2 2 0 01-2 1.7h-7a2 2 0 01-2-1.7L5 6zM8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+          Compra
+        </button>
+        <button class="tab" data-screen="tareas">
+          <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          Tareas
+        </button>
+        <button class="tab" data-screen="calendario">
+          <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+          Calendario
+        </button>
+        <button class="tab" data-screen="luz">
+          <svg viewBox="0 0 24 24"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+          Luz
+        </button>
+      </nav>
+
+      <div class="home-indicator"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL: controls + notes -->
+  <aside class="panel-right">
+    <button class="theme-toggle" id="themeBtn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      <span id="themeLabel">Modo oscuro</span>
+    </button>
+    <p style="margin-top: 24px; font-weight: 600; color: var(--label);">Sheets interactivos</p>
+    <ul style="list-style: none; font-size: 13px; color: var(--label-secondary); line-height: 1.7;">
+      <li>· En <strong>Compra</strong>: icono BD arriba a la derecha</li>
+      <li>· En la BD: pestañas <strong>Productos / Supermercados</strong></li>
+      <li>· Productos: badge del súper más barato</li>
+      <li>· Supermercados: ranking + ahorro mensual</li>
+      <li>· En <strong>Compra</strong>: card "Subir ticket" (3 modos)</li>
+      <li>· En <strong>Gastos</strong>: lápiz en presupuesto + pill "Editar"</li>
+      <li>· Toca cualquier producto → detalle con gráfico</li>
+    </ul>
+    <p style="margin-top: 18px; font-weight: 600; color: var(--label);">Decisiones de diseño aplicadas</p>
+    <ul style="list-style: none; font-size: 13px; color: var(--label-secondary); line-height: 1.7;">
+      <li>· Tipografía SF Pro (sistema)</li>
+      <li>· Squircles continuos</li>
+      <li>· Tab bar translúcida (blur 28px)</li>
+      <li>· Bottom sheets con drag handle</li>
+      <li>· SF Symbols-style icons</li>
+      <li>· Tap targets ≥ 44 pt</li>
+      <li>· Tabular numerals en cifras</li>
+      <li>· Modo claro/oscuro paralelos</li>
+      <li>· Acento Homie #1F4D52</li>
+    </ul>
+    <p class="tip">La app real será aún más fluida — gestos drag-to-dismiss, haptics y animaciones spring de Reanimated 3.</p>
+  </aside>
+</div>
+
+<script>
+// =========================================================================
+// Calendar grid generator
+// =========================================================================
+function buildCalendar() {
+  const grid = document.getElementById('calGrid');
+  if (!grid) return;
+  // May 2026 — May 1 is a Friday (ISO Monday-start week: position 5)
+  // Days: 31 in May
+  // Events sample
+  const events = {
+    3:  ['shared'],
+    7:  ['ma'],
+    9:  ['shared', 'ru'],
+    11: ['ma'],
+    14: ['ma','ru','shared'], // today (selected)
+    15: ['ma'],
+    16: ['shared'],
+    19: ['ru'],
+    21: ['shared','ma'],
+    24: ['ru'],
+    28: ['ma'],
+    30: ['shared'],
+  };
+  // April 2026 last days for prefix (Monday-start)
+  // May 1 2026 is Friday → 4 days from April: 27,28,29,30
+  const prefix = [27, 28, 29, 30];
+  const days = 31;
+  // June for suffix: rows = 6 weeks = 42 cells. 31+4 = 35 → 7 days from June (1..7)
+  const totalCells = 42;
+  const suffix = totalCells - days - prefix.length;
+
+  let html = '';
+  prefix.forEach(d => {
+    html += `<div class="cal-day muted">${d}<div class="dots"></div></div>`;
+  });
+  for (let d = 1; d <= days; d++) {
+    let classes = 'cal-day';
+    if (d === 14) classes += ' today';
+    const dots = (events[d] || []).map(c => `<span class="dot-${c}"></span>`).join('');
+    html += `<div class="${classes}">${d}<div class="dots">${dots}</div></div>`;
+  }
+  for (let d = 1; d <= suffix; d++) {
+    html += `<div class="cal-day muted">${d}<div class="dots"></div></div>`;
+  }
+  grid.innerHTML = html;
+}
+buildCalendar();
+
+// =========================================================================
+// Navigation
+// =========================================================================
+const screens = document.querySelectorAll('.screen');
+const tabs = document.querySelectorAll('.tab');
+const listItems = document.querySelectorAll('.screen-list li');
+const fab = document.getElementById('fab');
+const fabIcon = document.getElementById('fabIcon');
+
+const fabConfig = {
+  inicio:     { show: true,  d: 'M12 5v14M5 12h14' },
+  gastos:     { show: true,  d: 'M5 7l7-4 7 4v6l-7 4-7-4V7zM12 11v8' },  // camera-ish: + ticket
+  compra:     { show: false },
+  tareas:     { show: true,  d: 'M12 5v14M5 12h14' },
+  calendario: { show: true,  d: 'M12 5v14M5 12h14' },
+  luz:        { show: false },
+};
+
+function activate(target) {
+  screens.forEach(s => s.classList.toggle('active', s.id === 'screen-' + target));
+  tabs.forEach(t => t.classList.toggle('active', t.dataset.screen === target));
+  listItems.forEach(li => li.classList.toggle('active', li.dataset.screen === target));
+  document.getElementById('screenArea').scrollTo({ top: 0, behavior: 'smooth' });
+  // FAB
+  const cfg = fabConfig[target];
+  fab.style.display = cfg.show ? 'grid' : 'none';
+  if (cfg.show && cfg.d) {
+    fabIcon.innerHTML = `<path d="${cfg.d}"/>`;
+    fabIcon.setAttribute('viewBox', '0 0 24 24');
+  }
+}
+
+tabs.forEach(t => t.addEventListener('click', () => activate(t.dataset.screen)));
+listItems.forEach(li => li.addEventListener('click', () => activate(li.dataset.screen)));
+
+// =========================================================================
+// Theme toggle
+// =========================================================================
+const themeBtn = document.getElementById('themeBtn');
+const themeLabel = document.getElementById('themeLabel');
+themeBtn.addEventListener('click', () => {
+  const isDark = document.documentElement.dataset.theme === 'dark';
+  document.documentElement.dataset.theme = isDark ? 'light' : 'dark';
+  themeLabel.textContent = isDark ? 'Modo oscuro' : 'Modo claro';
+});
+
+// =========================================================================
+// Check items interactively
+// =========================================================================
+document.addEventListener('click', e => {
+  const check = e.target.closest('.shop-check');
+  if (!check) return;
+  check.classList.toggle('done');
+  const row = check.closest('.shop-item, .task-row');
+  if (row) row.classList.toggle('done');
+});
+
+// =========================================================================
+// Status bar live clock (because Apple does it)
+// =========================================================================
+function updateClock() {
+  const now = new Date();
+  const t = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+  const el = document.querySelector('.status-bar .time');
+  if (el) el.textContent = t;
+}
+updateClock();
+setInterval(updateClock, 30000);
+
+// =========================================================================
+// Bottom sheets (BD productos, OCR result, Budget edit, Producto detalle)
+// =========================================================================
+function openSheet(name) {
+  const sheet = document.querySelector(`.sheet-backdrop[data-sheet="${name}"]`);
+  if (!sheet) return;
+  sheet.classList.add('open');
+}
+function closeSheet(sheet) {
+  if (sheet) sheet.classList.remove('open');
+}
+function closeAllSheets() {
+  document.querySelectorAll('.sheet-backdrop.open').forEach(s => s.classList.remove('open'));
+}
+
+document.addEventListener('click', e => {
+  // Open a sheet
+  const opener = e.target.closest('[data-open-sheet]');
+  if (opener) {
+    e.stopPropagation();
+    openSheet(opener.dataset.openSheet);
+    return;
+  }
+  // Close on backdrop click or any element with .sheet-close
+  if (e.target.classList.contains('sheet-backdrop')) {
+    closeSheet(e.target);
+    return;
+  }
+  const closer = e.target.closest('.sheet-close');
+  if (closer) {
+    closeSheet(closer.closest('.sheet-backdrop'));
+    return;
+  }
+});
+
+// Prevent click propagation inside sheet (so clicking inside doesn't close)
+document.querySelectorAll('.sheet').forEach(s => {
+  s.addEventListener('click', e => e.stopPropagation());
+});
+
+// =========================================================================
+// Segmented control inside sheets (Productos / Supermercados)
+// =========================================================================
+document.querySelectorAll('[data-subview-btn]').forEach(btn => {
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    const target = btn.dataset.subviewBtn;
+    const segmented = btn.closest('.sheet-segmented');
+    const sheet = btn.closest('.sheet');
+    if (!segmented || !sheet) return;
+    segmented.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === btn));
+    sheet.querySelectorAll('.subview').forEach(v => {
+      v.classList.toggle('active', v.dataset.subview === target);
+    });
+    // Scroll the sheet body to top when switching
+    const body = sheet.querySelector('.sheet-body');
+    if (body) body.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+});
+
+// =========================================================================
+// Budget stepper logic
+// =========================================================================
+const budgets = {
+  alimentacion: 400,
+  restaurantes: 200,
+  hogar: 500,
+  transporte: 150,
+  ocio: 100,
+  ropa: 150,
+  salud: 100,
+};
+
+function recalcBudgetTotal() {
+  const total = Object.values(budgets).reduce((a, b) => a + b, 0);
+  const el = document.getElementById('budgetTotal');
+  if (el) el.textContent = total.toLocaleString('es-ES') + ' €';
+}
+
+document.querySelectorAll('[data-step]').forEach(btn => {
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    const cat = btn.dataset.step;
+    const dir = parseInt(btn.dataset.dir, 10);
+    const step = 25; // 25 € por click
+    budgets[cat] = Math.max(0, budgets[cat] + dir * step);
+    const valEl = document.querySelector(`.val[data-cat="${cat}"]`);
+    if (valEl) valEl.textContent = budgets[cat].toLocaleString('es-ES') + ' €';
+    recalcBudgetTotal();
+  });
+});
+
+// =========================================================================
+// LUZ · Precios de la luz por horas (PVPC) + planificador de consumo
+// Datos de ejemplo en €/kWh. Listo para conectar a la API de REE/ESIOS.
+// =========================================================================
+const luzPrices = {
+  today: [0.118,0.110,0.104,0.099,0.089,0.092,0.101,0.128,0.165,0.158,0.142,0.131,
+          0.119,0.108,0.112,0.121,0.134,0.149,0.171,0.198,0.231,0.241,0.205,0.162],
+  tomorrow: [0.121,0.112,0.106,0.097,0.091,0.090,0.103,0.135,0.172,0.161,0.138,0.125,
+             0.114,0.105,0.109,0.118,0.129,0.146,0.168,0.201,0.238,0.249,0.212,0.158],
+};
+
+const appliances = [
+  { id:'lavadora',     name:'Lavadora',     kwh:1.0, dur:2, color:'blue',
+    icon:'<rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="4"/><path d="M7 6h.01"/>' },
+  { id:'lavavajillas', name:'Lavavajillas', kwh:1.2, dur:3, color:'teal',
+    icon:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 8h16M9 12v5M15 12v5"/>' },
+  { id:'secadora',     name:'Secadora',     kwh:2.5, dur:2, color:'orange',
+    icon:'<rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="13" r="4"/><path d="M10 13s1-1 2 0 2 0 2 0"/>' },
+  { id:'horno',        name:'Horno',        kwh:1.5, dur:1, color:'red',
+    icon:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M8 6h.01M11 6h.01"/>' },
+  { id:'termo',        name:'Termo agua',   kwh:2.0, dur:3, color:'purple',
+    icon:'<path d="M12 2s6 7 6 12a6 6 0 11-12 0c0-5 6-12 6-12z"/>' },
+  { id:'coche',        name:'Coche eléct.', kwh:7.0, dur:4, color:'green',
+    icon:'<path d="M5 11l1.5-4h11L19 11M5 11h14v5H5zM7 16v2M17 16v2"/>' },
+];
+
+let luzDay = 'today';
+let luzPlanSel = 'lavadora';
+
+const pad = n => String(n).padStart(2, '0');
+const hourLabel = h => pad(((h % 24) + 24) % 24) + ':00';
+const rangeLabel = (start, len) => hourLabel(start) + '–' + hourLabel(start + len);
+const fmtKwh = p => p.toFixed(3).replace('.', ',');
+const fmtEur = v => v.toFixed(2).replace('.', ',') + ' €';
+
+function tierOf(price, min, max) {
+  const t = (price - min) / ((max - min) || 1);
+  if (t <= 0.34) return 'ok';
+  if (t >= 0.66) return 'hi';
+  return 'mid';
+}
+function avgWindow(prices, start, len) {
+  let s = 0; for (let i = 0; i < len; i++) s += prices[start + i];
+  return s / len;
+}
+function cheapestWindow(prices, len, from = 0) {
+  let best = null;
+  for (let s = from; s + len <= prices.length; s++) {
+    const avg = avgWindow(prices, s, len);
+    if (!best || avg < best.avg) best = { start: s, avg };
+  }
+  return best;
+}
+function priciestWindow(prices, len) {
+  let best = null;
+  for (let s = 0; s + len <= prices.length; s++) {
+    const avg = avgWindow(prices, s, len);
+    if (!best || avg > best.avg) best = { start: s, avg };
+  }
+  return best;
+}
+
+// ----- Gráfico de barras por horas -----
+function renderLuzChart() {
+  const prices = luzPrices[luzDay];
+  const min = Math.min(...prices), max = Math.max(...prices);
+  const cheapestHour = prices.indexOf(min);
+  const nowHour = new Date().getHours();
+  const chart = document.getElementById('luzChart');
+  chart.innerHTML = prices.map((p, h) => {
+    const tier = tierOf(p, min, max);
+    const height = Math.max(6, Math.round((p / max) * 100));
+    const isNow = (luzDay === 'today' && h === nowHour);
+    const bubble = (h === cheapestHour) ? `<div class="bubble">${fmtKwh(p)}</div>` : '';
+    return `<div class="luz-bar ${tier}${isNow ? ' now' : ''}" title="${hourLabel(h)} · ${fmtKwh(p)} €/kWh">
+      ${bubble}<div class="fill" style="height:${height}%"></div></div>`;
+  }).join('');
+  document.getElementById('luzChartTitle').textContent =
+    'Precio por horas · ' + (luzDay === 'today' ? 'Hoy' : 'Mañana');
+}
+
+// ----- Tarjetas rápidas (más barata / más cara) -----
+function renderLuzQuick() {
+  const prices = luzPrices[luzDay];
+  const min = Math.min(...prices), max = Math.max(...prices);
+  const ch = prices.indexOf(min), ex = prices.indexOf(max);
+  document.getElementById('luzCheapHour').textContent = hourLabel(ch);
+  document.getElementById('luzCheapPrice').textContent = fmtKwh(min) + ' €';
+  document.getElementById('luzExpHour').textContent = hourLabel(ex);
+  document.getElementById('luzExpPrice').textContent = fmtKwh(max) + ' €';
+}
+
+// ----- Precio "ahora" (siempre hoy) -----
+function renderLuzHero() {
+  const prices = luzPrices.today;
+  const cur = new Date().getHours();
+  const min = Math.min(...prices), max = Math.max(...prices);
+  const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+  const now = prices[cur];
+  const tier = tierOf(now, min, max);
+  const hero = document.getElementById('luzHero');
+  hero.classList.remove('mid', 'hi');
+  if (tier !== 'ok') hero.classList.add(tier);
+  document.getElementById('luzNowPrice').textContent = fmtKwh(now);
+  document.getElementById('luzStatus').textContent =
+    tier === 'ok' ? 'Barato' : tier === 'mid' ? 'Precio medio' : 'Caro';
+  document.getElementById('luzNowHour').textContent = rangeLabel(cur, 1);
+  const diff = Math.round((now - avg) / avg * 100);
+  document.getElementById('luzNowVs').textContent =
+    (diff >= 0 ? '+' : '') + diff + '% vs media de hoy';
+}
+
+// ----- Mejores tramos (valle) -----
+function renderLuzStretches() {
+  const prices = luzPrices[luzDay];
+  const min = Math.min(...prices), max = Math.max(...prices);
+  const ranges = []; let cur = null;
+  prices.forEach((p, h) => {
+    if (tierOf(p, min, max) === 'ok') {
+      if (!cur) cur = { start: h, end: h, sum: p, n: 1 };
+      else { cur.end = h; cur.sum += p; cur.n++; }
+    } else if (cur) { ranges.push(cur); cur = null; }
+  });
+  if (cur) ranges.push(cur);
+  ranges.forEach(r => r.avg = r.sum / r.n);
+  ranges.sort((a, b) => a.avg - b.avg);
+  const top = ranges.slice(0, 3);
+  document.getElementById('luzStretches').innerHTML = top.map((r, i) => `
+    <div class="list-row">
+      <div class="icon-tile green">
+        <svg viewBox="0 0 24 24"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+      </div>
+      <div class="row-content">
+        <div class="row-title">${hourLabel(r.start)} – ${hourLabel(r.end + 1)}${i === 0 ? ' · ⭐ Mejor' : ''}</div>
+        <div class="row-sub">${r.n} ${r.n === 1 ? 'hora' : 'horas'} · tramo valle</div>
+      </div>
+      <div class="row-trailing" style="color: var(--green); font-weight: 600;">${fmtKwh(r.avg)} €/kWh</div>
+    </div>`).join('');
+}
+
+// ----- Recomendaciones por electrodoméstico -----
+function renderLuzAppliances() {
+  const prices = luzPrices[luzDay];
+  document.getElementById('luzAppliances').innerHTML = appliances.map(a => {
+    const best = cheapestWindow(prices, a.dur);
+    const peak = priciestWindow(prices, a.dur);
+    const cost = a.kwh * best.avg;
+    const save = a.kwh * (peak.avg - best.avg);
+    return `
+      <div class="luz-appliance" data-appliance="${a.id}">
+        <div class="la-head">
+          <div class="icon-tile ${a.color}" style="width:26px;height:26px;border-radius:7px">
+            <svg viewBox="0 0 24 24" style="width:15px;height:15px">${a.icon}</svg>
+          </div>
+          <span class="la-name">${a.name}</span>
+        </div>
+        <div class="la-window">${rangeLabel(best.start, a.dur)}</div>
+        <div class="la-meta">~${fmtEur(cost)} · ${a.kwh.toFixed(1).replace('.', ',')} kWh</div>
+        <div class="la-save">Ahorras ${fmtEur(save)}</div>
+      </div>`;
+  }).join('');
+}
+
+// ----- Planificador (sheet): elige mejor entre hoy (desde ahora) y mañana -----
+function renderLuzPicker() {
+  document.getElementById('luzPicker').innerHTML = appliances.map(a => `
+    <button class="luz-pick ${a.id === luzPlanSel ? 'on' : ''}" data-pick="${a.id}">
+      <div class="icon-tile ${a.color}" style="width:32px;height:32px;border-radius:9px">
+        <svg viewBox="0 0 24 24" style="width:18px;height:18px">${a.icon}</svg>
+      </div>
+      <span class="lp-name">${a.name}</span>
+    </button>`).join('');
+}
+function renderLuzPlan() {
+  const a = appliances.find(x => x.id === luzPlanSel);
+  const cur = new Date().getHours();
+  const candidates = [];
+  const todayBest = cheapestWindow(luzPrices.today, a.dur, cur);
+  if (todayBest) candidates.push({ day: 'Hoy', arr: luzPrices.today, ...todayBest });
+  const tomBest = cheapestWindow(luzPrices.tomorrow, a.dur);
+  candidates.push({ day: 'Mañana', arr: luzPrices.tomorrow, ...tomBest });
+  candidates.sort((x, y) => x.avg - y.avg);
+  const best = candidates[0];
+  const peak = priciestWindow(best.arr, a.dur);
+  const cost = a.kwh * best.avg;
+  const save = a.kwh * (peak.avg - best.avg);
+  document.getElementById('luzPlanWhen').textContent = best.day;
+  document.getElementById('luzPlanWindow').textContent = rangeLabel(best.start, a.dur);
+  document.getElementById('luzPlanDesc').textContent =
+    `${a.name} · ${a.dur} h · ${a.kwh.toFixed(1).replace('.', ',')} kWh por ciclo`;
+  document.getElementById('luzPlanCost').textContent = fmtEur(cost);
+  document.getElementById('luzPlanSave').textContent = fmtEur(save);
+}
+
+function renderLuzDay() {
+  renderLuzChart();
+  renderLuzQuick();
+  renderLuzStretches();
+  renderLuzAppliances();
+}
+
+// ----- Eventos -----
+document.querySelectorAll('#luzDaySeg [data-luz-day]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    luzDay = btn.dataset.luzDay;
+    document.querySelectorAll('#luzDaySeg button').forEach(b => b.classList.toggle('on', b === btn));
+    renderLuzDay();
+  });
+});
+
+// Click en tarjeta de electrodoméstico → abre planificador con ese aparato
+document.addEventListener('click', e => {
+  const card = e.target.closest('.luz-appliance');
+  if (!card) return;
+  luzPlanSel = card.dataset.appliance;
+  renderLuzPicker();
+  renderLuzPlan();
+  openSheet('luz-planner');
+});
+
+// Selector de aparato dentro del sheet
+document.addEventListener('click', e => {
+  const pick = e.target.closest('[data-pick]');
+  if (!pick) return;
+  e.stopPropagation();
+  luzPlanSel = pick.dataset.pick;
+  document.querySelectorAll('.luz-pick').forEach(p => p.classList.toggle('on', p === pick));
+  renderLuzPlan();
+});
+
+// Toggles de avisos (también dentro del sheet)
+document.querySelectorAll('.luz-toggle').forEach(t => {
+  t.addEventListener('click', e => {
+    e.stopPropagation();
+    t.classList.toggle('on');
+  });
+});
+
+function luzInit() {
+  renderLuzHero();
+  renderLuzDay();
+  renderLuzPicker();
+  renderLuzPlan();
+}
+luzInit();
+
+// =========================================================================
+// Default state
+// =========================================================================
+activate('inicio');
+</script>
+</body>
+</html>
