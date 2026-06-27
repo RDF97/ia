@@ -1309,6 +1309,41 @@ html, body {
 .luz-toggle.on { background: var(--accent); }
 .luz-toggle.on .knob { left: 20px; }
 
+/* Lector de precio al pulsar una barra */
+.luz-readout {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px; padding-bottom: 12px;
+  border-bottom: 0.5px solid var(--separator);
+}
+.luz-readout .lr-hour { font-size: 15px; font-weight: 600; color: var(--label-secondary); font-variant-numeric: tabular-nums; }
+.luz-readout .lr-right { display: flex; align-items: center; gap: 10px; }
+.luz-readout .lr-val { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+.luz-readout .lr-tier { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; color: #fff; }
+.luz-readout .lr-tier.ok { background: var(--green); }
+.luz-readout .lr-tier.mid { background: var(--orange); }
+.luz-readout .lr-tier.hi { background: var(--red); }
+.luz-bar.sel .fill { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* Opciones del planificador (3 mejores franjas) */
+.luz-option {
+  width: 100%; display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; margin-bottom: 8px;
+  background: var(--bg-card); border: 1.5px solid transparent;
+  border-radius: 12px; cursor: pointer; font: inherit;
+  color: var(--label); text-align: left;
+}
+.luz-option.on { border-color: var(--accent); background: var(--accent-soft); }
+.luz-option .lo-rank {
+  width: 26px; height: 26px; border-radius: 999px; flex-shrink: 0;
+  background: var(--fill-2); color: var(--label-secondary);
+  display: grid; place-items: center; font-size: 13px; font-weight: 700;
+}
+.luz-option.on .lo-rank { background: var(--accent); color: #fff; }
+.luz-option .lo-main { flex: 1; min-width: 0; }
+.luz-option .lo-when { font-size: 16px; font-weight: 600; letter-spacing: -0.2px; font-variant-numeric: tabular-nums; }
+.luz-option .lo-sub { font-size: 12px; color: var(--label-secondary); font-variant-numeric: tabular-nums; margin-top: 2px; }
+.luz-option .lo-price { font-size: 14px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
 /* ============= RESPONSIVE ============= */
 @media (max-width: 1100px) {
   .stage { grid-template-columns: 1fr; gap: var(--sp-6); padding: var(--sp-4); }
@@ -1964,6 +1999,13 @@ html, body {
           <!-- Gráfico por horas -->
           <div class="section-title" id="luzChartTitle">Precio por horas · Hoy</div>
           <div class="card">
+            <div class="luz-readout" id="luzReadout">
+              <div class="lr-hour" id="luzReadHour">—</div>
+              <div class="lr-right">
+                <span class="lr-val" id="luzReadVal">—</span>
+                <span class="lr-tier" id="luzReadTier">—</span>
+              </div>
+            </div>
             <div class="luz-chart" id="luzChart"></div>
             <div class="luz-axis"><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div>
             <div class="luz-legend">
@@ -1975,6 +2017,7 @@ html, body {
 
           <!-- Mejores tramos -->
           <div class="section-title">Mejores tramos para consumir</div>
+          <div style="padding: 0 20px 8px; font-size: 13px; color: var(--label-secondary); line-height: 1.4;">Franjas seguidas con el precio por debajo de la media del día. Ideales para concentrar el consumo.</div>
           <div class="list-card" id="luzStretches"></div>
 
           <!-- Electrodomésticos -->
@@ -2733,22 +2776,9 @@ html, body {
             <div style="padding: 4px 20px 8px; font-size: 12px; color: var(--label-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">¿Qué quieres poner?</div>
             <div class="luz-picker" id="luzPicker"></div>
 
-            <div style="padding: 4px 20px 8px; font-size: 12px; color: var(--label-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Mejor momento</div>
-            <div class="luz-result">
-              <div class="lr-label" id="luzPlanWhen">Hoy</div>
-              <div class="lr-window" id="luzPlanWindow">—</div>
-              <div style="font-size: 13px; color: var(--label); margin-top: 6px;" id="luzPlanDesc">Selecciona un electrodoméstico.</div>
-              <div class="lr-stats">
-                <div class="lr-stat">
-                  <div class="num" id="luzPlanCost">—</div>
-                  <div class="lbl">Coste estimado</div>
-                </div>
-                <div class="lr-stat">
-                  <div class="num" style="color: var(--green)" id="luzPlanSave">—</div>
-                  <div class="lbl">Ahorro vs hora cara</div>
-                </div>
-              </div>
-            </div>
+            <div style="padding: 4px 20px 6px; font-size: 12px; color: var(--label-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Mejores horas para ponerlo</div>
+            <div id="luzPlanDesc" style="padding: 0 20px 10px; font-size: 13px; color: var(--label-secondary);">Selecciona un electrodoméstico.</div>
+            <div id="luzPlanOptions" style="margin: 0 16px 16px;"></div>
 
             <div style="margin: 0 16px 16px; background: var(--bg-card); border-radius: 14px; padding: 4px 14px;">
               <div style="display: flex; align-items: center; gap: 12px; padding: 12px 0;">
@@ -3070,6 +3100,7 @@ const appliances = [
 
 let luzDay = 'today';
 let luzPlanSel = 'lavadora';
+let luzPlanOpt = 0;
 
 const pad = n => String(n).padStart(2, '0');
 const hourLabel = h => pad(((h % 24) + 24) % 24) + ':00';
@@ -3108,19 +3139,39 @@ function priciestWindow(prices, len) {
 function renderLuzChart() {
   const prices = luzPrices[luzDay];
   const min = Math.min(...prices), max = Math.max(...prices);
-  const cheapestHour = prices.indexOf(min);
   const nowHour = new Date().getHours();
   const chart = document.getElementById('luzChart');
   chart.innerHTML = prices.map((p, h) => {
     const tier = tierOf(p, min, max);
     const height = Math.max(6, Math.round((p / max) * 100));
     const isNow = (luzDay === 'today' && h === nowHour);
-    const bubble = (h === cheapestHour) ? `<div class="bubble">${fmtKwh(p)}</div>` : '';
-    return `<div class="luz-bar ${tier}${isNow ? ' now' : ''}" title="${hourLabel(h)} · ${fmtKwh(p)} €/kWh">
-      ${bubble}<div class="fill" style="height:${height}%"></div></div>`;
+    return `<div class="luz-bar ${tier}${isNow ? ' now' : ''}" data-h="${h}"><div class="fill" style="height:${height}%"></div></div>`;
   }).join('');
   document.getElementById('luzChartTitle').textContent =
     'Precio por horas · ' + (luzDay === 'today' ? 'Hoy' : 'Mañana');
+  // Lectura por defecto: hora actual (hoy) o la más barata (mañana)
+  updateReadout(luzDay === 'today' ? nowHour : prices.indexOf(min));
+}
+
+function updateReadout(h) {
+  const prices = luzPrices[luzDay];
+  const min = Math.min(...prices), max = Math.max(...prices);
+  const tier = tierOf(prices[h], min, max);
+  document.getElementById('luzReadHour').textContent = rangeLabel(h, 1);
+  document.getElementById('luzReadVal').textContent = fmtKwh(prices[h]) + ' €/kWh';
+  const t = document.getElementById('luzReadTier');
+  t.className = 'lr-tier ' + tier;
+  t.textContent = tier === 'ok' ? 'Barato' : tier === 'mid' ? 'Medio' : 'Caro';
+  document.querySelectorAll('#luzChart .luz-bar').forEach(b =>
+    b.classList.toggle('sel', Number(b.dataset.h) === h));
+}
+
+function dayPart(h) {
+  if (h < 6) return 'Madrugada';
+  if (h < 12) return 'Mañana';
+  if (h < 16) return 'Mediodía';
+  if (h < 21) return 'Tarde';
+  return 'Noche';
 }
 
 // ----- Tarjetas rápidas (más barata / más cara) -----
@@ -3175,8 +3226,8 @@ function renderLuzStretches() {
         <svg viewBox="0 0 24 24"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
       </div>
       <div class="row-content">
-        <div class="row-title">${hourLabel(r.start)} – ${hourLabel(r.end + 1)}${i === 0 ? ' · ⭐ Mejor' : ''}</div>
-        <div class="row-sub">${r.n} ${r.n === 1 ? 'hora' : 'horas'} · tramo valle</div>
+        <div class="row-title">${dayPart(r.start)} · ${hourLabel(r.start)}–${hourLabel(r.end + 1)}</div>
+        <div class="row-sub">${r.n} ${r.n === 1 ? 'hora seguida' : 'horas seguidas'} baratas${i === 0 ? ' · el más barato' : ''}</div>
       </div>
       <div class="row-trailing" style="color: var(--green); font-weight: 600;">${fmtKwh(r.avg)} €/kWh</div>
     </div>`).join('');
@@ -3214,26 +3265,58 @@ function renderLuzPicker() {
       </div>
       <span class="lp-name">${a.name}</span>
     </button>`).join('');
+  document.querySelectorAll('.luz-pick').forEach(b => b.addEventListener('click', () => {
+    luzPlanSel = b.dataset.pick;
+    luzPlanOpt = 0;
+    document.querySelectorAll('.luz-pick').forEach(x => x.classList.toggle('on', x === b));
+    renderLuzPlan();
+  }));
 }
+
+// Las N franjas más baratas (no solapadas) entre hoy (desde ahora) y mañana
+function cheapestOptions(a, n) {
+  const cur = new Date().getHours();
+  const cands = [];
+  for (let s = cur; s + a.dur <= 24; s++)
+    cands.push({ day: 'Hoy', arr: luzPrices.today, start: s, avg: avgWindow(luzPrices.today, s, a.dur) });
+  for (let s = 0; s + a.dur <= 24; s++)
+    cands.push({ day: 'Mañana', arr: luzPrices.tomorrow, start: s, avg: avgWindow(luzPrices.tomorrow, s, a.dur) });
+  cands.sort((x, y) => x.avg - y.avg);
+  // Separación mínima para que las 3 opciones cubran franjas distintas del día
+  const gap = a.dur + 2;
+  const chosen = [];
+  for (const c of cands) {
+    if (chosen.length >= n) break;
+    const tooClose = chosen.some(x => x.day === c.day && Math.abs(c.start - x.start) < gap);
+    if (!tooClose) chosen.push(c);
+  }
+  return chosen;
+}
+
 function renderLuzPlan() {
   const a = appliances.find(x => x.id === luzPlanSel);
-  const cur = new Date().getHours();
-  const candidates = [];
-  const todayBest = cheapestWindow(luzPrices.today, a.dur, cur);
-  if (todayBest) candidates.push({ day: 'Hoy', arr: luzPrices.today, ...todayBest });
-  const tomBest = cheapestWindow(luzPrices.tomorrow, a.dur);
-  candidates.push({ day: 'Mañana', arr: luzPrices.tomorrow, ...tomBest });
-  candidates.sort((x, y) => x.avg - y.avg);
-  const best = candidates[0];
-  const peak = priciestWindow(best.arr, a.dur);
-  const cost = a.kwh * best.avg;
-  const save = a.kwh * (peak.avg - best.avg);
-  document.getElementById('luzPlanWhen').textContent = best.day;
-  document.getElementById('luzPlanWindow').textContent = rangeLabel(best.start, a.dur);
+  const opts = cheapestOptions(a, 3);
+  if (luzPlanOpt >= opts.length) luzPlanOpt = 0;
   document.getElementById('luzPlanDesc').textContent =
     `${a.name} · ${a.dur} h · ${a.kwh.toFixed(1).replace('.', ',')} kWh por ciclo`;
-  document.getElementById('luzPlanCost').textContent = fmtEur(cost);
-  document.getElementById('luzPlanSave').textContent = fmtEur(save);
+  const cont = document.getElementById('luzPlanOptions');
+  cont.innerHTML = opts.map((o, i) => {
+    const peak = priciestWindow(o.arr, a.dur);
+    const cost = a.kwh * o.avg;
+    const save = a.kwh * (peak.avg - o.avg);
+    return `<button class="luz-option ${i === luzPlanOpt ? 'on' : ''}" data-opt="${i}">
+      <div class="lo-rank">${i + 1}</div>
+      <div class="lo-main">
+        <div class="lo-when">${o.day} · ${rangeLabel(o.start, a.dur)}</div>
+        <div class="lo-sub">~${fmtEur(cost)} · ahorras ${fmtEur(save)}</div>
+      </div>
+      <div class="lo-price">${fmtKwh(o.avg)} €/kWh</div>
+    </button>`;
+  }).join('');
+  cont.querySelectorAll('.luz-option').forEach(b => b.addEventListener('click', () => {
+    luzPlanOpt = Number(b.dataset.opt);
+    cont.querySelectorAll('.luz-option').forEach(x => x.classList.toggle('on', x === b));
+  }));
 }
 
 function renderLuzDay() {
@@ -3252,24 +3335,22 @@ document.querySelectorAll('#luzDaySeg [data-luz-day]').forEach(btn => {
   });
 });
 
+// Tap en una barra del gráfico → muestra la hora y el precio en grande
+document.addEventListener('click', e => {
+  const bar = e.target.closest('.luz-bar');
+  if (!bar) return;
+  updateReadout(Number(bar.dataset.h));
+});
+
 // Click en tarjeta de electrodoméstico → abre planificador con ese aparato
 document.addEventListener('click', e => {
   const card = e.target.closest('.luz-appliance');
   if (!card) return;
   luzPlanSel = card.dataset.appliance;
+  luzPlanOpt = 0;
   renderLuzPicker();
   renderLuzPlan();
   openSheet('luz-planner');
-});
-
-// Selector de aparato dentro del sheet
-document.addEventListener('click', e => {
-  const pick = e.target.closest('[data-pick]');
-  if (!pick) return;
-  e.stopPropagation();
-  luzPlanSel = pick.dataset.pick;
-  document.querySelectorAll('.luz-pick').forEach(p => p.classList.toggle('on', p === pick));
-  renderLuzPlan();
 });
 
 // Toggles de avisos (también dentro del sheet)
