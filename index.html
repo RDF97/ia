@@ -3101,6 +3101,14 @@ const appliances = [
 let luzDay = 'today';
 let luzPlanSel = 'lavadora';
 let luzPlanOpt = 0;
+let luzDataSource = 'loading';      // 'real' (REE) | 'pdl' | 'sample' | 'loading'
+let luzTomorrowAvailable = true;    // mañana solo se publica ~20:15
+
+// Configuración de la fuente de datos reales (PVPC).
+// proxyBase: déjalo vacío para llamar directamente a las APIs públicas desde el
+// navegador; en la app comercial apúntalo a tu backend (evita límites/CORS y
+// permite usar la API oficial de ESIOS con token). Ej: 'https://api.tuapp.com/luz?url='
+const LUZ_API = { proxyBase: '' };
 
 const pad = n => String(n).padStart(2, '0');
 const hourLabel = h => pad(((h % 24) + 24) % 24) + ':00';
@@ -3279,8 +3287,9 @@ function cheapestOptions(a, n) {
   const cands = [];
   for (let s = cur; s + a.dur <= 24; s++)
     cands.push({ day: 'Hoy', arr: luzPrices.today, start: s, avg: avgWindow(luzPrices.today, s, a.dur) });
-  for (let s = 0; s + a.dur <= 24; s++)
-    cands.push({ day: 'Mañana', arr: luzPrices.tomorrow, start: s, avg: avgWindow(luzPrices.tomorrow, s, a.dur) });
+  if (luzTomorrowAvailable)
+    for (let s = 0; s + a.dur <= 24; s++)
+      cands.push({ day: 'Mañana', arr: luzPrices.tomorrow, start: s, avg: avgWindow(luzPrices.tomorrow, s, a.dur) });
   cands.sort((x, y) => x.avg - y.avg);
   // Separación mínima para que las 3 opciones cubran franjas distintas del día
   const gap = a.dur + 2;
@@ -3361,13 +3370,127 @@ document.querySelectorAll('.luz-toggle').forEach(t => {
   });
 });
 
+// ----- Conexión a precios reales (PVPC) -----
+function luzIsoLocal(d, end) {
+  const z = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}T${end ? '23:59' : '00:00'}`;
+}
+function validDay(arr) {
+  return Array.isArray(arr) && arr.length === 24 && arr.every(x => typeof x === 'number' && isFinite(x) && x > 0);
+}
+
+// Proveedor oficial: Red Eléctrica (apidatos.ree.es) — PVPC de hoy y mañana
+async function fetchREE() {
+  const now = new Date();
+  const tom = new Date(now); tom.setDate(now.getDate() + 1);
+  const url = LUZ_API.proxyBase +
+    'https://apidatos.ree.es/es/datos/mercados/precios-mercados-tiempo-real' +
+    `?start_date=${luzIsoLocal(now)}&end_date=${luzIsoLocal(tom, true)}` +
+    '&time_trunc=hour&geo_limit=peninsular&geo_ids=8741';
+  const res = await fetch(url, { headers: { Accept: 'application/json' } });
+  if (!res.ok) throw new Error('REE HTTP ' + res.status);
+  const json = await res.json();
+  const series = json.included || [];
+  const pvpc = series.find(s => /PVPC/i.test(s.attributes?.title || ''))
+            || series.find(s => /spot|mercado/i.test(s.attributes?.title || ''));
+  if (!pvpc) throw new Error('REE: sin serie PVPC');
+  // Agrupa por fecha/hora leídas del propio string ISO (hora peninsular),
+  // así no depende de la zona horaria del dispositivo.
+  const byDate = {};
+  for (const v of (pvpc.attributes.values || [])) {
+    const m = /^(\d{4}-\d{2}-\d{2})T(\d{2})/.exec(v.datetime || '');
+    if (!m) continue;
+    (byDate[m[1]] = byDate[m[1]] || new Array(24).fill(null))[parseInt(m[2], 10)] = v.value / 1000; // €/MWh → €/kWh
+  }
+  const dates = Object.keys(byDate).sort();
+  return {
+    today: byDate[dates[0]] || new Array(24).fill(null),
+    tomorrow: dates[1] ? byDate[dates[1]] : null,
+  };
+}
+
+// Respaldo con CORS y sin token: preciodelaluz.org (solo hoy)
+async function fetchPDL() {
+  const url = LUZ_API.proxyBase + 'https://api.preciodelaluz.org/v1/prices/all?zone=PCB';
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('PDL HTTP ' + res.status);
+  const data = await res.json();
+  const today = new Array(24).fill(null);
+  Object.values(data).forEach(o => {
+    if (!o || typeof o.hour === 'undefined') return;
+    const h = parseInt(String(o.hour).slice(0, 2), 10);
+    const p = o.price > 5 ? o.price / 1000 : o.price; // normaliza €/MWh → €/kWh
+    if (!isNaN(h) && h >= 0 && h < 24) today[h] = p;
+  });
+  return today;
+}
+
+function updateLuzSubtitle() {
+  const el = document.getElementById('luzSubtitle');
+  if (!el) return;
+  const z = n => String(n).padStart(2, '0');
+  const now = new Date();
+  const t = `${z(now.getHours())}:${z(now.getMinutes())}`;
+  el.textContent =
+    luzDataSource === 'real'    ? `PVPC · datos reales (REE) · actualizado ${t}` :
+    luzDataSource === 'pdl'     ? `PVPC · datos reales · actualizado ${t}` :
+    luzDataSource === 'loading' ? 'PVPC · cargando precios reales…' :
+                                  'PVPC · datos de ejemplo (sin conexión)';
+}
+
+function setTomorrowAvailable(ok) {
+  luzTomorrowAvailable = ok;
+  const btn = document.querySelector('#luzDaySeg [data-luz-day="tomorrow"]');
+  if (!btn) return;
+  btn.disabled = !ok;
+  btn.style.opacity = ok ? '' : '0.4';
+  btn.style.cursor = ok ? '' : 'not-allowed';
+  btn.textContent = ok ? 'Mañana' : 'Mañana · no publicado';
+  if (!ok && luzDay === 'tomorrow') {
+    luzDay = 'today';
+    document.querySelector('#luzDaySeg [data-luz-day="today"]').classList.add('on');
+    btn.classList.remove('on');
+  }
+}
+
+function applyRealPrices(today, tomorrow, label) {
+  if (validDay(today)) luzPrices.today = today;
+  setTomorrowAvailable(validDay(tomorrow));
+  if (luzTomorrowAvailable) luzPrices.tomorrow = tomorrow;
+  luzDataSource = label;
+  updateLuzSubtitle();
+  renderLuzHero();
+  renderLuzDay();
+  renderLuzPicker();
+  renderLuzPlan();
+}
+
+async function loadRealPrices() {
+  try {
+    const r = await fetchREE();
+    if (!validDay(r.today)) throw new Error('REE: datos de hoy incompletos');
+    applyRealPrices(r.today, r.tomorrow, 'real');
+    return;
+  } catch (e) { console.warn('Luz · REE no disponible:', e.message); }
+  try {
+    const today = await fetchPDL();
+    if (!validDay(today)) throw new Error('PDL: datos incompletos');
+    applyRealPrices(today, null, 'pdl');
+    return;
+  } catch (e) { console.warn('Luz · preciodelaluz no disponible:', e.message); }
+  luzDataSource = 'sample';
+  updateLuzSubtitle();
+}
+
 function luzInit() {
+  updateLuzSubtitle();
   renderLuzHero();
   renderLuzDay();
   renderLuzPicker();
   renderLuzPlan();
 }
 luzInit();
+loadRealPrices();
 
 // =========================================================================
 // Default state
