@@ -1,24 +1,33 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "@/theme/tokens";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
 function icon(name: IoniconName) {
-  return ({ color, size }: { color: string; size: number }) => (
-    <Ionicons name={name} color={color} size={size} />
-  );
+  return ({ color }: { color: string }) => <Ionicons name={name} color={color} size={26} />;
 }
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
+  const bottom = insets.bottom > 0 ? insets.bottom : 10;
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.tabInactive,
-        tabBarStyle: { borderTopWidth: 0.5, borderTopColor: colors.separator },
-        tabBarLabelStyle: { fontSize: 10 },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: "500", marginTop: 2 },
+        tabBarStyle: {
+          backgroundColor: "#fff",
+          borderTopWidth: 0.5,
+          borderTopColor: colors.separator,
+          height: 56 + bottom,
+          paddingTop: 8,
+          paddingBottom: bottom,
+        },
       }}
     >
       <Tabs.Screen name="index" options={{ title: "Inicio", tabBarIcon: icon("home-outline") }} />

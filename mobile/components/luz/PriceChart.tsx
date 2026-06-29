@@ -32,7 +32,9 @@ export function PriceChart({ prices, isToday }: { prices: number[]; isToday: boo
       <View className="flex-row items-center justify-between border-b border-neutral-200 pb-3 mb-3">
         <Text className="text-[15px] font-semibold text-neutral-500">{rangeLabel(sel, 1)}</Text>
         <View className="flex-row items-center" style={{ gap: 10 }}>
-          <Text className="text-[22px] font-bold text-black">{fmtKwh(prices[sel])} €/kWh</Text>
+          <Text className="text-[22px] font-bold text-black" style={{ lineHeight: 27 }}>
+            {fmtKwh(prices[sel])} €/kWh
+          </Text>
           <Text
             className="text-xs font-bold text-white rounded-pill px-2.5 py-1"
             style={{ backgroundColor: tierColor(tier) }}

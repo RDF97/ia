@@ -57,6 +57,17 @@ function isoLocal(d: Date, end?: boolean): string {
   return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}T${end ? "23:59" : "00:00"}`;
 }
 
+// fetch con timeout: si la fuente tarda, caemos al respaldo en vez de colgarnos.
+async function fetchWithTimeout(url: string, opts: RequestInit = {}, ms = 7000): Promise<Response> {
+  const ctrl = new AbortController();
+  const id = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...opts, signal: ctrl.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 export async function fetchLuzPrices(): Promise<LuzData> {
   // 1) Red Eléctrica (oficial): hoy + mañana
   try {
@@ -67,7 +78,7 @@ export async function fetchLuzPrices(): Promise<LuzData> {
       "https://apidatos.ree.es/es/datos/mercados/precios-mercados-tiempo-real" +
       `?start_date=${isoLocal(now)}&end_date=${isoLocal(tom, true)}` +
       "&time_trunc=hour&geo_limit=peninsular&geo_ids=8741";
-    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    const res = await fetchWithTimeout(url, { headers: { Accept: "application/json" } });
     if (res.ok) {
       const { today, tomorrow } = parseREE(await res.json());
       if (validDay(today)) {
@@ -79,7 +90,7 @@ export async function fetchLuzPrices(): Promise<LuzData> {
   }
   // 2) preciodelaluz (con CORS, sin token): solo hoy
   try {
-    const res = await fetch("https://api.preciodelaluz.org/v1/prices/all?zone=PCB");
+    const res = await fetchWithTimeout("https://api.preciodelaluz.org/v1/prices/all?zone=PCB");
     if (res.ok) {
       const today = parsePDL(await res.json());
       if (validDay(today)) return { today, tomorrow: null, source: "pdl" };
