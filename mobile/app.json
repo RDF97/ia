@@ -27,7 +27,8 @@
       "appwriteProjectId": "REEMPLAZA_CON_TU_PROJECT_ID",
       "appwriteDatabaseId": "homie",
       "appwriteTasksCollectionId": "tasks",
-      "appwriteShoppingCollectionId": "shopping_items"
+      "appwriteShoppingCollectionId": "shopping_items",
+      "appwriteExpensesCollectionId": "expenses"
     }
   }
 }

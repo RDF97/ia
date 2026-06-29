@@ -44,6 +44,20 @@ y permiso **Create** para el rol **Users**.
 
 Índice: key `hogarId_idx` sobre `hogarId` (ASC).
 
+### Colección `expenses` (gastos)
+**Collection ID = `expenses`**, **Document Security: ON**, permiso **Create** para **Users**.
+
+| Atributo | Tipo | Tamaño/Config | Requerido | Defecto |
+|---|---|---|---|---|
+| `amount` | Double | — | sí | — |
+| `concept` | String | 255 | sí | — |
+| `category` | String | 100 | no | — |
+| `paidByName` | String | 255 | sí | — |
+| `shared` | Boolean | — | sí | `true` |
+| `hogarId` | String | 50 | sí | — |
+
+Índice: key `hogarId_idx` sobre `hogarId` (ASC).
+
 ## 3. SMTP (para los emails de invitación al hogar)
 Sin SMTP, las invitaciones no se envían. En el VPS, edita el `.env` de Appwrite
 (normalmente `/opt/appwrite/appwrite/.env`) y rellena:
