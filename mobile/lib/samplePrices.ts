@@ -13,11 +13,20 @@ export const samplePrices = {
   ],
 };
 
-export const appliances = [
-  { id: "lavadora", name: "Lavadora", kwh: 1.0, dur: 2 },
-  { id: "lavavajillas", name: "Lavavajillas", kwh: 1.2, dur: 3 },
-  { id: "secadora", name: "Secadora", kwh: 2.5, dur: 2 },
-  { id: "horno", name: "Horno", kwh: 1.5, dur: 1 },
-  { id: "termo", name: "Termo agua", kwh: 2.0, dur: 3 },
-  { id: "coche", name: "Coche eléct.", kwh: 7.0, dur: 4 },
-] as const;
+export interface Appliance {
+  id: string;
+  name: string;
+  kwh: number;
+  dur: number;
+  icon: string; // nombre de icono Ionicons
+  color: string;
+}
+
+export const appliances: Appliance[] = [
+  { id: "lavadora", name: "Lavadora", kwh: 1.0, dur: 2, icon: "shirt-outline", color: "#007AFF" },
+  { id: "lavavajillas", name: "Lavavajillas", kwh: 1.2, dur: 3, icon: "restaurant-outline", color: "#5AC8FA" },
+  { id: "secadora", name: "Secadora", kwh: 2.5, dur: 2, icon: "sync-outline", color: "#FF9500" },
+  { id: "horno", name: "Horno", kwh: 1.5, dur: 1, icon: "flame-outline", color: "#FF3B30" },
+  { id: "termo", name: "Termo agua", kwh: 2.0, dur: 3, icon: "water-outline", color: "#AF52DE" },
+  { id: "coche", name: "Coche eléct.", kwh: 7.0, dur: 4, icon: "car-outline", color: "#34C759" },
+];

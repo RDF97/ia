@@ -93,6 +93,38 @@ export function cheapestOptions(
   return chosen;
 }
 
+export interface Stretch {
+  start: number;
+  end: number; // hora inclusive
+  avg: number;
+  n: number;
+}
+
+/** Tramos contiguos "baratos" (tier ok), ordenados de más barato a menos (top 3). */
+export function cheapStretches(prices: number[]): Stretch[] {
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  const ranges: Stretch[] = [];
+  let cur: Stretch | null = null;
+  prices.forEach((p, h) => {
+    if (tierOf(p, min, max) === "ok") {
+      if (!cur) cur = { start: h, end: h, avg: p, n: 1 };
+      else {
+        cur.end = h;
+        cur.avg += p;
+        cur.n += 1;
+      }
+    } else if (cur) {
+      ranges.push(cur);
+      cur = null;
+    }
+  });
+  if (cur) ranges.push(cur);
+  ranges.forEach((r) => (r.avg = r.avg / r.n));
+  ranges.sort((a, b) => a.avg - b.avg);
+  return ranges.slice(0, 3);
+}
+
 export const pad = (n: number): string => String(n).padStart(2, "0");
 export const hourLabel = (h: number): string => `${pad(((h % 24) + 24) % 24)}:00`;
 export const rangeLabel = (start: number, len: number): string =>

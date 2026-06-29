@@ -2,6 +2,7 @@ import {
   tierOf,
   cheapestWindow,
   cheapestOptions,
+  cheapStretches,
   dayPart,
   rangeLabel,
 } from "./luz";
@@ -55,5 +56,17 @@ describe("luz · lógica de precios", () => {
   test("rangeLabel formatea correctamente y cruza medianoche", () => {
     expect(rangeLabel(4, 2)).toBe("04:00–06:00");
     expect(rangeLabel(23, 2)).toBe("23:00–01:00");
+  });
+
+  test("cheapStretches detecta franjas valle ordenadas por precio", () => {
+    const stretches = cheapStretches(today);
+    expect(stretches.length).toBeGreaterThan(0);
+    // La madrugada (incluye la hora más barata, 04:00) debe ser el tramo top
+    expect(stretches[0].start).toBeLessThanOrEqual(4);
+    expect(stretches[0].end).toBeGreaterThanOrEqual(4);
+    // Ordenados ascendente por media
+    for (let i = 1; i < stretches.length; i++) {
+      expect(stretches[i - 1].avg).toBeLessThanOrEqual(stretches[i].avg);
+    }
   });
 });
