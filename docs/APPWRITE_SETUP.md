@@ -29,6 +29,21 @@ backend. Los **IDs** deben coincidir con los de `mobile/app.json → extra`.
 - **Create index** → key `hogarId_idx`, tipo **key**, atributo `hogarId` (ASC).
   (Necesario para filtrar tareas por hogar.)
 
+### Colección `shopping_items` (lista de la compra)
+Crea otra colección con **Collection ID = `shopping_items`**, **Document Security: ON**
+y permiso **Create** para el rol **Users**.
+
+| Atributo | Tipo | Tamaño | Requerido | Defecto |
+|---|---|---|---|---|
+| `name` | String | 255 | sí | — |
+| `qty` | String | 32 | no | — |
+| `store` | String | 100 | no | — |
+| `done` | Boolean | — | sí | `false` |
+| `hogarId` | String | 50 | sí | — |
+| `createdByName` | String | 255 | sí | — |
+
+Índice: key `hogarId_idx` sobre `hogarId` (ASC).
+
 ## 3. SMTP (para los emails de invitación al hogar)
 Sin SMTP, las invitaciones no se envían. En el VPS, edita el `.env` de Appwrite
 (normalmente `/opt/appwrite/appwrite/.env`) y rellena:
