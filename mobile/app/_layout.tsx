@@ -9,29 +9,45 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/lib/auth";
+import { HogarProvider, useHogar } from "@/lib/hogar";
 import { appwriteConfigured } from "@/lib/appwrite";
 import { colors } from "@/theme/tokens";
 
 const queryClient = new QueryClient();
 
 function RootNavigator() {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { active, loading: hogarLoading } = useHogar();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
-    if (loading) return;
-    const inAuth = segments[0] === "login";
-    // Sin backend configurado todavía → modo demo, no forzamos login.
+    const seg = segments[0];
+    // Modo demo (sin backend configurado): no forzamos login ni hogar.
     if (!appwriteConfigured) {
-      if (inAuth) router.replace("/");
+      if (seg === "login" || seg === "hogar") router.replace("/");
       return;
     }
-    if (!user && !inAuth) router.replace("/login");
-    else if (user && inAuth) router.replace("/");
-  }, [user, loading, segments, router]);
+    if (authLoading) return;
+    const inAuth = seg === "login";
+    const inOnboarding = seg === "hogar";
+    const inJoin = seg === "join";
 
-  if (loading) {
+    if (!user) {
+      if (!inAuth) router.replace("/login");
+      return;
+    }
+    if (hogarLoading) return;
+    if (!active && !inOnboarding && !inJoin) {
+      router.replace("/hogar");
+      return;
+    }
+    if (active && (inAuth || inOnboarding)) {
+      router.replace("/");
+    }
+  }, [user, authLoading, active, hogarLoading, segments, router]);
+
+  if (authLoading && appwriteConfigured) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
         <ActivityIndicator color={colors.accent} />
@@ -43,6 +59,8 @@ function RootNavigator() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="login" />
+      <Stack.Screen name="hogar" />
+      <Stack.Screen name="join" />
     </Stack>
   );
 }
@@ -53,8 +71,10 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-            <RootNavigator />
-            <StatusBar style="auto" />
+            <HogarProvider>
+              <RootNavigator />
+              <StatusBar style="auto" />
+            </HogarProvider>
           </AuthProvider>
         </QueryClientProvider>
       </SafeAreaProvider>
