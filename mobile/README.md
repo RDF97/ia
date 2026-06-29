@@ -1,7 +1,10 @@
 # Homie · App móvil (Expo / React Native)
 
-Esqueleto de la app comercial. Stack: **Expo SDK 52 + React Native + TypeScript +
-Expo Router + NativeWind**. Ver el plan completo en [`../docs/PLAN.md`](../docs/PLAN.md).
+Esqueleto de la app comercial. Stack: **Expo SDK 54 + React Native 0.81 + React 19 +
+TypeScript + Expo Router + NativeWind**. Ver el plan completo en
+[`../docs/PLAN.md`](../docs/PLAN.md).
+
+> Usa **Expo Go para SDK 54** (la versión actual de las tiendas).
 
 ## Requisitos
 - Node.js 18+ y npm
