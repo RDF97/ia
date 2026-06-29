@@ -73,7 +73,9 @@ export default function Luz() {
     <SafeAreaView className="flex-1 bg-bg-app" edges={["top"]}>
       <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
         <View className="px-5 pt-2 pb-1">
-          <Text className="text-[34px] font-bold tracking-tight text-black">Luz</Text>
+          <Text className="text-[34px] font-bold tracking-tight text-black" style={{ lineHeight: 41 }}>
+            Luz
+          </Text>
           <Text className="text-[13px] text-neutral-500 mt-1">{sourceLabel(source)}</Text>
         </View>
 
@@ -84,7 +86,7 @@ export default function Luz() {
               <Text className="text-[11px] font-medium uppercase tracking-wide text-white/90">
                 Precio ahora · {rangeLabel(nowHour, 1)}
               </Text>
-              <Text className="text-[34px] font-bold text-white mt-1">
+              <Text className="text-[34px] font-bold text-white mt-1" style={{ lineHeight: 42, includeFontPadding: false }}>
                 {fmtKwh(now)} <Text className="text-base text-white/90">€/kWh</Text>
               </Text>
             </View>
