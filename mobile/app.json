@@ -24,7 +24,9 @@
     },
     "extra": {
       "appwriteEndpoint": "https://appwrite.lademanu.es/v1",
-      "appwriteProjectId": "REEMPLAZA_CON_TU_PROJECT_ID"
+      "appwriteProjectId": "REEMPLAZA_CON_TU_PROJECT_ID",
+      "appwriteDatabaseId": "homie",
+      "appwriteTasksCollectionId": "tasks"
     }
   }
 }
