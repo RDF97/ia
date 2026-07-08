@@ -19,16 +19,14 @@ data class Product(
 }
 
 val DEFAULT_PRODUCTS = listOf(
-    Product(emoji = "🥪", name = "Bocadillo", priceCents = 350),
-    Product(emoji = "🍔", name = "Hamburguesa", priceCents = 450),
-    Product(emoji = "🌭", name = "Perrito", priceCents = 350),
-    Product(emoji = "🍢", name = "Pincho", priceCents = 250),
-    Product(emoji = "🍟", name = "Patatas", priceCents = 200),
-    Product(emoji = "🍺", name = "Cerveza", priceCents = 200, category = Product.CATEGORY_DRINK),
-    Product(emoji = "🥤", name = "Refresco", priceCents = 150, category = Product.CATEGORY_DRINK),
-    Product(emoji = "💧", name = "Agua", priceCents = 100, category = Product.CATEGORY_DRINK),
-    Product(emoji = "🍷", name = "Vino", priceCents = 150, category = Product.CATEGORY_DRINK),
-    Product(emoji = "☕", name = "Café", priceCents = 120, category = Product.CATEGORY_DRINK),
+    Product(emoji = "🥟", name = "Empanadillas", priceCents = 350),
+    Product(emoji = "🥖", name = "Bocadillos", priceCents = 400),
+    Product(emoji = "🧆", name = "Croquetas", priceCents = 800),
+    Product(emoji = "🍨", name = "Vasito dulce", priceCents = 350),
+    Product(emoji = "💧", name = "Agua", priceCents = 150, category = Product.CATEGORY_DRINK),
+    Product(emoji = "🍺", name = "Cerveza", priceCents = 250, category = Product.CATEGORY_DRINK),
+    Product(emoji = "🥤", name = "Refrescos", priceCents = 250, category = Product.CATEGORY_DRINK),
+    Product(emoji = "🍹", name = "Combinados", priceCents = 500, category = Product.CATEGORY_DRINK),
 )
 
 /** Persists the product list and UI preferences in SharedPreferences. */
