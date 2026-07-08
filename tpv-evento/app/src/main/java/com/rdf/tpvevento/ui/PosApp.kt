@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.DateRange
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -37,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
@@ -44,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rdf.tpvevento.PosState
 import com.rdf.tpvevento.ProductStore
+import com.rdf.tpvevento.SalesHistoryStore
 import com.rdf.tpvevento.ui.theme.Background
 import com.rdf.tpvevento.ui.theme.Fill
 import com.rdf.tpvevento.ui.theme.Label
@@ -51,8 +54,10 @@ import com.rdf.tpvevento.ui.theme.SecondaryLabel
 
 @Composable
 fun PosApp(store: ProductStore) {
-    val state = remember { PosState(store) }
+    val context = LocalContext.current
+    val state = remember { PosState(store, SalesHistoryStore(context)) }
     var editing by remember { mutableStateOf(false) }
+    var showHistory by remember { mutableStateOf(false) }
 
     BoxWithConstraints(
         Modifier
@@ -73,7 +78,11 @@ fun PosApp(store: ProductStore) {
         ) {
             Box(Modifier.fillMaxSize()) {
                 Column(Modifier.fillMaxSize()) {
-                    TopBar(state, onEdit = { editing = true })
+                    TopBar(
+                        state,
+                        onEdit = { editing = true },
+                        onHistory = { showHistory = true },
+                    )
                     Row(
                         Modifier
                             .fillMaxSize()
@@ -94,13 +103,16 @@ fun PosApp(store: ProductStore) {
                 if (editing) {
                     EditProductsScreen(state, onDone = { editing = false })
                 }
+                if (showHistory) {
+                    SalesHistoryScreen(state, onDone = { showHistory = false })
+                }
             }
         }
     }
 }
 
 @Composable
-private fun TopBar(state: PosState, onEdit: () -> Unit) {
+private fun TopBar(state: PosState, onEdit: () -> Unit, onHistory: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -120,29 +132,36 @@ private fun TopBar(state: PosState, onEdit: () -> Unit) {
             onChange = { state.setShowChangePanel(it) },
         )
         Spacer(Modifier.width(12.dp))
-        Surface(
-            onClick = onEdit,
-            shape = RoundedCornerShape(9.dp),
-            color = Fill,
+        BarButton(icon = Icons.Rounded.DateRange, label = "Historial", onClick = onHistory)
+        Spacer(Modifier.width(8.dp))
+        BarButton(icon = Icons.Rounded.Edit, label = "Editar carta", onClick = onEdit)
+    }
+}
+
+@Composable
+private fun BarButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+) {
+    Surface(onClick = onClick, shape = RoundedCornerShape(9.dp), color = Fill) {
+        Row(
+            Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Row(
-                Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Icon(
-                    Icons.Rounded.Edit,
-                    contentDescription = null,
-                    tint = Label,
-                    modifier = Modifier.height(15.dp),
-                )
-                Text(
-                    "Editar carta",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Label,
-                )
-            }
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = Label,
+                modifier = Modifier.height(15.dp),
+            )
+            Text(
+                label,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = Label,
+            )
         }
     }
 }

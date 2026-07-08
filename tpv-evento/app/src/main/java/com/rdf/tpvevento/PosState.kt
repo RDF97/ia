@@ -5,9 +5,13 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import java.time.LocalDate
 
 /** All the UI state for the point-of-sale screen. */
-class PosState(private val store: ProductStore) {
+class PosState(
+    private val store: ProductStore,
+    private val historyStore: SalesHistoryStore,
+) {
 
     var products by mutableStateOf(store.loadProducts())
         private set
@@ -19,6 +23,10 @@ class PosState(private val store: ProductStore) {
     val tendered = mutableStateListOf<Long>()
 
     var showChange by mutableStateOf(store.showChange)
+        private set
+
+    /** Per-day sales history, newest first. */
+    var history by mutableStateOf(historyStore.load())
         private set
 
     val totalCents: Long
@@ -59,9 +67,56 @@ class PosState(private val store: ProductStore) {
 
     fun clearTender() = tendered.clear()
 
+    /**
+     * Finishes the current customer: records the ticket into today's history
+     * (if it has items) and clears the ticket for the next sale. An empty
+     * ticket records nothing, so pressing this twice is harmless.
+     */
     fun newSale() {
+        recordCurrentSale()
         counts.clear()
         tendered.clear()
+    }
+
+    private fun recordCurrentSale() {
+        val lines = ticketLines
+        if (lines.isEmpty()) return
+
+        val today = LocalDate.now().toString()
+        val days = history.toMutableList()
+        val index = days.indexOfFirst { it.date == today }
+        val existing = days.getOrNull(index)
+
+        // Merge today's existing per-product tallies with this ticket.
+        val merged = LinkedHashMap<String, SaleLine>()
+        existing?.lines?.forEach { merged[it.name] = it }
+        for ((product, units) in lines) {
+            val addedCents = product.priceCents * units
+            val prev = merged[product.name]
+            merged[product.name] = if (prev == null) {
+                SaleLine(product.emoji, product.name, units, addedCents)
+            } else {
+                prev.copy(units = prev.units + units, totalCents = prev.totalCents + addedCents)
+            }
+        }
+
+        val updated = DayRecord(
+            date = today,
+            salesCount = (existing?.salesCount ?: 0) + 1,
+            totalCents = (existing?.totalCents ?: 0) + totalCents,
+            lines = merged.values.toList(),
+        )
+        if (index >= 0) days[index] = updated else days.add(updated)
+        // Keep newest first.
+        days.sortByDescending { it.date }
+        history = days
+        historyStore.save(days)
+    }
+
+    fun deleteDay(date: String) {
+        val updated = history.filterNot { it.date == date }
+        history = updated
+        historyStore.save(updated)
     }
 
     fun setShowChangePanel(value: Boolean) {
