@@ -1,5 +1,8 @@
 package com.rdf.tpvevento.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,6 +39,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -45,6 +50,7 @@ import com.rdf.tpvevento.PosState
 import com.rdf.tpvevento.Product
 import com.rdf.tpvevento.ui.theme.Background
 import com.rdf.tpvevento.ui.theme.Blue
+import com.rdf.tpvevento.ui.theme.Fill
 import com.rdf.tpvevento.ui.theme.Label
 import com.rdf.tpvevento.ui.theme.Red
 import com.rdf.tpvevento.ui.theme.SecondaryLabel
@@ -58,6 +64,7 @@ private class EditRow(product: Product?) {
     val id: String = product?.id ?: UUID.randomUUID().toString()
     var emoji by mutableStateOf(product?.emoji ?: "")
     var name by mutableStateOf(product?.name ?: "")
+    var category by mutableStateOf(product?.category ?: Product.CATEGORY_FOOD)
     var price by mutableStateOf(
         product?.let { String.format(Locale.forLanguageTag("es-ES"), "%.2f", it.priceCents / 100.0) } ?: ""
     )
@@ -67,7 +74,13 @@ private class EditRow(product: Product?) {
         if (trimmedName.isEmpty()) return null
         val cents = price.trim().replace(',', '.').toDoubleOrNull()?.let { (it * 100).roundToLong() }
         if (cents == null || cents < 0) return null
-        return Product(id = id, emoji = emoji.trim(), name = trimmedName, priceCents = cents)
+        return Product(
+            id = id,
+            emoji = emoji.trim(),
+            name = trimmedName,
+            priceCents = cents,
+            category = category,
+        )
     }
 }
 
@@ -181,6 +194,10 @@ private fun ProductRow(row: EditRow, onDelete: () -> Unit) {
                 textStyle = androidx.compose.ui.text.TextStyle(fontSize = 16.sp),
                 colors = fieldColors,
             )
+            CategoryToggle(
+                category = row.category,
+                onChange = { row.category = it },
+            )
             OutlinedTextField(
                 value = row.price,
                 onValueChange = { input ->
@@ -203,5 +220,44 @@ private fun ProductRow(row: EditRow, onDelete: () -> Unit) {
                 Icon(Icons.Rounded.Delete, contentDescription = "Eliminar", tint = Red)
             }
         }
+    }
+}
+
+@Composable
+private fun CategoryToggle(category: String, onChange: (String) -> Unit) {
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(9.dp))
+            .background(Fill)
+            .padding(2.dp)
+    ) {
+        CategorySegment("Comida", category != Product.CATEGORY_DRINK) {
+            onChange(Product.CATEGORY_FOOD)
+        }
+        CategorySegment("Bebida", category == Product.CATEGORY_DRINK) {
+            onChange(Product.CATEGORY_DRINK)
+        }
+    }
+}
+
+@Composable
+private fun CategorySegment(label: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(7.dp))
+            .background(if (selected) Color.White else Color.Transparent)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            )
+            .padding(horizontal = 10.dp, vertical = 8.dp)
+    ) {
+        Text(
+            label,
+            fontSize = 13.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+            color = if (selected) Label else SecondaryLabel,
+        )
     }
 }

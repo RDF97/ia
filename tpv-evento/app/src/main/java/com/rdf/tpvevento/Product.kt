@@ -10,7 +10,13 @@ data class Product(
     val emoji: String,
     val name: String,
     val priceCents: Long,
-)
+    val category: String = CATEGORY_FOOD,
+) {
+    companion object {
+        const val CATEGORY_FOOD = "food"
+        const val CATEGORY_DRINK = "drink"
+    }
+}
 
 val DEFAULT_PRODUCTS = listOf(
     Product(emoji = "🥪", name = "Bocadillo", priceCents = 350),
@@ -18,11 +24,11 @@ val DEFAULT_PRODUCTS = listOf(
     Product(emoji = "🌭", name = "Perrito", priceCents = 350),
     Product(emoji = "🍢", name = "Pincho", priceCents = 250),
     Product(emoji = "🍟", name = "Patatas", priceCents = 200),
-    Product(emoji = "🍺", name = "Cerveza", priceCents = 200),
-    Product(emoji = "🥤", name = "Refresco", priceCents = 150),
-    Product(emoji = "💧", name = "Agua", priceCents = 100),
-    Product(emoji = "🍷", name = "Vino", priceCents = 150),
-    Product(emoji = "☕", name = "Café", priceCents = 120),
+    Product(emoji = "🍺", name = "Cerveza", priceCents = 200, category = Product.CATEGORY_DRINK),
+    Product(emoji = "🥤", name = "Refresco", priceCents = 150, category = Product.CATEGORY_DRINK),
+    Product(emoji = "💧", name = "Agua", priceCents = 100, category = Product.CATEGORY_DRINK),
+    Product(emoji = "🍷", name = "Vino", priceCents = 150, category = Product.CATEGORY_DRINK),
+    Product(emoji = "☕", name = "Café", priceCents = 120, category = Product.CATEGORY_DRINK),
 )
 
 /** Persists the product list and UI preferences in SharedPreferences. */
@@ -40,6 +46,7 @@ class ProductStore(context: Context) {
                     emoji = o.optString("emoji"),
                     name = o.getString("name"),
                     priceCents = o.getLong("price"),
+                    category = o.optString("cat", Product.CATEGORY_FOOD),
                 )
             }
         }.getOrDefault(DEFAULT_PRODUCTS)
@@ -54,6 +61,7 @@ class ProductStore(context: Context) {
                     .put("emoji", p.emoji)
                     .put("name", p.name)
                     .put("price", p.priceCents)
+                    .put("cat", p.category)
             )
         }
         prefs.edit().putString("products", arr.toString()).apply()

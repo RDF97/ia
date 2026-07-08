@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -92,43 +93,46 @@ fun ChangePanel(state: PosState, modifier: Modifier = Modifier) {
                 }
             }
 
-            // Chips of what the customer handed over (tap one to remove it)
-            if (state.tendered.isNotEmpty()) {
-                FlowRow(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    state.tendered.forEachIndexed { index, cents ->
-                        Surface(
-                            onClick = {
-                                tap()
-                                state.removeTenderAt(index)
-                            },
-                            shape = RoundedCornerShape(8.dp),
-                            color = Fill,
+            // Chips of what the customer handed over (tap one to remove it).
+            // The row is always present with a fixed height so the money
+            // buttons below never shift when the first chip appears; extra
+            // chips scroll horizontally instead of wrapping.
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+                    .height(30.dp)
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                state.tendered.forEachIndexed { index, cents ->
+                    Surface(
+                        onClick = {
+                            tap()
+                            state.removeTenderAt(index)
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        color = Fill,
+                    ) {
+                        Row(
+                            Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
                         ) {
-                            Row(
-                                Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(5.dp),
-                            ) {
-                                Text(
-                                    tenderLabel(cents),
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Label,
-                                )
-                                Text("✕", fontSize = 11.sp, color = TertiaryLabel)
-                            }
+                            Text(
+                                tenderLabel(cents),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Label,
+                            )
+                            Text("✕", fontSize = 11.sp, color = TertiaryLabel)
                         }
                     }
                 }
             }
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(12.dp))
 
             // Bills
             BILLS.chunked(2).forEach { row ->

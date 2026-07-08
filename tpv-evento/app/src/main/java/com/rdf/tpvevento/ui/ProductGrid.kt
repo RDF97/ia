@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.layout.Arrangement
@@ -42,6 +44,11 @@ import com.rdf.tpvevento.ui.theme.SecondaryLabel
 @Composable
 fun ProductGrid(state: PosState, modifier: Modifier = Modifier) {
     val view = LocalView.current
+    val food = state.products.filter { it.category != Product.CATEGORY_DRINK }
+    val drinks = state.products.filter { it.category == Product.CATEGORY_DRINK }
+    // Only show section headers when both sections have something to separate
+    val showHeaders = food.isNotEmpty() && drinks.isNotEmpty()
+
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 150.dp),
         modifier = modifier.fillMaxHeight(),
@@ -49,20 +56,44 @@ fun ProductGrid(state: PosState, modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(bottom = 8.dp),
     ) {
-        items(state.products, key = { it.id }) { product ->
-            ProductCard(
-                product = product,
-                count = state.counts[product.id] ?: 0,
-                onAdd = {
-                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                    state.add(product)
-                },
-                onRemove = {
-                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                    state.remove(product)
-                },
-            )
-        }
+        if (showHeaders) sectionHeader("COMIDA")
+        productItems(food, state, view)
+        if (showHeaders) sectionHeader("BEBIDA")
+        productItems(drinks, state, view)
+    }
+}
+
+private fun LazyGridScope.sectionHeader(title: String) {
+    item(key = "header-$title", span = { GridItemSpan(maxLineSpan) }) {
+        Text(
+            title,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = SecondaryLabel,
+            letterSpacing = 1.2.sp,
+            modifier = Modifier.padding(start = 4.dp, top = 2.dp),
+        )
+    }
+}
+
+private fun LazyGridScope.productItems(
+    products: List<Product>,
+    state: PosState,
+    view: android.view.View,
+) {
+    items(products, key = { it.id }) { product ->
+        ProductCard(
+            product = product,
+            count = state.counts[product.id] ?: 0,
+            onAdd = {
+                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                state.add(product)
+            },
+            onRemove = {
+                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                state.remove(product)
+            },
+        )
     }
 }
 
