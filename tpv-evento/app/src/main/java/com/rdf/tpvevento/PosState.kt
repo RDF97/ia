@@ -87,16 +87,24 @@ class PosState(
         val index = days.indexOfFirst { it.date == today }
         val existing = days.getOrNull(index)
 
-        // Merge today's existing per-product tallies with this ticket.
+        // Merge today's existing per-product tallies with this ticket, keyed
+        // by the stable product id (never the name — a product can be renamed
+        // mid-event or two products can share a name).
         val merged = LinkedHashMap<String, SaleLine>()
-        existing?.lines?.forEach { merged[it.name] = it }
+        existing?.lines?.forEach { merged[it.id] = it }
         for ((product, units) in lines) {
             val addedCents = product.priceCents * units
-            val prev = merged[product.name]
-            merged[product.name] = if (prev == null) {
-                SaleLine(product.emoji, product.name, units, addedCents)
+            val prev = merged[product.id]
+            merged[product.id] = if (prev == null) {
+                SaleLine(product.id, product.emoji, product.name, units, addedCents)
             } else {
-                prev.copy(units = prev.units + units, totalCents = prev.totalCents + addedCents)
+                prev.copy(
+                    // Refresh the label to the product's current name/emoji.
+                    emoji = product.emoji,
+                    name = product.name,
+                    units = prev.units + units,
+                    totalCents = prev.totalCents + addedCents,
+                )
             }
         }
 
@@ -111,6 +119,12 @@ class PosState(
         days.sortByDescending { it.date }
         history = days
         historyStore.save(days)
+    }
+
+    /** Discards the current ticket WITHOUT recording it (e.g. a misring). */
+    fun cancelSale() {
+        counts.clear()
+        tendered.clear()
     }
 
     fun deleteDay(date: String) {

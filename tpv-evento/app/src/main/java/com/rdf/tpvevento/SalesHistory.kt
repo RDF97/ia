@@ -4,8 +4,14 @@ import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** Units and money sold of one product on a given day. */
+/**
+ * Units and money sold of one product on a given day. Keyed by the stable
+ * product [id] so tallies stay correct even if the product is later renamed
+ * or another product shares its name; [emoji]/[name] are the label captured
+ * at sale time (refreshed to the latest on each new sale of the same id).
+ */
 data class SaleLine(
+    val id: String,
     val emoji: String,
     val name: String,
     val units: Int,
@@ -29,9 +35,11 @@ class SalesHistoryStore(context: Context) {
 
     fun load(): List<DayRecord> {
         val raw = prefs.getString("history", null) ?: return emptyList()
-        return runCatching {
-            val arr = JSONArray(raw)
-            (0 until arr.length()).map { i ->
+        val arr = runCatching { JSONArray(raw) }.getOrNull() ?: return emptyList()
+        // Parse each day independently so a single malformed record can never
+        // wipe the whole history.
+        return (0 until arr.length()).mapNotNull { i ->
+            runCatching {
                 val o = arr.getJSONObject(i)
                 val linesArr = o.getJSONArray("lines")
                 DayRecord(
@@ -40,16 +48,19 @@ class SalesHistoryStore(context: Context) {
                     totalCents = o.getLong("total"),
                     lines = (0 until linesArr.length()).map { j ->
                         val l = linesArr.getJSONObject(j)
+                        val name = l.getString("name")
                         SaleLine(
+                            // Fall back to name for any pre-id records.
+                            id = l.optString("id", name),
                             emoji = l.optString("emoji"),
-                            name = l.getString("name"),
+                            name = name,
                             units = l.getInt("units"),
                             totalCents = l.getLong("total"),
                         )
                     },
                 )
-            }
-        }.getOrDefault(emptyList())
+            }.getOrNull()
+        }
     }
 
     fun save(days: List<DayRecord>) {
@@ -59,6 +70,7 @@ class SalesHistoryStore(context: Context) {
             d.lines.forEach { l ->
                 lines.put(
                     JSONObject()
+                        .put("id", l.id)
                         .put("emoji", l.emoji)
                         .put("name", l.name)
                         .put("units", l.units)

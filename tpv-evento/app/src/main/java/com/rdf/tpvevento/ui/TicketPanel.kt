@@ -39,6 +39,7 @@ import com.rdf.tpvevento.asEuros
 import com.rdf.tpvevento.ui.theme.Blue
 import com.rdf.tpvevento.ui.theme.Fill
 import com.rdf.tpvevento.ui.theme.Label
+import com.rdf.tpvevento.ui.theme.Red
 import com.rdf.tpvevento.ui.theme.SecondaryLabel
 import com.rdf.tpvevento.ui.theme.Separator
 import com.rdf.tpvevento.ui.theme.TertiaryLabel
@@ -128,7 +129,31 @@ fun TicketPanel(state: PosState, modifier: Modifier = Modifier) {
                     style = Tabular,
                 )
             }
-            Spacer(Modifier.height(12.dp))
+            // "Cobrar" commits the ticket into the day's history; "Cancelar"
+            // clears a misring WITHOUT recording it, so the tally stays honest.
+            if (state.itemCount > 0) {
+                Surface(
+                    onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        state.cancelSale()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color.Transparent,
+                ) {
+                    Box(Modifier.padding(vertical = 8.dp), contentAlignment = Alignment.Center) {
+                        Text(
+                            "Cancelar venta",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Red,
+                        )
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+            } else {
+                Spacer(Modifier.height(12.dp))
+            }
             Button(
                 onClick = {
                     view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
@@ -145,7 +170,11 @@ fun TicketPanel(state: PosState, modifier: Modifier = Modifier) {
                     disabledContentColor = TertiaryLabel,
                 ),
             ) {
-                Text("Nueva venta", fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    if (state.itemCount > 0) "Cobrar y nueva venta" else "Nueva venta",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
             }
         }
     }

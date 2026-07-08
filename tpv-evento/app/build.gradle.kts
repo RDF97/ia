@@ -12,8 +12,8 @@ android {
         applicationId = "com.rdf.tpvevento"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.3"
+        versionCode = 5
+        versionName = "1.4"
     }
 
     // The keystore is NOT committed. CI generates one per build (or restores

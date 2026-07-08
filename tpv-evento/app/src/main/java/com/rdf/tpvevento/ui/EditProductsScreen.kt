@@ -1,5 +1,6 @@
 package com.rdf.tpvevento.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -87,6 +88,9 @@ private class EditRow(product: Product?) {
 @Composable
 fun EditProductsScreen(state: PosState, onDone: () -> Unit) {
     val rows = remember { state.products.map { EditRow(it) }.toMutableStateList() }
+
+    // Back behaves like "Cancelar" (closes without saving).
+    BackHandler { onDone() }
 
     Surface(Modifier.fillMaxSize(), color = Background) {
         Column(

@@ -1,6 +1,7 @@
 package com.rdf.tpvevento.ui
 
 import android.content.Intent
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -79,6 +80,10 @@ private fun dayToText(day: DayRecord): String = buildString {
 fun SalesHistoryScreen(state: PosState, onDone: () -> Unit) {
     val context = LocalContext.current
     var dayToDelete by remember { mutableStateOf<DayRecord?>(null) }
+
+    // Back closes the screen; when the confirm dialog is open it handles Back
+    // itself, so disable this handler to let the dialog dismiss first.
+    BackHandler(enabled = dayToDelete == null) { onDone() }
 
     Surface(Modifier.fillMaxSize(), color = Background) {
         Column(
