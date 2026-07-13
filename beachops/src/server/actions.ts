@@ -211,6 +211,24 @@ export async function syncNow() {
   revalidatePath("/");
 }
 
+// ── Coordenadas de la org (para la meteo del cuadro) ───────────────────
+
+export async function updateOrgCoords(formData: FormData) {
+  const session = await requireSession();
+  const db = await getDb();
+  const lat = Number(String(formData.get("lat")).replace(",", "."));
+  const lng = Number(String(formData.get("lng")).replace(",", "."));
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new Error("Coordenadas no válidas");
+  const [org] = await db
+    .select()
+    .from(schema.orgs)
+    .where(eq(schema.orgs.id, session.orgId));
+  const settings = { ...(org.settings as object), lat, lng };
+  await db.update(schema.orgs).set({ settings }).where(eq(schema.orgs.id, session.orgId));
+  revalidatePath("/config");
+  revalidatePath("/");
+}
+
 // ── Notificaciones push ────────────────────────────────────────────────
 
 export async function savePushSubscription(sub: {

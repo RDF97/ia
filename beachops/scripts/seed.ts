@@ -23,7 +23,11 @@ export async function seed() {
 
   const [org] = await db
     .insert(schema.orgs)
-    .values({ name: "Secret Point Mallorca", slug: "secret-point-mallorca" })
+    .values({
+      name: "Secret Point Mallorca",
+      slug: "secret-point-mallorca",
+      settings: { lat: 39.349, lng: 3.189 }, // Mondragó, para la meteo del cuadro
+    })
     .returning();
 
   const ownerEmail = process.env.SEED_OWNER_EMAIL ?? "owner@example.com";

@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
-import { createMappingRule, deleteMappingRule, syncNow } from "@/server/actions";
+import { createMappingRule, deleteMappingRule, syncNow, updateOrgCoords } from "@/server/actions";
+import { orgCoords } from "@/server/weather";
 import { requireSession } from "@/server/auth";
 import { getDb, schema } from "@/server/db";
 import { NotificationSettings } from "./notifications";
@@ -14,13 +15,15 @@ export default async function ConfigPage({
   const { connected, error } = await searchParams;
   const session = await requireSession();
   const db = await getDb();
-  const [accounts, locations, products, slots, rules] = await Promise.all([
+  const [accounts, locations, products, slots, rules, orgRows] = await Promise.all([
     db.select().from(schema.emailAccounts).where(eq(schema.emailAccounts.orgId, session.orgId)),
     db.select().from(schema.locations).where(eq(schema.locations.orgId, session.orgId)),
     db.select().from(schema.products).where(eq(schema.products.orgId, session.orgId)),
     db.select().from(schema.timeSlots).where(eq(schema.timeSlots.orgId, session.orgId)),
     db.select().from(schema.mappingRules).where(eq(schema.mappingRules.orgId, session.orgId)),
+    db.select().from(schema.orgs).where(eq(schema.orgs.id, session.orgId)),
   ]);
+  const coords = orgCoords(orgRows[0]?.settings);
   const productName = (id: string) => products.find((p) => p.id === id)?.name ?? "?";
   const locationName = (id: string) => locations.find((l) => l.id === id)?.name ?? "?";
   const input = "rounded-lg border border-slate-300 px-2 py-1.5 text-sm";
@@ -108,6 +111,29 @@ export default async function ConfigPage({
             </ul>
           </div>
         ))}
+      </section>
+
+      {/* Meteo */}
+      <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-2">
+        <h2 className="font-bold">🌤 Meteo del cuadro</h2>
+        <p className="text-sm text-slate-500">
+          Con las coordenadas de la playa, el cuadro muestra viento, rachas, olas y temperatura a
+          las horas de cada salida (datos de Open-Meteo). Mondragó: 39.349, 3.189.
+        </p>
+        <form action={updateOrgCoords} className="flex flex-wrap gap-2 items-end">
+          <label className="text-xs">
+            Latitud
+            <input name="lat" defaultValue={coords?.lat ?? ""} placeholder="39.349" required className={`${input} block w-28`} />
+          </label>
+          <label className="text-xs">
+            Longitud
+            <input name="lng" defaultValue={coords?.lng ?? ""} placeholder="3.189" required className={`${input} block w-28`} />
+          </label>
+          <button className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
+            Guardar
+          </button>
+          {coords && <span className="text-xs text-emerald-600">✓ configurado</span>}
+        </form>
       </section>
 
       {/* Reglas de mapeo */}

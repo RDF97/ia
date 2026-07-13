@@ -12,6 +12,7 @@ import { getDb, schema } from "@/server/db";
 import { Booking } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
 import { flagEmoji, formatDateEs, formatEuro, shiftDate } from "@/lib/format";
+import { getDayWeather, orgCoords, HourWeather } from "@/server/weather";
 import { AutoRefresh } from "./auto-refresh";
 import { PrintButton } from "./print-button";
 
@@ -37,6 +38,19 @@ export default async function CuadroPage({
     .where(eq(schema.products.orgId, session.orgId));
   const productName = (id: string | null) =>
     products.find((p) => p.id === id)?.name ?? "—";
+
+  // Meteo en las horas de salida (solo si la org tiene coordenadas configuradas)
+  const [org] = await db
+    .select()
+    .from(schema.orgs)
+    .where(eq(schema.orgs.id, session.orgId));
+  const coords = orgCoords(org?.settings);
+  const slotHours = [...new Set(slots.filter((s) => s.active).map((s) => s.startTime.slice(0, 5)))]
+    .sort()
+    .map((h) => `${h.slice(0, 2)}:00`);
+  const weather = coords
+    ? await getDayWeather(coords.lat, coords.lng, date, [...new Set(slotHours)], org.timezone)
+    : null;
 
   return (
     <div className="space-y-4">
@@ -77,6 +91,16 @@ export default async function CuadroPage({
           accent={board.stats.overbookedSlots + board.stats.pendingReview + board.stats.failedEmails > 0 ? "red" : undefined}
         />
       </section>
+
+      {/* Meteo */}
+      {weather && weather.some((w) => w.tempC != null || w.windKmh != null) && (
+        <section className="print-block bg-sky-50 border border-sky-200 rounded-xl px-3 py-2 flex flex-wrap gap-x-5 gap-y-1 text-sm">
+          <span className="font-semibold text-sky-800">🌤 Meteo</span>
+          {weather.map((w) => (
+            <WeatherChip key={w.hour} w={w} />
+          ))}
+        </section>
+      )}
 
       {/* Sin asignar */}
       {board.unassigned.length > 0 && (
@@ -277,6 +301,27 @@ export default async function CuadroPage({
         </section>
       )}
     </div>
+  );
+}
+
+function WeatherChip({ w }: { w: HourWeather }) {
+  const gustAlert = w.gustKmh != null && w.gustKmh >= 35;
+  const waveAlert = w.waveM != null && w.waveM >= 1;
+  return (
+    <span className="whitespace-nowrap">
+      <strong>{w.hour}</strong>{" "}
+      {w.tempC != null && <span>{Math.round(w.tempC)}º</span>}{" "}
+      {w.windKmh != null && (
+        <span className={gustAlert ? "text-red-600 font-semibold" : ""}>
+          💨{Math.round(w.windKmh)}
+          {w.gustKmh != null && `(${Math.round(w.gustKmh)})`} km/h
+        </span>
+      )}{" "}
+      {w.waveM != null && (
+        <span className={waveAlert ? "text-red-600 font-semibold" : ""}>🌊{w.waveM.toFixed(1)} m</span>
+      )}
+      {w.precipProb != null && w.precipProb >= 30 && <span> ☔{w.precipProb}%</span>}
+    </span>
   );
 }
 

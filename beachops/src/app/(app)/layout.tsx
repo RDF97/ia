@@ -9,6 +9,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <nav className="no-print bg-white border-b border-slate-200 px-4 py-2 flex items-center gap-5 text-sm sticky top-0 z-10">
         <span className="font-bold text-blue-700">BeachOps</span>
         <Link href="/" className="hover:text-blue-700">Cuadro</Link>
+        <Link href={`/semana/${new Date().toISOString().slice(0, 10)}`} className="hover:text-blue-700">Semana</Link>
         <Link href="/reservas" className="hover:text-blue-700">Reservas</Link>
         <Link href="/emails" className="hover:text-blue-700">Emails</Link>
         <Link href="/config" className="hover:text-blue-700">Configuración</Link>
