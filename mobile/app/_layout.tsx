@@ -61,6 +61,7 @@ function RootNavigator() {
       <Stack.Screen name="login" />
       <Stack.Screen name="hogar" />
       <Stack.Screen name="join" />
+      <Stack.Screen name="perfil" />
     </Stack>
   );
 }

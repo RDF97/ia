@@ -38,9 +38,12 @@ export default function Compra() {
   return <CompraList hogarId={active.$id} userName={user?.name || "Yo"} />;
 }
 
+const oops = (e: unknown) =>
+  Alert.alert("No se pudo completar", e instanceof Error ? e.message : "Revisa tu conexión e inténtalo de nuevo.");
+
 function CompraList({ hogarId, userName }: { hogarId: string; userName: string }) {
   const qc = useQueryClient();
-  const { data: items, isLoading } = useShopping(hogarId);
+  const { data: items, isLoading, isError } = useShopping(hogarId);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [pricePrompt, setPricePrompt] = useState<ShoppingItem | null>(null);
@@ -56,6 +59,8 @@ function CompraList({ hogarId, userName }: { hogarId: string; userName: string }
     try {
       await addItem(hogarId, n, userName);
       refresh();
+    } catch (e) {
+      oops(e);
     } finally {
       setBusy(false);
     }
@@ -67,13 +72,21 @@ function CompraList({ hogarId, userName }: { hogarId: string; userName: string }
       setPricePrompt(item);
       return;
     }
-    await setItemDone(item, false);
-    refresh();
+    try {
+      await setItemDone(item, false);
+      refresh();
+    } catch (e) {
+      oops(e);
+    }
   };
 
   const remove = async (id: string) => {
-    await deleteItem(id);
-    refresh();
+    try {
+      await deleteItem(id);
+      refresh();
+    } catch (e) {
+      oops(e);
+    }
   };
 
   const pending = (items ?? []).filter((i) => !i.done);
@@ -83,6 +96,7 @@ function CompraList({ hogarId, userName }: { hogarId: string; userName: string }
     <Screen
       title="Compra"
       subtitle={`${pending.length} por comprar`}
+      onRefresh={refresh}
       right={
         <Pressable
           onPress={() => setDbOpen(true)}
@@ -107,6 +121,11 @@ function CompraList({ hogarId, userName }: { hogarId: string; userName: string }
         {busy && <ActivityIndicator color={colors.accent} />}
       </View>
 
+      {isError && (
+        <Text className="text-center text-[13px] mb-2" style={{ color: colors.red }}>
+          No se pudo cargar la lista. Desliza hacia abajo para reintentar.
+        </Text>
+      )}
       {isLoading ? (
         <ActivityIndicator color={colors.accent} style={{ marginTop: 24 }} />
       ) : (

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ActivityIndicator, Pressable, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { Screen } from "@/components/Screen";
@@ -28,9 +28,12 @@ export default function Tareas() {
   return <TareasList hogarId={active.$id} userName={user?.name || "Yo"} />;
 }
 
+const oops = (e: unknown) =>
+  Alert.alert("No se pudo completar", e instanceof Error ? e.message : "Revisa tu conexión e inténtalo de nuevo.");
+
 function TareasList({ hogarId, userName }: { hogarId: string; userName: string }) {
   const qc = useQueryClient();
-  const { data: tasks, isLoading } = useTasks(hogarId);
+  const { data: tasks, isLoading, isError } = useTasks(hogarId);
   const [title, setTitle] = useState("");
   const [adding, setAdding] = useState(false);
 
@@ -44,26 +47,41 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
     try {
       await createTask(hogarId, t, userName);
       refresh();
+    } catch (e) {
+      oops(e);
     } finally {
       setAdding(false);
     }
   };
 
   const toggle = async (task: Task) => {
-    await setTaskDone(task, !task.done);
-    refresh();
+    try {
+      await setTaskDone(task, !task.done);
+      refresh();
+    } catch (e) {
+      oops(e);
+    }
   };
 
   const remove = async (id: string) => {
-    await deleteTask(id);
-    refresh();
+    try {
+      await deleteTask(id);
+      refresh();
+    } catch (e) {
+      oops(e);
+    }
   };
 
   const pending = (tasks ?? []).filter((t) => !t.done);
   const done = (tasks ?? []).filter((t) => t.done);
 
   return (
-    <Screen title="Tareas" subtitle={`${pending.length} pendientes`}>
+    <Screen title="Tareas" subtitle={`${pending.length} pendientes`} onRefresh={refresh}>
+      {isError && (
+        <Text className="text-center text-[13px] mb-2" style={{ color: colors.red }}>
+          No se pudieron cargar las tareas. Desliza hacia abajo para reintentar.
+        </Text>
+      )}
       {/* Añadir */}
       <View className="flex-row items-center bg-white rounded-lg2 mx-4 mb-4 px-3 py-2" style={{ gap: 8 }}>
         <Ionicons name="add" size={22} color={colors.accent} />

@@ -55,7 +55,7 @@ function GastosView({
   userName: string;
 }) {
   const qc = useQueryClient();
-  const { data: expenses, isLoading } = useExpenses(hogarId);
+  const { data: expenses, isLoading, isError } = useExpenses(hogarId);
   const [open, setOpen] = useState(false);
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["expenses", hogarId] });
@@ -70,14 +70,23 @@ function GastosView({
         text: "Borrar",
         style: "destructive",
         onPress: async () => {
-          await deleteExpense(id);
-          refresh();
+          try {
+            await deleteExpense(id);
+            refresh();
+          } catch (e) {
+            Alert.alert("No se pudo borrar", e instanceof Error ? e.message : "Inténtalo de nuevo.");
+          }
         },
       },
     ]);
 
   return (
-    <Screen title="Gastos" subtitle="Este mes">
+    <Screen title="Gastos" subtitle="Este mes" onRefresh={refresh}>
+      {isError && (
+        <Text className="text-center text-[13px] mb-2" style={{ color: colors.red }}>
+          No se pudieron cargar los gastos. Desliza hacia abajo para reintentar.
+        </Text>
+      )}
       <View className="rounded-card mx-4 mb-3 p-4" style={{ backgroundColor: colors.accent }}>
         <Text className="text-[11px] font-medium uppercase tracking-wide text-white/90">
           Total del mes
