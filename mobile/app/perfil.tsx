@@ -7,6 +7,7 @@ import Constants from "expo-constants";
 import { useAuth } from "@/lib/auth";
 import { useHogar } from "@/lib/hogar";
 import { InviteModal } from "@/components/InviteModal";
+import { Avatar } from "@/components/ui";
 import { colors } from "@/theme/tokens";
 
 function Row({
@@ -46,7 +47,6 @@ export default function Perfil() {
   const { user, logout } = useAuth();
   const { active, leaveHogar } = useHogar();
   const [inviteOpen, setInviteOpen] = useState(false);
-  const initial = (user?.name || user?.email || "?").charAt(0).toUpperCase();
 
   const confirmLeave = () => {
     if (!active) return;
@@ -98,9 +98,7 @@ export default function Perfil() {
 
         {/* Cuenta */}
         <View className="bg-white rounded-card mx-4 mb-3 p-4 flex-row items-center" style={{ gap: 14 }}>
-          <View className="rounded-pill items-center justify-center" style={{ width: 52, height: 52, backgroundColor: colors.accent }}>
-            <Text className="text-white text-[22px] font-bold">{initial}</Text>
-          </View>
+          <Avatar name={user?.name || user?.email || "?"} size={52} />
           <View className="flex-1">
             <Text className="text-[17px] font-semibold text-black">{user?.name || "Sin nombre"}</Text>
             <Text className="text-[13px] text-neutral-500 mt-0.5">{user?.email}</Text>

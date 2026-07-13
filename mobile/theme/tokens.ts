@@ -1,6 +1,7 @@
 // Tokens del design system Homie (alineados con el mockup Apple HIG).
 export const colors = {
   accent: "#1F4D52",
+  accentSoft: "rgba(31, 77, 82, 0.10)",
   accentDark: "#3FA5AD",
   blue: "#007AFF",
   green: "#34C759",

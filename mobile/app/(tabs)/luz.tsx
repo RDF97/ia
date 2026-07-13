@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { colors } from "@/theme/tokens";
 import { useLuzPrices } from "@/lib/useLuzPrices";
 import type { LuzSource } from "@/lib/luzData";
@@ -81,6 +82,9 @@ export default function Luz() {
   const nowTier = tierOf(now, tMin, tMax);
   const nowColor = nowTier === "ok" ? colors.green : nowTier === "mid" ? colors.orange : colors.red;
   const nowLabel = nowTier === "ok" ? "Barato" : nowTier === "mid" ? "Precio medio" : "Caro";
+  // Degradados del hero como en el mockup (.luz-hero / .mid / .hi)
+  const heroGradient: [string, string] =
+    nowTier === "ok" ? ["#34C759", "#2BA84A"] : nowTier === "mid" ? ["#FF9500", "#E8850B"] : ["#FF3B30", "#D9281E"];
   const avg = today.reduce((a: number, b: number) => a + b, 0) / today.length;
   const vs = Math.round(((now - avg) / avg) * 100);
 
@@ -105,13 +109,34 @@ export default function Luz() {
         </View>
 
         {/* Precio ahora */}
-        <View className="rounded-card mx-4 mb-3 p-4" style={{ backgroundColor: nowColor }}>
+        <LinearGradient
+          colors={heroGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{
+            borderRadius: 18,
+            marginHorizontal: 16,
+            marginBottom: 12,
+            padding: 16,
+            shadowColor: nowColor,
+            shadowOpacity: 0.35,
+            shadowRadius: 12,
+            shadowOffset: { width: 0, height: 6 },
+            elevation: 6,
+          }}
+        >
           <View className="flex-row items-start justify-between">
             <View>
-              <Text className="text-[11px] font-medium uppercase tracking-wide text-white/90">
+              <Text
+                className="text-[11px] font-medium text-white/90"
+                style={{ textTransform: "uppercase", letterSpacing: 0.6 }}
+              >
                 Precio ahora · {rangeLabel(nowHour, 1)}
               </Text>
-              <Text className="text-[34px] font-bold text-white mt-1" style={{ lineHeight: 42, includeFontPadding: false }}>
+              <Text
+                className="text-[34px] font-bold text-white mt-1"
+                style={{ lineHeight: 42, includeFontPadding: false, fontVariant: ["tabular-nums"], letterSpacing: -0.6 }}
+              >
                 {fmtKwh(now)} <Text className="text-base text-white/90">€/kWh</Text>
               </Text>
             </View>
@@ -119,11 +144,11 @@ export default function Luz() {
               {nowLabel}
             </Text>
           </View>
-          <Text className="text-[13px] text-white/90 mt-3 pt-3 border-t border-white/20">
+          <Text className="text-[13px] text-white/90 mt-3 pt-3 border-t border-white/20" style={{ fontVariant: ["tabular-nums"] }}>
             {vs >= 0 ? "+" : ""}
             {vs}% vs media de hoy
           </Text>
-        </View>
+        </LinearGradient>
 
         {/* Más barata / más cara */}
         <View className="flex-row mx-4 mb-1" style={{ gap: 8 }}>

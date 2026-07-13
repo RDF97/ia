@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { Screen } from "@/components/Screen";
 import { PhaseCard } from "@/components/Card";
+import { CheckCircle } from "@/components/ui";
 import { ProductsModal } from "@/components/compra/ProductsModal";
 import { useHogar } from "@/lib/hogar";
 import { useAuth } from "@/lib/auth";
@@ -107,7 +108,10 @@ function CompraList({ hogarId, userName }: { hogarId: string; userName: string }
         </Pressable>
       }
     >
-      <View className="flex-row items-center bg-white rounded-lg2 mx-4 mb-4 px-3 py-2" style={{ gap: 8 }}>
+      <View
+        className="flex-row items-center bg-white rounded-pill mx-4 mb-4 px-4 py-2"
+        style={{ gap: 8, borderWidth: 0.5, borderColor: colors.separator }}
+      >
         <Ionicons name="add" size={22} color={colors.accent} />
         <TextInput
           className="flex-1 text-[16px] text-black"
@@ -261,18 +265,12 @@ function Section({
             className="flex-row items-center px-4 py-3"
             style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: colors.separator }}
           >
-            <Pressable onPress={() => onToggle(item)} hitSlop={8}>
-              <Ionicons
-                name={item.done ? "checkmark-circle" : "ellipse-outline"}
-                size={24}
-                color={item.done ? colors.green : colors.labelSecondary}
-              />
-            </Pressable>
+            <CheckCircle done={item.done} onPress={() => onToggle(item)} />
             <View className="flex-1">
               <Text
-                className="text-[16px]"
+                className="text-[15px]"
                 style={{
-                  color: item.done ? colors.labelSecondary : colors.label,
+                  color: item.done ? "rgba(60,60,67,0.35)" : colors.label,
                   textDecorationLine: item.done ? "line-through" : "none",
                 }}
               >
@@ -282,7 +280,7 @@ function Section({
               <Text className="text-[12px] text-neutral-500 mt-0.5">{item.createdByName}</Text>
             </View>
             <Pressable onPress={() => onDelete(item.$id)} hitSlop={8}>
-              <Ionicons name="trash-outline" size={18} color={colors.labelSecondary} />
+              <Ionicons name="trash-outline" size={17} color="rgba(60,60,67,0.4)" />
             </Pressable>
           </View>
         ))}

@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { Screen } from "@/components/Screen";
 import { Card, PhaseCard } from "@/components/Card";
+import { Avatar, IconTile, Money, SectionTitle } from "@/components/ui";
 import { useHogar } from "@/lib/hogar";
 import { useAuth } from "@/lib/auth";
 import { appwriteConfigured } from "@/lib/appwrite";
@@ -87,43 +88,47 @@ function GastosView({
           No se pudieron cargar los gastos. Desliza hacia abajo para reintentar.
         </Text>
       )}
-      <View className="rounded-card mx-4 mb-3 p-4" style={{ backgroundColor: colors.accent }}>
-        <Text className="text-[11px] font-medium uppercase tracking-wide text-white/90">
-          Total del mes
+      {/* Total del mes — como .budget-big del mockup */}
+      <Card>
+        <Text
+          className="text-[12px] text-neutral-500 mb-1"
+          style={{ textTransform: "uppercase", letterSpacing: 0.4 }}
+        >
+          Gastado este mes
         </Text>
-        <Text className="text-[34px] font-bold text-white" style={{ lineHeight: 42 }}>
+        <Text
+          className="text-[36px] font-bold text-black"
+          style={{ lineHeight: 42, letterSpacing: -1, fontVariant: ["tabular-nums"] }}
+        >
           {eur(total)}
         </Text>
-      </View>
+      </Card>
 
+      {/* Reparto — como .debt-card del mockup */}
       {bal.length > 0 && (
         <>
-          <Text className="px-5 pt-2 pb-2 text-[13px] font-medium uppercase tracking-wide text-neutral-500">
-            Reparto (gastos compartidos)
-          </Text>
-          <Card>
+          <SectionTitle>Reparto · gastos compartidos</SectionTitle>
+          <View className="rounded-card mx-4 mb-3 px-4 py-3" style={{ backgroundColor: colors.accentSoft }}>
             {bal.map((b, i) => (
               <View
                 key={b.name}
-                className="flex-row items-center justify-between py-2"
-                style={{ borderTopWidth: i ? 0.5 : 0, borderTopColor: colors.separator }}
+                className="flex-row items-center py-2"
+                style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: colors.separator }}
               >
-                <Text className="text-[15px] text-black">{b.name}</Text>
-                <Text
-                  className="text-[15px] font-semibold"
-                  style={{ color: b.net >= 0 ? colors.green : colors.red }}
-                >
-                  {b.net >= 0 ? `le deben ${eur(b.net)}` : `debe ${eur(-b.net)}`}
-                </Text>
+                <Avatar name={b.name} size={32} />
+                <View className="flex-1">
+                  <Text className="text-[12px] text-neutral-500">{b.name}</Text>
+                  <Money size={18} weight="700" color={b.net >= 0 ? colors.accent : colors.red}>
+                    {b.net >= 0 ? `le deben ${eur(b.net)}` : `debe ${eur(-b.net)}`}
+                  </Money>
+                </View>
               </View>
             ))}
-          </Card>
+          </View>
         </>
       )}
 
-      <Text className="px-5 pt-2 pb-2 text-[13px] font-medium uppercase tracking-wide text-neutral-500">
-        Movimientos
-      </Text>
+      <SectionTitle>Movimientos recientes</SectionTitle>
       {isLoading ? (
         <ActivityIndicator color={colors.accent} style={{ marginTop: 16 }} />
       ) : list.length === 0 ? (
@@ -137,17 +142,18 @@ function GastosView({
               className="flex-row items-center px-4 py-3"
               style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: colors.separator }}
             >
+              <IconTile icon={e.shared ? "people" : "cart"} color={e.shared ? colors.teal : colors.orange} />
               <View className="flex-1">
                 <Text className="text-[16px] text-black">{e.concept}</Text>
-                <Text className="text-[12px] text-neutral-500 mt-0.5">
+                <Text className="text-[13px] text-neutral-500 mt-0.5">
                   {e.paidByName}
                   {e.shared ? " · compartido" : ""}
                   {e.category ? ` · ${e.category}` : ""}
                 </Text>
               </View>
-              <Text className="text-[15px] font-semibold" style={{ color: colors.red }}>
+              <Money size={15} weight="500" color={colors.red}>
                 −{eur(e.amount)}
-              </Text>
+              </Money>
             </Pressable>
           ))}
         </View>
