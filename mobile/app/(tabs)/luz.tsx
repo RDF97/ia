@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/theme/tokens";
@@ -46,9 +46,19 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 export default function Luz() {
-  const { data, isLoading } = useLuzPrices();
+  const { data, refetch } = useLuzPrices();
   const [day, setDay] = useState<"today" | "tomorrow">("today");
   const [plannerId, setPlannerId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   if (!data) {
     return (
@@ -81,7 +91,12 @@ export default function Luz() {
 
   return (
     <SafeAreaView className="flex-1 bg-bg-app" edges={["top"]}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 24 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
+        }
+      >
         <View className="px-5 pt-2 pb-1">
           <Text className="text-[34px] font-bold tracking-tight text-black" style={{ lineHeight: 41 }}>
             Luz

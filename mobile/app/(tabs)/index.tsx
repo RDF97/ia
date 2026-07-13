@@ -1,17 +1,11 @@
 import { useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { Screen } from "@/components/Screen";
 import { Card, PhaseCard } from "@/components/Card";
+import { InviteModal } from "@/components/InviteModal";
 import { useAuth } from "@/lib/auth";
 import { useHogar } from "@/lib/hogar";
 import { appwriteConfigured } from "@/lib/appwrite";
@@ -28,11 +22,9 @@ import { colors } from "@/theme/tokens";
 const eur = (v: number) => `${v.toFixed(2).replace(".", ",")} €`;
 
 export default function Inicio() {
-  const { user, logout } = useAuth();
-  const { active, invite } = useHogar();
+  const { user } = useAuth();
+  const { active } = useHogar();
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [email, setEmail] = useState("");
-  const [busy, setBusy] = useState(false);
 
   if (!appwriteConfigured || !active) {
     return (
@@ -44,21 +36,6 @@ export default function Inicio() {
     );
   }
 
-  const sendInvite = async () => {
-    if (!email.trim()) return;
-    setBusy(true);
-    try {
-      await invite(email.trim());
-      setInviteOpen(false);
-      setEmail("");
-      Alert.alert("Invitación enviada", "Le hemos enviado un email con el enlace para unirse al hogar.");
-    } catch (e) {
-      Alert.alert("No se pudo invitar", e instanceof Error ? e.message : "Inténtalo de nuevo.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
   return (
     <>
       <Dashboard
@@ -67,34 +44,8 @@ export default function Inicio() {
         hogarName={active.name}
         userName={user?.name || ""}
         onInvite={() => setInviteOpen(true)}
-        onLogout={logout}
       />
-      <Modal visible={inviteOpen} transparent animationType="slide" onRequestClose={() => setInviteOpen(false)}>
-        <Pressable className="flex-1 bg-black/40" onPress={() => setInviteOpen(false)} />
-        <View className="bg-bg-app rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32 }}>
-          <Text className="text-[17px] font-semibold mb-1">Invitar al hogar</Text>
-          <Text className="text-[13px] text-neutral-500 mb-4">
-            Escribe el email de la persona. Recibirá un enlace para unirse a “{active.name}”.
-          </Text>
-          <TextInput
-            className="bg-white rounded-lg2 px-4 py-3 mb-3 text-[16px] text-black"
-            placeholder="email@ejemplo.com"
-            placeholderTextColor={colors.labelSecondary}
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
-          <Pressable
-            onPress={sendInvite}
-            disabled={busy || !email.trim()}
-            className="rounded-[14px] py-3.5 items-center"
-            style={{ backgroundColor: colors.accent, opacity: busy || !email.trim() ? 0.6 : 1 }}
-          >
-            {busy ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-base font-semibold">Enviar invitación</Text>}
-          </Pressable>
-        </View>
-      </Modal>
+      <InviteModal visible={inviteOpen} hogarName={active.name} onClose={() => setInviteOpen(false)} />
     </>
   );
 }
@@ -127,21 +78,29 @@ function Dashboard({
   hogarName,
   userName,
   onInvite,
-  onLogout,
 }: {
   hogarId: string;
   members: number;
   hogarName: string;
   userName: string;
   onInvite: () => void;
-  onLogout: () => void;
 }) {
   const router = useRouter();
+  const qc = useQueryClient();
   const expenses = useExpenses(hogarId).data ?? [];
   const tasks = useTasks(hogarId).data ?? [];
   const shopping = useShopping(hogarId).data ?? [];
   const events = useEvents(hogarId).data ?? [];
   const luz = useLuzPrices().data;
+
+  const refreshAll = () =>
+    Promise.all([
+      qc.invalidateQueries({ queryKey: ["expenses", hogarId] }),
+      qc.invalidateQueries({ queryKey: ["tasks", hogarId] }),
+      qc.invalidateQueries({ queryKey: ["shopping", hogarId] }),
+      qc.invalidateQueries({ queryKey: ["events", hogarId] }),
+      qc.invalidateQueries({ queryKey: ["luz-prices"] }),
+    ]);
 
   const total = monthlyTotal(expenses);
   const pendingTasks = tasks.filter((t) => !t.done).length;
@@ -160,8 +119,23 @@ function Dashboard({
     luzColor = tier === "ok" ? colors.green : tier === "mid" ? colors.orange : colors.red;
   }
 
+  const initial = (userName || "?").charAt(0).toUpperCase();
+
   return (
-    <Screen title={`Hola, ${userName} 👋`} subtitle={hogarName}>
+    <Screen
+      title={`Hola, ${userName} 👋`}
+      subtitle={hogarName}
+      onRefresh={refreshAll}
+      right={
+        <Pressable
+          onPress={() => router.push("/perfil")}
+          className="rounded-pill items-center justify-center"
+          style={{ width: 38, height: 38, backgroundColor: colors.accent, marginBottom: 4 }}
+        >
+          <Text className="text-white text-[16px] font-bold">{initial}</Text>
+        </Pressable>
+      }
+    >
       {/* Hogar + invitar */}
       <Card>
         <View className="flex-row items-center justify-between">
@@ -247,10 +221,6 @@ function Dashboard({
           </Card>
         </>
       )}
-
-      <Pressable onPress={onLogout} className="mt-1 items-center py-2">
-        <Text className="text-[14px]" style={{ color: colors.accent }}>Cerrar sesión</Text>
-      </Pressable>
     </Screen>
   );
 }

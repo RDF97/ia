@@ -21,6 +21,7 @@ interface HogarContextValue {
   reload: () => Promise<void>;
   createHogar: (name: string) => Promise<Hogar>;
   invite: (email: string) => Promise<void>;
+  leaveHogar: () => Promise<void>;
 }
 
 const HogarContext = createContext<HogarContextValue | undefined>(undefined);
@@ -71,9 +72,25 @@ export function HogarProvider({ children }: { children: ReactNode }) {
     [hogares],
   );
 
+  // Salir del hogar: si eres el único miembro se elimina el hogar entero;
+  // si hay más, se borra solo tu membresía.
+  const leaveHogar = useCallback(async () => {
+    const h = hogares[0];
+    if (!h || !user) return;
+    if (h.total <= 1) {
+      await teams.delete(h.$id);
+    } else {
+      const ms = await teams.listMemberships(h.$id);
+      const own = ms.memberships.find((m) => m.userId === user.$id);
+      if (!own) throw new Error("No se encontró tu membresía en el hogar");
+      await teams.deleteMembership(h.$id, own.$id);
+    }
+    await reload();
+  }, [hogares, user, reload]);
+
   const value = useMemo<HogarContextValue>(
-    () => ({ hogares, active: hogares[0] ?? null, loading, reload, createHogar, invite }),
-    [hogares, loading, reload, createHogar, invite],
+    () => ({ hogares, active: hogares[0] ?? null, loading, reload, createHogar, invite, leaveHogar }),
+    [hogares, loading, reload, createHogar, invite, leaveHogar],
   );
 
   return <HogarContext.Provider value={value}>{children}</HogarContext.Provider>;

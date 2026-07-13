@@ -78,11 +78,22 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
   const remove = (id: string) =>
     Alert.alert("Borrar evento", "¿Seguro?", [
       { text: "Cancelar", style: "cancel" },
-      { text: "Borrar", style: "destructive", onPress: async () => { await deleteEvent(id); refresh(); } },
+      {
+        text: "Borrar",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteEvent(id);
+            refresh();
+          } catch (e) {
+            Alert.alert("No se pudo borrar", e instanceof Error ? e.message : "Inténtalo de nuevo.");
+          }
+        },
+      },
     ]);
 
   return (
-    <Screen title="Calendario" subtitle={upcomingLabel(list)}>
+    <Screen title="Calendario" subtitle={upcomingLabel(list)} onRefresh={refresh}>
       {/* Cabecera de mes */}
       <View className="flex-row items-center justify-between px-5 pb-2">
         <Text className="text-[22px] font-bold text-black">
