@@ -28,7 +28,8 @@
       "appwriteDatabaseId": "homie",
       "appwriteTasksCollectionId": "tasks",
       "appwriteShoppingCollectionId": "shopping_items",
-      "appwriteExpensesCollectionId": "expenses"
+      "appwriteExpensesCollectionId": "expenses",
+      "appwriteEventsCollectionId": "events"
     }
   }
 }

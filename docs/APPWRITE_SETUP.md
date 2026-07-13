@@ -58,6 +58,34 @@ y permiso **Create** para el rol **Users**.
 
 Índice: key `hogarId_idx` sobre `hogarId` (ASC).
 
+### Colección `events` (calendario)
+**Collection ID = `events`**, **Document Security: ON**, permiso **Create** para **Users**.
+
+| Atributo | Tipo | Tamaño/Config | Requerido |
+|---|---|---|---|
+| `title` | String | 255 | sí |
+| `startAt` | Datetime | — | sí |
+| `place` | String | 255 | no |
+| `ownerName` | String | 255 | sí |
+| `hogarId` | String | 50 | sí |
+
+Índice: key `hogarId_idx` sobre `hogarId` (ASC).
+
+**Comandos `curl`** (reutiliza `EP`, `PID`, `DB`, `KEY`, `H` de antes):
+```bash
+curl -sS -X POST "$EP/databases/$DB/collections" "${H[@]}" \
+ -d '{"collectionId":"events","name":"events","documentSecurity":true,"permissions":["create(\"users\")"]}'; echo
+sleep 1
+curl -sS -X POST "$EP/databases/$DB/collections/events/attributes/string"   "${H[@]}" -d '{"key":"title","size":255,"required":true}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/events/attributes/datetime" "${H[@]}" -d '{"key":"startAt","required":true}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/events/attributes/string"   "${H[@]}" -d '{"key":"place","size":255,"required":false}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/events/attributes/string"   "${H[@]}" -d '{"key":"ownerName","size":255,"required":true}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/events/attributes/string"   "${H[@]}" -d '{"key":"hogarId","size":50,"required":true}'; echo
+sleep 3
+curl -sS -X POST "$EP/databases/$DB/collections/events/indexes" "${H[@]}" \
+ -d '{"key":"hogarId_idx","type":"key","attributes":["hogarId"],"orders":["ASC"]}'; echo
+```
+
 ## 3. SMTP (para los emails de invitación al hogar)
 Sin SMTP, las invitaciones no se envían. En el VPS, edita el `.env` de Appwrite
 (normalmente `/opt/appwrite/appwrite/.env`) y rellena:
