@@ -253,6 +253,23 @@ export const cashEntries = pgTable(
   (t) => [index("cash_entries_org_date").on(t.orgId, t.date)],
 );
 
+// ── Suscripciones de notificaciones push (Web Push / PWA) ──────────────
+
+export const pushSubscriptions = pgTable(
+  "push_subscriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id").notNull().references(() => orgs.id),
+    userId: uuid("user_id").references(() => users.id),
+    endpoint: text("endpoint").notNull(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    userAgent: text("user_agent"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("push_subscriptions_endpoint").on(t.endpoint)],
+);
+
 export type Org = typeof orgs.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type EmailAccount = typeof emailAccounts.$inferSelect;

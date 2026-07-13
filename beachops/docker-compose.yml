@@ -1,0 +1,46 @@
+# Despliegue en un VPS propio:
+#   1. cp .env.example .env  y rellena los valores (DATABASE_URL puede quedar vacío,
+#      aquí lo inyecta el compose apuntando al servicio db).
+#   2. docker compose up -d --build
+#   3. Pon tu dominio delante con Caddy o Nginx (ver README).
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: beachops
+      POSTGRES_USER: beachops
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U beachops"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://beachops:${POSTGRES_PASSWORD}@db:5432/beachops
+    depends_on:
+      db:
+        condition: service_healthy
+
+  worker:
+    build: .
+    restart: unless-stopped
+    command: ["npm", "run", "worker"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://beachops:${POSTGRES_PASSWORD}@db:5432/beachops
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

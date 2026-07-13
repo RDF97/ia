@@ -4,6 +4,12 @@ import { RawEmail } from "../db/schema";
 import { applyMappingRules, resolveTimeSlot } from "../mapping/engine";
 import { detectParser, looksLikeBooking } from "../parsers/registry";
 import { ParseError, ParsedBooking } from "../parsers/types";
+import { sendPushToOrg } from "../push";
+
+/** Solo se notifica lo reciente: el backfill inicial no debe disparar avisos. */
+function isRecent(receivedAt: Date | null): boolean {
+  return receivedAt != null && Date.now() - receivedAt.getTime() < 6 * 60 * 60 * 1000;
+}
 
 /**
  * Procesa un email crudo: detecta la plataforma, parsea la reserva, aplica el
@@ -21,17 +27,26 @@ export async function processRawEmail(raw: RawEmail): Promise<void> {
 
   const parser = detectParser(email);
   if (!parser) {
+    const failed = looksLikeBooking(email);
     await db
       .update(schema.rawEmails)
       .set({
         detectedSource: "unknown",
-        parseStatus: looksLikeBooking(email) ? "failed" : "ignored",
-        parseError: looksLikeBooking(email)
+        parseStatus: failed ? "failed" : "ignored",
+        parseError: failed
           ? "Parece una reserva pero no es de una plataforma conocida"
           : null,
         processedAt: new Date(),
       })
       .where(eq(schema.rawEmails.id, raw.id));
+    if (failed && isRecent(raw.receivedAt)) {
+      await sendPushToOrg(raw.orgId, {
+        title: "⚠ Email sin procesar",
+        body: raw.subject ?? "Un email de reserva no se pudo interpretar",
+        url: "/emails",
+        tag: `email-${raw.id}`,
+      });
+    }
     return;
   }
 
@@ -51,10 +66,22 @@ export async function processRawEmail(raw: RawEmail): Promise<void> {
         processedAt: new Date(),
       })
       .where(eq(schema.rawEmails.id, raw.id));
+    if (isRecent(raw.receivedAt)) {
+      await sendPushToOrg(raw.orgId, {
+        title: "⚠ Email sin procesar",
+        body: raw.subject ?? message,
+        url: "/emails",
+        tag: `email-${raw.id}`,
+      });
+    }
     return;
   }
 
   const bookingId = await upsertParsedBooking(raw.orgId, parsed, raw.id, raw.subject);
+
+  if (isRecent(raw.receivedAt)) {
+    await notifyBookingEvent(raw.orgId, parsed, bookingId);
+  }
 
   await db
     .update(schema.rawEmails)
@@ -172,6 +199,72 @@ export async function upsertParsedBooking(
     })
     .returning({ id: schema.bookings.id });
   return inserted[0].id;
+}
+
+/** Notifica alta/cancelación/modificación y, si procede, la sobre-reserva. */
+async function notifyBookingEvent(
+  orgId: string,
+  parsed: ParsedBooking,
+  bookingId: string,
+): Promise<void> {
+  const db = await getDb();
+  const pax = parsed.paxAdults + parsed.paxChildren;
+  const when = `${parsed.activityDate}${parsed.activityTime ? ` · ${parsed.activityTime}` : ""}`;
+  const who = parsed.customerName ?? parsed.externalRef;
+  const url = `/cuadro/${parsed.activityDate}`;
+
+  const titles = {
+    new: `🛶 Nueva reserva — ${parsed.channel}`,
+    cancellation: `✕ Reserva cancelada — ${parsed.channel}`,
+    amendment: `✎ Reserva modificada — ${parsed.channel}`,
+    other: null,
+  } as const;
+  const title = titles[parsed.kind];
+  if (!title) return;
+
+  await sendPushToOrg(orgId, {
+    title,
+    body: `${pax} pax · ${who} · ${when}`,
+    url,
+    tag: `booking-${bookingId}`,
+  });
+
+  // ¿La franja ha quedado sobre-reservada tras esta alta?
+  if (parsed.kind !== "new") return;
+  const [booking] = await db
+    .select()
+    .from(schema.bookings)
+    .where(eq(schema.bookings.id, bookingId));
+  if (!booking?.departureId) return;
+  const [departure] = await db
+    .select()
+    .from(schema.departures)
+    .where(eq(schema.departures.id, booking.departureId));
+  const [slot] = await db
+    .select()
+    .from(schema.timeSlots)
+    .where(eq(schema.timeSlots.id, departure.timeSlotId));
+  const siblings = await db
+    .select()
+    .from(schema.bookings)
+    .where(
+      and(
+        eq(schema.bookings.orgId, orgId),
+        eq(schema.bookings.departureId, departure.id),
+      ),
+    );
+  const occupied = siblings
+    .filter((b) => b.status !== "cancelled")
+    .reduce((n, b) => n + b.paxAdults + b.paxChildren, 0);
+  const capacity = departure.capacityOverride ?? slot.defaultCapacity;
+  if (occupied > capacity) {
+    await sendPushToOrg(orgId, {
+      title: `🔴 Sobre-reserva ${departure.startTime.slice(0, 5)}`,
+      body: `${occupied}/${capacity} pax el ${departure.date} — dividir, mover o doble salida`,
+      url,
+      tag: `overbook-${departure.id}`,
+    });
+  }
 }
 
 /** Crea (si no existe) la salida materializada franja+fecha y devuelve su id. */

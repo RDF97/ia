@@ -29,6 +29,12 @@ migraciones.
   por confirmar, resumen y vista de impresión. Se refresca solo cada 30 s.
 - **Cola de revisión** (`/emails`): los emails que no se pudieron interpretar
   nunca se pierden; se pueden reintentar o ignorar.
+- **PWA con notificaciones push**: la app se añade a la pantalla de inicio del
+  móvil (icono propio, pantalla completa) y avisa de nuevas reservas,
+  cancelaciones, franjas sobre-reservadas y emails sin procesar — incluso con
+  la app cerrada. Se activa por dispositivo en Configuración. En iPhone
+  (iOS 16.4+) hay que añadirla antes a la pantalla de inicio. El backfill
+  inicial no dispara avisos (solo emails de las últimas 6 horas).
 
 ## Puesta en marcha (desarrollo)
 
@@ -59,6 +65,35 @@ Sin `DATABASE_URL` la app usa **PGlite** (Postgres embebido, carpeta
    `http://localhost:3000/api/gmail/callback` para desarrollo).
 4. Copia `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` al `.env`.
 5. En la app: **Configuración → Conectar Gmail**.
+
+## Despliegue en un VPS propio (Docker)
+
+Si ya tienes un VPS (1 GB de RAM basta), todo va con `docker compose`:
+
+```bash
+git clone <repo> && cd beachops
+cp .env.example .env
+# Rellena: AUTH_SECRET, TOKEN_ENCRYPTION_KEY (openssl rand -hex 32),
+# POSTGRES_PASSWORD (cualquiera), APP_URL=https://tu-dominio,
+# GOOGLE_CLIENT_ID/SECRET y las claves VAPID (npx web-push generate-vapid-keys)
+docker compose up -d --build
+docker compose exec web npx tsx scripts/seed.ts   # primera vez: org + usuario
+```
+
+Levanta tres contenedores: Postgres (con volumen persistente), la web en
+`127.0.0.1:3000` y el worker de sincronización. Delante pon tu dominio con
+HTTPS — con Caddy es una línea (el certificado se gestiona solo):
+
+```
+# /etc/caddy/Caddyfile
+beachops.tu-dominio.com {
+    reverse_proxy 127.0.0.1:3000
+}
+```
+
+(HTTPS es obligatorio para la PWA, las notificaciones push y el callback de
+Google.) Actualizar: `git pull && docker compose up -d --build`. Copia de
+seguridad: `docker compose exec db pg_dump -U beachops beachops > backup.sql`.
 
 ## Despliegue (Railway u otro PaaS)
 

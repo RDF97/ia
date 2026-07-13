@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { createMappingRule, deleteMappingRule, syncNow } from "@/server/actions";
 import { requireSession } from "@/server/auth";
 import { getDb, schema } from "@/server/db";
+import { NotificationSettings } from "./notifications";
 
 export const dynamic = "force-dynamic";
 
@@ -81,6 +82,12 @@ export default async function ConfigPage({
             </form>
           )}
         </div>
+      </section>
+
+      {/* Notificaciones */}
+      <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3">
+        <h2 className="font-bold">🔔 Notificaciones en el móvil</h2>
+        <NotificationSettings vapidPublicKey={process.env.VAPID_PUBLIC_KEY ?? null} />
       </section>
 
       {/* Playas / productos / franjas */}

@@ -211,6 +211,54 @@ export async function syncNow() {
   revalidatePath("/");
 }
 
+// ── Notificaciones push ────────────────────────────────────────────────
+
+export async function savePushSubscription(sub: {
+  endpoint: string;
+  p256dh?: string;
+  auth?: string;
+  userAgent?: string;
+}) {
+  const session = await requireSession();
+  if (!sub.endpoint || !sub.p256dh || !sub.auth) throw new Error("Suscripción incompleta");
+  const db = await getDb();
+  await db
+    .insert(schema.pushSubscriptions)
+    .values({
+      orgId: session.orgId,
+      userId: session.userId,
+      endpoint: sub.endpoint,
+      p256dh: sub.p256dh,
+      auth: sub.auth,
+      userAgent: sub.userAgent,
+    })
+    .onConflictDoNothing();
+}
+
+export async function deletePushSubscription(endpoint: string) {
+  const session = await requireSession();
+  const db = await getDb();
+  await db
+    .delete(schema.pushSubscriptions)
+    .where(
+      and(
+        eq(schema.pushSubscriptions.orgId, session.orgId),
+        eq(schema.pushSubscriptions.endpoint, endpoint),
+      ),
+    );
+}
+
+export async function sendTestPush() {
+  const session = await requireSession();
+  const { sendPushToOrg } = await import("./push");
+  await sendPushToOrg(session.orgId, {
+    title: "BeachOps",
+    body: "Notificación de prueba: todo funciona 🎉",
+    url: "/",
+    tag: "test",
+  });
+}
+
 // ── Config: reglas de mapeo ────────────────────────────────────────────
 
 export async function createMappingRule(formData: FormData) {
