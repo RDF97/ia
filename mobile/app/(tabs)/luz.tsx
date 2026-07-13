@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/theme/tokens";
@@ -21,6 +21,16 @@ import {
   rangeLabel,
   tierOf,
 } from "@/lib/luz";
+import { cheapHourAlerts, expensiveStretchAlert } from "@/lib/luzAlerts";
+import {
+  cancelGroup,
+  ensureNotificationPermissions,
+  getToggle,
+  saveGroupIds,
+  scheduleAt,
+  scheduleDaily,
+  setToggle,
+} from "@/lib/notifications";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -197,7 +207,7 @@ export default function Luz() {
 
         {/* Avisos */}
         <SectionTitle>Avisos automáticos</SectionTitle>
-        <AlertsCard />
+        <AlertsCard today={today} tomorrow={tomorrow} />
       </ScrollView>
 
       <Planner
@@ -240,17 +250,78 @@ function AlertRow({
   );
 }
 
-function AlertsCard() {
-  const [cheap, setCheap] = useState(true);
+function AlertsCard({ today, tomorrow }: { today: number[]; tomorrow: number[] | null }) {
+  const [cheap, setCheap] = useState(false);
   const [reminder, setReminder] = useState(true);
   const [expensive, setExpensive] = useState(false);
-  const [summary, setSummary] = useState(true);
+  const [summary, setSummary] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      setCheap(await getToggle("cheap", false));
+      setReminder(await getToggle("reminder", true));
+      setExpensive(await getToggle("expensive", false));
+      setSummary(await getToggle("summary", false));
+    })();
+  }, []);
+
+  const guard = async (): Promise<boolean> => {
+    const ok = await ensureNotificationPermissions();
+    if (!ok) Alert.alert("Sin permiso de notificaciones", "Actívalo en los ajustes del sistema.");
+    return ok;
+  };
+
+  const onCheap = async (on: boolean) => {
+    setCheap(on);
+    await setToggle("cheap", on);
+    await cancelGroup("cheap");
+    if (!on) return;
+    if (!(await guard())) return;
+    const plans = cheapHourAlerts(today, tomorrow, new Date());
+    const ids = (await Promise.all(plans.map((p) => scheduleAt(p.date, p.title, p.body)))).filter(
+      (x): x is string => !!x,
+    );
+    await saveGroupIds("cheap", ids);
+  };
+
+  const onReminder = async (on: boolean) => {
+    setReminder(on);
+    await setToggle("reminder", on);
+  };
+
+  const onExpensive = async (on: boolean) => {
+    setExpensive(on);
+    await setToggle("expensive", on);
+    await cancelGroup("expensive");
+    if (!on) return;
+    if (!(await guard())) return;
+    const plan = expensiveStretchAlert(today, new Date());
+    if (!plan) return;
+    const id = await scheduleAt(plan.date, plan.title, plan.body);
+    if (id) await saveGroupIds("expensive", [id]);
+  };
+
+  const onSummary = async (on: boolean) => {
+    setSummary(on);
+    await setToggle("summary", on);
+    await cancelGroup("summary");
+    if (!on) return;
+    if (!(await guard())) return;
+    const id = await scheduleDaily(
+      20,
+      30,
+      "📊 Precios de mañana",
+      "Ya está publicado el PVPC de mañana. Abre Homie y mira las mejores horas.",
+    );
+    await saveGroupIds("summary", [id]);
+  };
+
   return (
-    <View className="bg-white rounded-lg2 mx-4 mb-3">
-      <AlertRow first icon="flash" color={colors.green} label="Avisar en la hora más barata" value={cheap} onChange={setCheap} />
-      <AlertRow icon="time-outline" color={colors.orange} label="Recordatorio de electrodoméstico programado" value={reminder} onChange={setReminder} />
-      <AlertRow icon="warning-outline" color={colors.red} label="Avisar de tramos caros" value={expensive} onChange={setExpensive} />
-      <AlertRow icon="newspaper-outline" color={colors.blue} label="Resumen de precios de mañana (20:30)" value={summary} onChange={setSummary} />
+    <View className="bg-white rounded-lg2 mx-4 mb-1">
+      <AlertRow first icon="flash" color={colors.green} label="Avisar en la hora más barata" value={cheap} onChange={onCheap} />
+      <AlertRow icon="time-outline" color={colors.orange} label="Recordatorio de electrodoméstico programado" value={reminder} onChange={onReminder} />
+      <AlertRow icon="warning-outline" color={colors.red} label="Avisar de tramos caros" value={expensive} onChange={onExpensive} />
+      <AlertRow icon="newspaper-outline" color={colors.blue} label="Resumen de precios de mañana (20:30)" value={summary} onChange={onSummary} />
     </View>
   );
 }
