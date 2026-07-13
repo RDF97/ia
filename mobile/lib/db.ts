@@ -7,11 +7,13 @@ const extra = (Constants.expoConfig?.extra ?? {}) as {
   appwriteTasksCollectionId?: string;
   appwriteShoppingCollectionId?: string;
   appwriteExpensesCollectionId?: string;
+  appwriteEventsCollectionId?: string;
 };
 
 export const DB_ID = extra.appwriteDatabaseId ?? "homie";
 export const TASKS_COL = extra.appwriteTasksCollectionId ?? "tasks";
 export const SHOPPING_COL = extra.appwriteShoppingCollectionId ?? "shopping_items";
 export const EXPENSES_COL = extra.appwriteExpensesCollectionId ?? "expenses";
+export const EVENTS_COL = extra.appwriteEventsCollectionId ?? "events";
 
 export const databases = new Databases(client);
