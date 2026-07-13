@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { Screen } from "@/components/Screen";
 import { PhaseCard } from "@/components/Card";
+import { Avatar, CheckCircle } from "@/components/ui";
 import { useHogar } from "@/lib/hogar";
 import { useAuth } from "@/lib/auth";
 import { appwriteConfigured } from "@/lib/appwrite";
@@ -83,7 +84,10 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
         </Text>
       )}
       {/* Añadir */}
-      <View className="flex-row items-center bg-white rounded-lg2 mx-4 mb-4 px-3 py-2" style={{ gap: 8 }}>
+      <View
+        className="flex-row items-center bg-white rounded-pill mx-4 mb-4 px-4 py-2"
+        style={{ gap: 8, borderWidth: 0.5, borderColor: colors.separator }}
+      >
         <Ionicons name="add" size={22} color={colors.accent} />
         <TextInput
           className="flex-1 text-[16px] text-black"
@@ -140,27 +144,24 @@ function Section({
             className="flex-row items-center px-4 py-3"
             style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: colors.separator }}
           >
-            <Pressable onPress={() => onToggle(t)} hitSlop={8}>
-              <Ionicons
-                name={t.done ? "checkmark-circle" : "ellipse-outline"}
-                size={24}
-                color={t.done ? colors.green : colors.labelSecondary}
-              />
-            </Pressable>
+            <CheckCircle done={t.done} onPress={() => onToggle(t)} />
             <View className="flex-1">
               <Text
-                className="text-[16px]"
+                className="text-[15px]"
                 style={{
-                  color: t.done ? colors.labelSecondary : colors.label,
+                  color: t.done ? "rgba(60,60,67,0.35)" : colors.label,
                   textDecorationLine: t.done ? "line-through" : "none",
                 }}
               >
                 {t.title}
               </Text>
-              <Text className="text-[12px] text-neutral-500 mt-0.5">{t.createdByName}</Text>
+              <View className="flex-row items-center mt-1" style={{ gap: 6 }}>
+                <Avatar name={t.createdByName} size={18} />
+                <Text className="text-[12px] text-neutral-500">{t.createdByName}</Text>
+              </View>
             </View>
             <Pressable onPress={() => onDelete(t.$id)} hitSlop={8}>
-              <Ionicons name="trash-outline" size={18} color={colors.labelSecondary} />
+              <Ionicons name="trash-outline" size={17} color="rgba(60,60,67,0.4)" />
             </Pressable>
           </View>
         ))}

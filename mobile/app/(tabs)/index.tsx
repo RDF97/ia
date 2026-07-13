@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Screen } from "@/components/Screen";
 import { Card, PhaseCard } from "@/components/Card";
+import { Avatar, IconTile, Money, SectionTitle } from "@/components/ui";
 import { InviteModal } from "@/components/InviteModal";
 import { useAuth } from "@/lib/auth";
 import { useHogar } from "@/lib/hogar";
@@ -64,10 +65,26 @@ function Tile({
   onPress: () => void;
 }) {
   return (
-    <Pressable onPress={onPress} className="flex-1 bg-white rounded-lg2 p-3" style={{ minHeight: 82 }}>
-      <Text className="text-[11px] uppercase tracking-wide text-neutral-500 font-medium">{label}</Text>
-      <Text className="text-[19px] font-bold mt-1" style={{ color: color ?? colors.label }}>{value}</Text>
-      {sub ? <Text className="text-[11px] text-neutral-500 mt-0.5">{sub}</Text> : null}
+    <Pressable
+      onPress={onPress}
+      className="flex-1 bg-white p-3 justify-between"
+      style={{ minHeight: 80, borderRadius: 14 }}
+    >
+      <Text
+        className="text-[11px] text-neutral-500 font-medium"
+        style={{ textTransform: "uppercase", letterSpacing: 0.4 }}
+      >
+        {label}
+      </Text>
+      <View>
+        <Text
+          className="text-[18px] font-semibold"
+          style={{ color: color ?? colors.label, fontVariant: ["tabular-nums"], letterSpacing: -0.3 }}
+        >
+          {value}
+        </Text>
+        {sub ? <Text className="text-[11px] font-medium text-neutral-500 mt-0.5">{sub}</Text> : null}
+      </View>
     </Pressable>
   );
 }
@@ -119,20 +136,14 @@ function Dashboard({
     luzColor = tier === "ok" ? colors.green : tier === "mid" ? colors.orange : colors.red;
   }
 
-  const initial = (userName || "?").charAt(0).toUpperCase();
-
   return (
     <Screen
       title={`Hola, ${userName} 👋`}
       subtitle={hogarName}
       onRefresh={refreshAll}
       right={
-        <Pressable
-          onPress={() => router.push("/perfil")}
-          className="rounded-pill items-center justify-center"
-          style={{ width: 38, height: 38, backgroundColor: colors.accent, marginBottom: 4 }}
-        >
-          <Text className="text-white text-[16px] font-bold">{initial}</Text>
+        <Pressable onPress={() => router.push("/perfil")} style={{ marginBottom: 4 }} hitSlop={6}>
+          <Avatar name={userName} size={38} />
         </Pressable>
       }
     >
@@ -165,7 +176,7 @@ function Dashboard({
       </View>
 
       {/* Hoy (agenda) */}
-      <Text className="px-5 pt-1 pb-2 text-[13px] font-medium uppercase tracking-wide text-neutral-500">Hoy</Text>
+      <SectionTitle>Hoy</SectionTitle>
       <View className="bg-white rounded-lg2 mx-4 mb-3 overflow-hidden">
         {todayEvents.length === 0 ? (
           <Pressable onPress={() => router.navigate("/calendario")} className="px-4 py-4">
@@ -194,31 +205,36 @@ function Dashboard({
       <Pressable onPress={() => router.navigate("/compra")}>
         <Card>
           <View className="flex-row items-center" style={{ gap: 12 }}>
-            <View className="rounded-lg2 items-center justify-center" style={{ width: 36, height: 36, backgroundColor: "#8E8E93" }}>
-              <Ionicons name="cart-outline" size={18} color="#fff" />
-            </View>
+            <IconTile icon="cart" color="#8E8E93" size={34} />
             <Text className="flex-1 text-[15px] text-black">Compra pendiente</Text>
-            <Text className="text-[15px] font-semibold" style={{ color: colors.accent }}>
+            <Money size={15} color={colors.accent}>
               {pendingShop} {pendingShop === 1 ? "producto" : "productos"}
-            </Text>
+            </Money>
           </View>
         </Card>
       </Pressable>
 
-      {/* Quién debe a quién */}
+      {/* Quién debe a quién — estilo .debt-card del mockup */}
       {bal.length > 0 && (
         <>
-          <Text className="px-5 pt-1 pb-2 text-[13px] font-medium uppercase tracking-wide text-neutral-500">Quién debe a quién</Text>
-          <Card>
+          <SectionTitle>Quién debe a quién</SectionTitle>
+          <View className="rounded-card mx-4 mb-3 px-4 py-3" style={{ backgroundColor: colors.accentSoft }}>
             {bal.map((b, i) => (
-              <View key={b.name} className="flex-row items-center justify-between py-2" style={{ borderTopWidth: i ? 0.5 : 0, borderTopColor: colors.separator }}>
-                <Text className="text-[15px] text-black">{b.name}</Text>
-                <Text className="text-[15px] font-semibold" style={{ color: b.net >= 0 ? colors.green : colors.red }}>
-                  {b.net >= 0 ? `le deben ${eur(b.net)}` : `debe ${eur(-b.net)}`}
-                </Text>
+              <View
+                key={b.name}
+                className="flex-row items-center py-2"
+                style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: colors.separator }}
+              >
+                <Avatar name={b.name} size={32} />
+                <View className="flex-1">
+                  <Text className="text-[12px] text-neutral-500">{b.name}</Text>
+                  <Money size={17} weight="700" color={b.net >= 0 ? colors.accent : colors.red}>
+                    {b.net >= 0 ? `le deben ${eur(b.net)}` : `debe ${eur(-b.net)}`}
+                  </Money>
+                </View>
               </View>
             ))}
-          </Card>
+          </View>
         </>
       )}
     </Screen>
