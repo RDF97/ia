@@ -86,6 +86,64 @@ curl -sS -X POST "$EP/databases/$DB/collections/events/indexes" "${H[@]}" \
  -d '{"key":"hogarId_idx","type":"key","attributes":["hogarId"],"orders":["ASC"]}'; echo
 ```
 
+### Colecciones `products` y `price_points` (base de precios de la compra)
+**Document Security: ON** y permiso **Create** para **Users** en ambas.
+
+`products`:
+| Atributo | Tipo | Tamaño/Config | Requerido |
+|---|---|---|---|
+| `name` | String | 255 | sí |
+| `hogarId` | String | 50 | sí |
+| `lastPrice` | Double | — | no |
+| `lastStore` | String | 100 | no |
+| `lastAt` | Datetime | — | no |
+
+`price_points`:
+| Atributo | Tipo | Tamaño/Config | Requerido |
+|---|---|---|---|
+| `productId` | String | 50 | sí |
+| `price` | Double | — | sí |
+| `store` | String | 100 | sí |
+| `at` | Datetime | — | sí |
+| `hogarId` | String | 50 | sí |
+
+Índices: `hogarId_idx` en ambas; en `price_points` además `productId_idx` sobre `productId`.
+
+**Comandos `curl`** (reutiliza `EP`, `PID`, `DB`, `KEY`, `H`):
+```bash
+curl -sS -X POST "$EP/databases/$DB/collections" "${H[@]}" \
+ -d '{"collectionId":"products","name":"products","documentSecurity":true,"permissions":["create(\"users\")"]}'; echo
+sleep 1
+curl -sS -X POST "$EP/databases/$DB/collections/products/attributes/string"   "${H[@]}" -d '{"key":"name","size":255,"required":true}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/products/attributes/string"   "${H[@]}" -d '{"key":"hogarId","size":50,"required":true}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/products/attributes/float"    "${H[@]}" -d '{"key":"lastPrice","required":false}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/products/attributes/string"   "${H[@]}" -d '{"key":"lastStore","size":100,"required":false}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/products/attributes/datetime" "${H[@]}" -d '{"key":"lastAt","required":false}'; echo
+sleep 3
+curl -sS -X POST "$EP/databases/$DB/collections/products/indexes" "${H[@]}" \
+ -d '{"key":"hogarId_idx","type":"key","attributes":["hogarId"],"orders":["ASC"]}'; echo
+
+curl -sS -X POST "$EP/databases/$DB/collections" "${H[@]}" \
+ -d '{"collectionId":"price_points","name":"price_points","documentSecurity":true,"permissions":["create(\"users\")"]}'; echo
+sleep 1
+curl -sS -X POST "$EP/databases/$DB/collections/price_points/attributes/string"   "${H[@]}" -d '{"key":"productId","size":50,"required":true}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/price_points/attributes/float"    "${H[@]}" -d '{"key":"price","required":true}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/price_points/attributes/string"   "${H[@]}" -d '{"key":"store","size":100,"required":true}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/price_points/attributes/datetime" "${H[@]}" -d '{"key":"at","required":true}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/price_points/attributes/string"   "${H[@]}" -d '{"key":"hogarId","size":50,"required":true}'; echo
+sleep 3
+curl -sS -X POST "$EP/databases/$DB/collections/price_points/indexes" "${H[@]}" \
+ -d '{"key":"hogarId_idx","type":"key","attributes":["hogarId"],"orders":["ASC"]}'; echo
+sleep 1
+curl -sS -X POST "$EP/databases/$DB/collections/price_points/indexes" "${H[@]}" \
+ -d '{"key":"productId_idx","type":"key","attributes":["productId"],"orders":["ASC"]}'; echo
+```
+
+> **OCR de tickets** (pendiente): requiere un proveedor externo (Mindee / Google
+> Vision) con API key, llamado desde una Appwrite Function para no exponer la
+> clave. Se decidirá proveedor antes de implementarlo; el flujo manual de
+> "precio al comprar" ya alimenta la misma base de datos.
+
 ## 3. SMTP (para los emails de invitación al hogar)
 Sin SMTP, las invitaciones no se envían. En el VPS, edita el `.env` de Appwrite
 (normalmente `/opt/appwrite/appwrite/.env`) y rellena:

@@ -29,7 +29,9 @@
       "appwriteTasksCollectionId": "tasks",
       "appwriteShoppingCollectionId": "shopping_items",
       "appwriteExpensesCollectionId": "expenses",
-      "appwriteEventsCollectionId": "events"
+      "appwriteEventsCollectionId": "events",
+      "appwriteProductsCollectionId": "products",
+      "appwritePricesCollectionId": "price_points"
     }
   }
 }
