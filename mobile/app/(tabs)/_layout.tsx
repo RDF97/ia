@@ -1,12 +1,12 @@
 import { Tabs } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { TabIcon, type TabIconName } from "@/components/TabIcon";
 import { colors } from "@/theme/tokens";
 
-type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
-
-function icon(name: IoniconName) {
-  return ({ color }: { color: string }) => <Ionicons name={name} color={color} size={26} />;
+function icon(name: TabIconName) {
+  return ({ color, focused }: { color: string; focused: boolean }) => (
+    <TabIcon name={name} color={color} focused={focused} />
+  );
 }
 
 export default function TabsLayout() {
@@ -30,12 +30,12 @@ export default function TabsLayout() {
         },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: "Inicio", tabBarIcon: icon("home-outline") }} />
-      <Tabs.Screen name="gastos" options={{ title: "Gastos", tabBarIcon: icon("cash-outline") }} />
-      <Tabs.Screen name="compra" options={{ title: "Compra", tabBarIcon: icon("cart-outline") }} />
-      <Tabs.Screen name="tareas" options={{ title: "Tareas", tabBarIcon: icon("checkbox-outline") }} />
-      <Tabs.Screen name="calendario" options={{ title: "Calendario", tabBarIcon: icon("calendar-outline") }} />
-      <Tabs.Screen name="luz" options={{ title: "Luz", tabBarIcon: icon("flash-outline") }} />
+      <Tabs.Screen name="index" options={{ title: "Inicio", tabBarIcon: icon("inicio") }} />
+      <Tabs.Screen name="gastos" options={{ title: "Gastos", tabBarIcon: icon("gastos") }} />
+      <Tabs.Screen name="compra" options={{ title: "Compra", tabBarIcon: icon("compra") }} />
+      <Tabs.Screen name="tareas" options={{ title: "Tareas", tabBarIcon: icon("tareas") }} />
+      <Tabs.Screen name="calendario" options={{ title: "Calendario", tabBarIcon: icon("calendario") }} />
+      <Tabs.Screen name="luz" options={{ title: "Luz", tabBarIcon: icon("luz") }} />
     </Tabs>
   );
 }
