@@ -5,6 +5,8 @@ import { colors } from "@/theme/tokens";
 import { Toggle } from "@/components/Toggle";
 import { appliances } from "@/lib/samplePrices";
 import { cheapestOptions, fmtEur, fmtKwh, priciestWindow, rangeLabel } from "@/lib/luz";
+import { applianceReminder } from "@/lib/luzAlerts";
+import { ensureNotificationPermissions, getToggle, scheduleAt } from "@/lib/notifications";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -29,6 +31,7 @@ export function Planner({
     if (visible) {
       setSelId(initialId);
       setOptIdx(0);
+      getToggle("reminder", true).then(setNotify);
     }
   }, [visible, initialId]);
 
@@ -37,16 +40,35 @@ export function Planner({
   const opts = cheapestOptions(a, today, tomorrow, nowHour, 3);
   const safeIdx = optIdx >= opts.length ? 0 : optIdx;
 
-  const confirm = () => {
+  const confirm = async () => {
     const o = opts[safeIdx];
     onClose();
-    Alert.alert(
-      "Aviso programado",
-      o
-        ? `${a.name}: ${o.day} a las ${rangeLabel(o.start, a.dur)}.` +
-            (notify ? " Te avisaremos 10 min antes." : "")
-        : a.name,
-    );
+    if (!o) return;
+    const when = `${a.name}: ${o.day.toLowerCase()} · ${rangeLabel(o.start, a.dur)}.`;
+    if (!notify) {
+      Alert.alert("Anotado", when);
+      return;
+    }
+    try {
+      const granted = await ensureNotificationPermissions();
+      if (!granted) {
+        Alert.alert("Sin permiso de notificaciones", "Actívalo en los ajustes del sistema para recibir el aviso.");
+        return;
+      }
+      const plan = applianceReminder(o.day, o.start, a.name, o.avg, a.dur, new Date());
+      if (!plan) {
+        Alert.alert("Franja demasiado próxima", when + " Empieza ya mismo, ¡aprovecha!");
+        return;
+      }
+      await scheduleAt(plan.date, plan.title, plan.body);
+      const z = (n: number) => String(n).padStart(2, "0");
+      Alert.alert(
+        "Aviso programado 🔔",
+        `${when}\nTe avisaremos a las ${z(plan.date.getHours())}:${z(plan.date.getMinutes())}.`,
+      );
+    } catch (e) {
+      Alert.alert("No se pudo programar", e instanceof Error ? e.message : "Inténtalo de nuevo.");
+    }
   };
 
   return (
