@@ -4,6 +4,7 @@ import {
   assignBooking,
   cancelBooking,
   confirmCashEntry,
+  toggleDoubleAdHoc,
   toggleDoubleDeparture,
 } from "@/server/actions";
 import { requireSession } from "@/server/auth";
@@ -129,12 +130,17 @@ export default async function CuadroPage({
             📍 {loc.name} · {loc.paxTotal} pax
           </h2>
           {loc.groups.map((g) => (
-            <div key={g.timeSlotId} className="slot-card bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div key={g.timeSlotId ?? g.departureId} className="slot-card bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
               <div className="flex items-center gap-3 px-3 py-2 border-b border-slate-100">
                 <span className="font-bold text-lg">{g.startTime}</span>
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${g.productKind === "private" ? "bg-purple-100 text-purple-700" : g.productName === "Paddle Surf" ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}`}>
                   {g.productName}
                 </span>
+                {g.isAdHoc && (
+                  <span className="text-xs font-bold text-sky-600" title="Salida creada automáticamente: llegó una reserva con esta hora">
+                    EXTRA
+                  </span>
+                )}
                 {g.isDouble && (
                   <span className="text-xs font-bold text-red-600">DOBLE SALIDA</span>
                 )}
@@ -142,7 +148,14 @@ export default async function CuadroPage({
                   {g.paxTotal}/{g.capacity}
                   {g.overbookedBy > 0 && ` · +${g.overbookedBy}`}
                 </span>
-                <form action={toggleDoubleDeparture.bind(null, g.timeSlotId, date)} className="no-print">
+                <form
+                  action={
+                    g.timeSlotId
+                      ? toggleDoubleDeparture.bind(null, g.timeSlotId, date)
+                      : toggleDoubleAdHoc.bind(null, g.departureId!, date)
+                  }
+                  className="no-print"
+                >
                   <button
                     className="text-xs px-2 py-1 rounded border border-slate-300 text-slate-500 hover:bg-slate-100"
                     title="Duplicar cupo (doble salida)"
@@ -263,7 +276,7 @@ export default async function CuadroPage({
               l.groups
                 .filter((g) => g.paxTotal > 0)
                 .map((g) => (
-                  <tr key={g.timeSlotId} className="border-b border-dashed border-slate-200">
+                  <tr key={g.timeSlotId ?? g.departureId} className="border-b border-dashed border-slate-200">
                     <td className="py-1 font-mono">{g.startTime}</td>
                     <td className="py-1">
                       {l.name} · {g.productName}

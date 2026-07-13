@@ -71,7 +71,7 @@ export async function getWeek(orgId: string, startDate: string): Promise<Week> {
     );
   }
 
-  const rows: WeekRow[] = slots
+  const templateRows: WeekRow[] = slots
     .filter((s) => s.active)
     .sort((a, b) => a.startTime.localeCompare(b.startTime))
     .map((slot) => {
@@ -98,6 +98,39 @@ export async function getWeek(orgId: string, startDate: string): Promise<Week> {
         cells,
       };
     });
+
+  // Salidas "extra" (ad-hoc) de la semana: una fila por hora+producto.
+  const adHocRows = new Map<string, WeekRow>();
+  for (const d of departures.filter((d) => !d.timeSlotId)) {
+    const key = `${d.startTime}-${d.productId}`;
+    if (!adHocRows.has(key)) {
+      const product = products.find((p) => p.id === d.productId);
+      const location = locations.find((l) => l.id === d.locationId);
+      adHocRows.set(key, {
+        timeSlotId: `adhoc-${key}`,
+        startTime: d.startTime.slice(0, 5),
+        productName: `${product?.name ?? "—"} (extra)`,
+        locationName: location?.name ?? "—",
+        cells: days.map(() => null),
+      });
+    }
+    const row = adHocRows.get(key)!;
+    const dayIdx = days.indexOf(d.date);
+    if (dayIdx >= 0) {
+      const paxTotal = paxByDeparture.get(d.id) ?? 0;
+      const capacity = d.capacityOverride ?? 12;
+      row.cells[dayIdx] = {
+        paxTotal,
+        capacity,
+        isDouble: d.isDouble,
+        overbooked: paxTotal > capacity,
+      };
+    }
+  }
+
+  const rows = [...templateRows, ...adHocRows.values()].sort((a, b) =>
+    a.startTime.localeCompare(b.startTime),
+  );
 
   const dayTotals = days.map((day) => {
     const dayBookings = active.filter((b) => b.activityDate === day);

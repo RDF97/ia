@@ -95,13 +95,15 @@ export const timeSlots = pgTable("time_slots", {
 });
 
 // Instancia materializada franja+fecha; se crea al asignar la primera
-// reserva del día o al abrir el cuadro (lazy).
+// reserva del día o al abrir el cuadro (lazy). timeSlotId null = salida
+// "extra" creada automáticamente porque llegó una reserva con una hora
+// que no encaja en ninguna franja de la plantilla.
 export const departures = pgTable(
   "departures",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     orgId: uuid("org_id").notNull().references(() => orgs.id),
-    timeSlotId: uuid("time_slot_id").notNull().references(() => timeSlots.id),
+    timeSlotId: uuid("time_slot_id").references(() => timeSlots.id),
     locationId: uuid("location_id").notNull().references(() => locations.id),
     productId: uuid("product_id").references(() => products.id),
     date: date("date").notNull(),

@@ -1,5 +1,19 @@
 import { eq } from "drizzle-orm";
-import { createMappingRule, deleteMappingRule, syncNow, updateOrgCoords } from "@/server/actions";
+import {
+  createLocation,
+  createMappingRule,
+  createProduct,
+  createTimeSlot,
+  deleteMappingRule,
+  syncNow,
+  toggleLocation,
+  toggleProduct,
+  toggleTimeSlot,
+  updateLocation,
+  updateOrgCoords,
+  updateProduct,
+  updateTimeSlot,
+} from "@/server/actions";
 import { orgCoords } from "@/server/weather";
 import { requireSession } from "@/server/auth";
 import { getDb, schema } from "@/server/db";
@@ -93,24 +107,111 @@ export default async function ConfigPage({
         <NotificationSettings vapidPublicKey={process.env.VAPID_PUBLIC_KEY ?? null} />
       </section>
 
-      {/* Playas / productos / franjas */}
-      <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-2">
+      {/* Playas / productos / salidas (editable) */}
+      <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-4">
         <h2 className="font-bold">🏖 Playas, productos y salidas</h2>
+        <p className="text-sm text-slate-500">
+          La plantilla de cada día. Si un email llega con una hora que no está aquí, la reserva
+          se acepta igualmente: se crea una salida &quot;extra&quot; automática en el cuadro. Lo que ya
+          tiene reservas no se borra, se desactiva.
+        </p>
+
         {locations.map((l) => (
-          <div key={l.id} className="text-sm">
-            <p className="font-semibold">{l.name}</p>
-            <ul className="ml-4 text-slate-600">
-              {slots
-                .filter((s) => s.locationId === l.id)
-                .sort((a, b) => a.startTime.localeCompare(b.startTime))
-                .map((s) => (
-                  <li key={s.id}>
-                    {s.startTime.slice(0, 5)} — {s.productId ? productName(s.productId) : "todos"} · cupo {s.defaultCapacity}
-                  </li>
+          <div key={l.id} className={`border border-slate-200 rounded-lg p-3 space-y-2 ${!l.active ? "opacity-50" : ""}`}>
+            <div className="flex items-center gap-2">
+              <form action={updateLocation.bind(null, l.id)} className="flex items-center gap-1">
+                <input name="name" defaultValue={l.name} className={`${input} font-semibold w-64`} />
+                <button className="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-100">renombrar</button>
+              </form>
+              <form action={toggleLocation.bind(null, l.id)} className="ml-auto">
+                <button className="text-xs px-2 py-1 rounded border border-slate-300 text-slate-500 hover:bg-slate-100">
+                  {l.active ? "desactivar playa" : "activar playa"}
+                </button>
+              </form>
+            </div>
+
+            {/* Productos de la playa */}
+            <div className="flex flex-wrap gap-2">
+              {products
+                .filter((p) => p.locationId === l.id)
+                .map((p) => (
+                  <span key={p.id} className={`flex items-center gap-1 text-xs border border-slate-200 rounded-full pl-2 pr-1 py-0.5 ${!p.active ? "opacity-50" : ""}`}>
+                    <form action={updateProduct.bind(null, p.id)} className="flex items-center gap-1">
+                      <input name="name" defaultValue={p.name} className="w-24 border-0 bg-transparent focus:outline-none" />
+                      <button className="text-slate-400 hover:text-blue-600" title="Guardar nombre">✎</button>
+                    </form>
+                    <form action={toggleProduct.bind(null, p.id)}>
+                      <button className="text-slate-300 hover:text-red-600" title={p.active ? "Desactivar" : "Activar"}>
+                        {p.active ? "✕" : "↺"}
+                      </button>
+                    </form>
+                  </span>
                 ))}
-            </ul>
+              <form action={createProduct} className="flex items-center gap-1 text-xs">
+                <input type="hidden" name="locationId" value={l.id} />
+                <input name="name" placeholder="nuevo producto…" className={`${input} w-32`} />
+                <select name="kind" className={input}>
+                  <option value="tour">tour</option>
+                  <option value="private">privada</option>
+                </select>
+                <button className="px-2 py-1 rounded bg-blue-600 text-white">añadir</button>
+              </form>
+            </div>
+
+            {/* Salidas de la playa */}
+            <table className="text-sm w-full">
+              <tbody>
+                {slots
+                  .filter((s) => s.locationId === l.id)
+                  .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                  .map((s) => (
+                    <tr key={s.id} className={`border-t border-slate-100 ${!s.active ? "opacity-50" : ""}`}>
+                      <td className="py-1" colSpan={2}>
+                        <form action={updateTimeSlot.bind(null, s.id)} className="flex items-center gap-2">
+                          <input name="startTime" defaultValue={s.startTime.slice(0, 5)} className={`${input} w-20 font-mono`} />
+                          <span className="text-slate-500">{s.productId ? productName(s.productId) : "todos"}</span>
+                          <span className="text-xs text-slate-400">cupo</span>
+                          <input name="defaultCapacity" type="number" min={1} defaultValue={s.defaultCapacity} className={`${input} w-16`} />
+                          <button className="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-100">guardar</button>
+                        </form>
+                      </td>
+                      <td className="py-1 text-right">
+                        <form action={toggleTimeSlot.bind(null, s.id)}>
+                          <button className="text-xs px-2 py-1 rounded border border-slate-300 text-slate-500 hover:bg-slate-100">
+                            {s.active ? "desactivar" : "activar"}
+                          </button>
+                        </form>
+                      </td>
+                    </tr>
+                  ))}
+                <tr className="border-t border-slate-100">
+                  <td className="py-1.5" colSpan={3}>
+                    <form action={createTimeSlot} className="flex items-center gap-2 text-sm">
+                      <input name="startTime" placeholder="09:00" className={`${input} w-20 font-mono`} required />
+                      <select name="productId" className={input} required>
+                        {products
+                          .filter((p) => p.locationId === l.id && p.active)
+                          .map((p) => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                      </select>
+                      <span className="text-xs text-slate-400">cupo</span>
+                      <input name="defaultCapacity" type="number" min={1} defaultValue={12} className={`${input} w-16`} />
+                      <button className="px-2 py-1 rounded bg-blue-600 text-white text-xs font-semibold">+ añadir salida</button>
+                    </form>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         ))}
+
+        <form action={createLocation} className="flex items-center gap-2">
+          <input name="name" placeholder="Nueva playa…" className={`${input} w-64`} required />
+          <button className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
+            + Añadir playa
+          </button>
+        </form>
       </section>
 
       {/* Meteo */}

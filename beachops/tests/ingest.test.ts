@@ -115,6 +115,33 @@ describe("pipeline email → reserva", () => {
     expect(rows[0].cancelledAt).not.toBeNull();
   });
 
+  it("una reserva con hora fuera de la plantilla crea una salida extra y queda confirmada", async () => {
+    const db = await getDb();
+    // 20:15 no existe en la plantilla (ni con tolerancia de 30 min)
+    await ingest(
+      "msg-bokun-hora-rara",
+      "no-reply@bokun.io",
+      "New booking: Sun 12.Jul '26 @ 20:15 (SEC-T999999999) Ext. booking ref: 555",
+      fixture("bokun-new.html")
+        .replace("Sat 11.Jul '26 @ 09:30", "Sun 12.Jul '26 @ 20:15")
+        .replace("VIA-96827518", "VIA-HORARARA1"),
+    );
+    const rows = await db
+      .select()
+      .from(schema.bookings)
+      .where(eq(schema.bookings.activityDate, "2026-07-12"));
+    expect(rows).toHaveLength(1);
+    expect(rows[0].status).toBe("confirmed");
+    expect(rows[0].departureId).not.toBeNull();
+    const [dep] = await db
+      .select()
+      .from(schema.departures)
+      .where(eq(schema.departures.id, rows[0].departureId!));
+    expect(dep.timeSlotId).toBeNull(); // salida ad-hoc
+    expect(dep.startTime.slice(0, 5)).toBe("20:15");
+    expect(dep.capacityOverride).toBe(12);
+  });
+
   it("un email irrelevante se ignora sin crear nada", async () => {
     const db = await getDb();
     await ingest("msg-spam-1", "newsletter@example.com", "Ofertas de verano", "<p>spam</p>");

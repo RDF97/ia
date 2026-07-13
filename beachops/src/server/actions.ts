@@ -65,6 +65,28 @@ export async function toggleDoubleDeparture(timeSlotId: string, date: string) {
   revalidatePath(`/cuadro/${date}`);
 }
 
+/** Doble salida para una salida "extra" (sin franja de plantilla). */
+export async function toggleDoubleAdHoc(departureId: string, date: string) {
+  const session = await requireSession();
+  const db = await getDb();
+  const [dep] = await db
+    .select()
+    .from(schema.departures)
+    .where(
+      and(eq(schema.departures.id, departureId), eq(schema.departures.orgId, session.orgId)),
+    );
+  if (!dep) return;
+  const base = dep.capacityOverride ?? 12;
+  await db
+    .update(schema.departures)
+    .set({
+      isDouble: !dep.isDouble,
+      capacityOverride: dep.isDouble ? Math.round(base / 2) : base * 2,
+    })
+    .where(eq(schema.departures.id, departureId));
+  revalidatePath(`/cuadro/${date}`);
+}
+
 export async function cancelBooking(bookingId: string, date: string) {
   const session = await requireSession();
   const db = await getDb();
@@ -209,6 +231,136 @@ export async function syncNow() {
   await requireSession();
   await syncAllAccounts();
   revalidatePath("/");
+}
+
+// ── Config: playas, productos y salidas ────────────────────────────────
+
+export async function createLocation(formData: FormData) {
+  const session = await requireSession();
+  const db = await getDb();
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return;
+  await db.insert(schema.locations).values({ orgId: session.orgId, name });
+  revalidatePath("/config");
+}
+
+export async function updateLocation(id: string, formData: FormData) {
+  const session = await requireSession();
+  const db = await getDb();
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return;
+  await db
+    .update(schema.locations)
+    .set({ name })
+    .where(and(eq(schema.locations.id, id), eq(schema.locations.orgId, session.orgId)));
+  revalidatePath("/config");
+}
+
+export async function toggleLocation(id: string) {
+  const session = await requireSession();
+  const db = await getDb();
+  const [row] = await db
+    .select()
+    .from(schema.locations)
+    .where(and(eq(schema.locations.id, id), eq(schema.locations.orgId, session.orgId)));
+  if (!row) return;
+  await db
+    .update(schema.locations)
+    .set({ active: !row.active })
+    .where(eq(schema.locations.id, id));
+  revalidatePath("/config");
+}
+
+export async function createProduct(formData: FormData) {
+  const session = await requireSession();
+  const db = await getDb();
+  const name = String(formData.get("name") ?? "").trim();
+  const locationId = String(formData.get("locationId") ?? "");
+  if (!name || !locationId) return;
+  await db.insert(schema.products).values({
+    orgId: session.orgId,
+    locationId,
+    name,
+    kind: String(formData.get("kind")) === "private" ? "private" : "tour",
+  });
+  revalidatePath("/config");
+}
+
+export async function updateProduct(id: string, formData: FormData) {
+  const session = await requireSession();
+  const db = await getDb();
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return;
+  await db
+    .update(schema.products)
+    .set({ name })
+    .where(and(eq(schema.products.id, id), eq(schema.products.orgId, session.orgId)));
+  revalidatePath("/config");
+}
+
+export async function toggleProduct(id: string) {
+  const session = await requireSession();
+  const db = await getDb();
+  const [row] = await db
+    .select()
+    .from(schema.products)
+    .where(and(eq(schema.products.id, id), eq(schema.products.orgId, session.orgId)));
+  if (!row) return;
+  await db.update(schema.products).set({ active: !row.active }).where(eq(schema.products.id, id));
+  revalidatePath("/config");
+}
+
+export async function createTimeSlot(formData: FormData) {
+  const session = await requireSession();
+  const db = await getDb();
+  const productId = String(formData.get("productId") ?? "");
+  const startTime = String(formData.get("startTime") ?? "");
+  const capacity = Number(formData.get("defaultCapacity") ?? 12);
+  if (!productId || !/^\d{2}:\d{2}$/.test(startTime)) return;
+  const [product] = await db
+    .select()
+    .from(schema.products)
+    .where(and(eq(schema.products.id, productId), eq(schema.products.orgId, session.orgId)));
+  if (!product) return;
+  await db.insert(schema.timeSlots).values({
+    orgId: session.orgId,
+    locationId: product.locationId,
+    productId,
+    startTime,
+    defaultCapacity: Number.isFinite(capacity) && capacity > 0 ? capacity : 12,
+  });
+  revalidatePath("/config");
+}
+
+export async function updateTimeSlot(id: string, formData: FormData) {
+  const session = await requireSession();
+  const db = await getDb();
+  const startTime = String(formData.get("startTime") ?? "");
+  const capacity = Number(formData.get("defaultCapacity") ?? 0);
+  const set: { startTime?: string; defaultCapacity?: number } = {};
+  if (/^\d{2}:\d{2}$/.test(startTime)) set.startTime = startTime;
+  if (Number.isFinite(capacity) && capacity > 0) set.defaultCapacity = capacity;
+  if (Object.keys(set).length === 0) return;
+  await db
+    .update(schema.timeSlots)
+    .set(set)
+    .where(and(eq(schema.timeSlots.id, id), eq(schema.timeSlots.orgId, session.orgId)));
+  revalidatePath("/config");
+}
+
+export async function toggleTimeSlot(id: string) {
+  const session = await requireSession();
+  const db = await getDb();
+  const [row] = await db
+    .select()
+    .from(schema.timeSlots)
+    .where(and(eq(schema.timeSlots.id, id), eq(schema.timeSlots.orgId, session.orgId)));
+  if (!row) return;
+  await db
+    .update(schema.timeSlots)
+    .set({ active: !row.active })
+    .where(eq(schema.timeSlots.id, id));
+  revalidatePath("/config");
 }
 
 // ── Coordenadas de la org (para la meteo del cuadro) ───────────────────

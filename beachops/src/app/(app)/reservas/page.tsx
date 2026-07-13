@@ -27,9 +27,15 @@ export default async function ReservasPage() {
     <div className="space-y-4">
       <header className="flex items-center gap-3">
         <h1 className="text-xl font-bold">Reservas</h1>
+        <a
+          href="/api/reservas.csv"
+          className="ml-auto px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-sm hover:bg-slate-100"
+        >
+          ⬇ Exportar CSV
+        </a>
         <Link
           href="/reservas/nueva"
-          className="ml-auto px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700"
+          className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700"
         >
           + Reserva manual
         </Link>

@@ -3,8 +3,10 @@ import { getDb, schema } from "../db";
 import { Booking, CashEntry } from "../db/schema";
 
 export type BoardSlotGroup = {
-  timeSlotId: string;
+  /** null = salida extra (ad-hoc) sin franja de plantilla */
+  timeSlotId: string | null;
   departureId: string | null;
+  isAdHoc: boolean;
   startTime: string; // HH:MM
   productId: string | null;
   productName: string;
@@ -103,6 +105,7 @@ export async function getBoard(orgId: string, date: string): Promise<Board> {
           return {
             timeSlotId: slot.id,
             departureId: departure?.id ?? null,
+            isAdHoc: false,
             startTime: hhmm(slot.startTime),
             productId: slot.productId,
             productName: product?.name ?? "—",
@@ -119,11 +122,44 @@ export async function getBoard(orgId: string, date: string): Promise<Board> {
             overbookedBy: Math.max(0, paxTotal - capacity),
           };
         });
+      // Salidas "extra" (ad-hoc) de esta playa: creadas automáticamente al
+      // llegar reservas con horas fuera de la plantilla.
+      const adHocGroups: BoardSlotGroup[] = departures
+        .filter((d) => !d.timeSlotId && d.locationId === loc.id)
+        .map((d) => {
+          const slotBookings = active.filter((b) => b.departureId === d.id);
+          const paxAdults = slotBookings.reduce((n, b) => n + b.paxAdults, 0);
+          const paxChildren = slotBookings.reduce((n, b) => n + b.paxChildren, 0);
+          const paxTotal = paxAdults + paxChildren;
+          const capacity = d.capacityOverride ?? 12;
+          const product = d.productId ? productById.get(d.productId) : undefined;
+          return {
+            timeSlotId: null,
+            departureId: d.id,
+            isAdHoc: true,
+            startTime: hhmm(d.startTime),
+            productId: d.productId,
+            productName: product?.name ?? "—",
+            productKind: product?.kind ?? "tour",
+            capacity,
+            isDouble: d.isDouble,
+            bookings: slotBookings,
+            paxAdults,
+            paxChildren,
+            paxTotal,
+            free: Math.max(0, capacity - paxTotal),
+            overbookedBy: Math.max(0, paxTotal - capacity),
+          };
+        });
+
+      const allGroups = [...groups, ...adHocGroups].sort((a, b) =>
+        a.startTime.localeCompare(b.startTime),
+      );
       return {
         locationId: loc.id,
         name: loc.name,
-        groups,
-        paxTotal: groups.reduce((n, g) => n + g.paxTotal, 0),
+        groups: allGroups,
+        paxTotal: allGroups.reduce((n, g) => n + g.paxTotal, 0),
       };
     });
 

@@ -15,6 +15,13 @@
       "when": 1783958038499,
       "tag": "0001_push",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783981666739,
+      "tag": "0002_adhoc_departures",
+      "breakpoints": true
     }
   ]
 }

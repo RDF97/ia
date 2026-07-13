@@ -1,6 +1,6 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { getDb, schema } from "../db";
-import { RawEmail } from "../db/schema";
+import { RawEmail, TimeSlot } from "../db/schema";
 import { applyMappingRules, resolveTimeSlot } from "../mapping/engine";
 import { detectParser, looksLikeBooking } from "../parsers/registry";
 import { ParseError, ParsedBooking } from "../parsers/types";
@@ -129,6 +129,17 @@ export async function upsertParsedBooking(
       : resolveTimeSlot(slots, target.locationId, target.productId, parsed.activityTime);
     if (slot) {
       departureId = await ensureDeparture(orgId, slot.id, parsed.activityDate);
+    } else if (parsed.activityTime) {
+      // Hora fuera de la plantilla: se acepta igualmente creando una
+      // salida "extra" para ese día a esa hora.
+      departureId = await ensureAdHocDeparture(
+        orgId,
+        parsed.activityDate,
+        parsed.activityTime,
+        target.productId,
+        target.locationId,
+        slots,
+      );
     }
   }
 
@@ -240,10 +251,14 @@ async function notifyBookingEvent(
     .select()
     .from(schema.departures)
     .where(eq(schema.departures.id, booking.departureId));
-  const [slot] = await db
-    .select()
-    .from(schema.timeSlots)
-    .where(eq(schema.timeSlots.id, departure.timeSlotId));
+  const slot = departure.timeSlotId
+    ? (
+        await db
+          .select()
+          .from(schema.timeSlots)
+          .where(eq(schema.timeSlots.id, departure.timeSlotId))
+      )[0]
+    : null;
   const siblings = await db
     .select()
     .from(schema.bookings)
@@ -256,7 +271,7 @@ async function notifyBookingEvent(
   const occupied = siblings
     .filter((b) => b.status !== "cancelled")
     .reduce((n, b) => n + b.paxAdults + b.paxChildren, 0);
-  const capacity = departure.capacityOverride ?? slot.defaultCapacity;
+  const capacity = departure.capacityOverride ?? slot?.defaultCapacity ?? 12;
   if (occupied > capacity) {
     await sendPushToOrg(orgId, {
       title: `🔴 Sobre-reserva ${departure.startTime.slice(0, 5)}`,
@@ -265,6 +280,54 @@ async function notifyBookingEvent(
       tag: `overbook-${departure.id}`,
     });
   }
+}
+
+/**
+ * Salida "extra" fuera de la plantilla (fecha+hora+producto). La capacidad
+ * se hereda de la franja más grande del mismo producto (12 si no hay).
+ */
+export async function ensureAdHocDeparture(
+  orgId: string,
+  date: string,
+  startTime: string,
+  productId: string,
+  locationId: string,
+  slots: TimeSlot[],
+): Promise<string> {
+  const db = await getDb();
+  const time = startTime.length === 5 ? `${startTime}:00` : startTime;
+  const existing = await db
+    .select({ id: schema.departures.id })
+    .from(schema.departures)
+    .where(
+      and(
+        eq(schema.departures.orgId, orgId),
+        eq(schema.departures.date, date),
+        eq(schema.departures.startTime, time),
+        eq(schema.departures.productId, productId),
+        isNull(schema.departures.timeSlotId),
+      ),
+    );
+  if (existing.length > 0) return existing[0].id;
+
+  const capacity = Math.max(
+    12,
+    ...slots.filter((s) => s.productId === productId && s.active).map((s) => s.defaultCapacity),
+  );
+  const [row] = await db
+    .insert(schema.departures)
+    .values({
+      orgId,
+      timeSlotId: null,
+      locationId,
+      productId,
+      date,
+      startTime: time,
+      capacityOverride: capacity,
+      notes: "Salida extra creada automáticamente (hora fuera de la plantilla)",
+    })
+    .returning({ id: schema.departures.id });
+  return row.id;
 }
 
 /** Crea (si no existe) la salida materializada franja+fecha y devuelve su id. */
