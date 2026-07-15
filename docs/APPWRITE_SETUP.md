@@ -54,9 +54,16 @@ y permiso **Create** para el rol **Users**.
 | `category` | String | 100 | no | — |
 | `paidByName` | String | 255 | sí | — |
 | `shared` | Boolean | — | sí | `true` |
+| `account` | String | 20 | no | `individual` |
 | `hogarId` | String | 50 | sí | — |
 
 Índice: key `hogarId_idx` sobre `hogarId` (ASC).
+
+> `account` (`joint` = cuenta conjunta / `individual` = dinero de cada uno) separa
+> lo pagado con dinero común de lo personal. Si la colección ya existía, añádelo:
+> ```bash
+> curl -sS -X POST "$EP/databases/$DB/collections/expenses/attributes/string" "${H[@]}" -d '{"key":"account","size":20,"required":false,"default":"individual"}'; echo
+> ```
 
 ### Colección `events` (calendario)
 **Collection ID = `events`**, **Document Security: ON**, permiso **Create** para **Users**.

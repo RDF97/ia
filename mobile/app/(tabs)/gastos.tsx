@@ -5,13 +5,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Screen } from "@/components/Screen";
 import { Card, PhaseCard, cardShadow } from "@/components/Card";
 import { Avatar, IconTile, Money, SectionTitle } from "@/components/ui";
+import { Segmented } from "@/components/Segmented";
 import { BudgetModal } from "@/components/gastos/BudgetModal";
 import { useHogar } from "@/lib/hogar";
 import { useAuth } from "@/lib/auth";
 import { appwriteConfigured } from "@/lib/appwrite";
 import { useExpenses } from "@/lib/useExpenses";
 import { useCategories } from "@/lib/useCategories";
-import { addExpense, balances, deleteExpense, monthlyTotal } from "@/lib/expenses";
+import { accountTotals, addExpense, balances, deleteExpense, effectiveAccount, monthlyTotal, type Account } from "@/lib/expenses";
 import {
   budgetStatus,
   budgetTotals,
@@ -51,6 +52,7 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
   const [open, setOpen] = useState(false);
   const [budgetOpen, setBudgetOpen] = useState(false);
   const [budgetOn, setBudgetOn] = useState(false);
+  const [filter, setFilter] = useState<"all" | Account>("all");
 
   useEffect(() => {
     getBudgetEnabled(hogarId).then(setBudgetOn).catch(() => undefined);
@@ -66,6 +68,8 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
   const cats = categories ?? [];
   const total = monthlyTotal(list);
   const bal = balances(list, members);
+  const accTotals = accountTotals(list);
+  const movements = filter === "all" ? list : list.filter((e) => effectiveAccount(e) === filter);
 
   const rows = budgetStatus(cats, list);
   const budgeted = rows.filter((r) => r.hasBudget);
@@ -116,6 +120,20 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
         <Text className="text-[36px] font-bold text-label" style={{ lineHeight: 42, letterSpacing: -1, fontVariant: ["tabular-nums"] }}>
           {eur(total)}
         </Text>
+        {total > 0 && (
+          <View className="flex-row mt-3 pt-3" style={{ gap: 16, borderTopWidth: 0.5, borderTopColor: t.separator }}>
+            <View className="flex-row items-center" style={{ gap: 7 }}>
+              <View style={{ width: 9, height: 9, borderRadius: 3, backgroundColor: t.accent }} />
+              <Text className="text-[13px] text-secondary">Conjunta</Text>
+              <Text className="text-[13px] font-semibold text-label" style={{ fontVariant: ["tabular-nums"] }}>{eur(accTotals.joint)}</Text>
+            </View>
+            <View className="flex-row items-center" style={{ gap: 7 }}>
+              <View style={{ width: 9, height: 9, borderRadius: 3, backgroundColor: t.purple }} />
+              <Text className="text-[13px] text-secondary">Individual</Text>
+              <Text className="text-[13px] font-semibold text-label" style={{ fontVariant: ["tabular-nums"] }}>{eur(accTotals.individual)}</Text>
+            </View>
+          </View>
+        )}
       </Card>
 
       {budgetOn && (
@@ -148,33 +166,51 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
       )}
 
       <SectionTitle>Movimientos recientes</SectionTitle>
+      {list.length > 0 && (
+        <Segmented
+          value={filter}
+          onChange={setFilter}
+          options={[
+            { key: "all", label: "Todo" },
+            { key: "joint", label: "Conjunta" },
+            { key: "individual", label: "Individual" },
+          ]}
+        />
+      )}
       {isLoading ? (
         <ActivityIndicator color={t.accent} style={{ marginTop: 16 }} />
-      ) : list.length === 0 ? (
-        <Text className="text-center text-tertiary mt-6">Sin gastos todavía.</Text>
+      ) : movements.length === 0 ? (
+        <Text className="text-center text-tertiary mt-6">
+          {list.length === 0 ? "Sin gastos todavía." : "Sin movimientos en esta cuenta."}
+        </Text>
       ) : (
         <View className="bg-card rounded-lg2 mx-4 mb-3 overflow-hidden" style={cardShadow(t.dark)}>
-          {list.map((e, i) => (
-            <Pressable
-              key={e.$id}
-              onLongPress={() => remove(e.$id)}
-              className="flex-row items-center px-4 py-3"
-              style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}
-            >
-              <IconTile icon={e.shared ? "people" : "cart"} color={e.shared ? t.teal : t.orange} />
-              <View className="flex-1">
-                <Text className="text-[16px] text-label">{e.concept}</Text>
-                <Text className="text-[13px] text-secondary mt-0.5">
-                  {e.paidByName}
-                  {e.shared ? " · compartido" : ""}
-                  {e.category ? ` · ${e.category}` : ""}
-                </Text>
-              </View>
-              <Money size={15} weight="500" color={t.red}>
-                −{eur(e.amount)}
-              </Money>
-            </Pressable>
-          ))}
+          {movements.map((e, i) => {
+            const joint = effectiveAccount(e) === "joint";
+            const icon = joint ? "wallet" : e.shared ? "people" : "person";
+            const color = joint ? t.accent : e.shared ? t.teal : t.gray;
+            const source = joint ? "conjunta" : e.shared ? "compartido" : "personal";
+            return (
+              <Pressable
+                key={e.$id}
+                onLongPress={() => remove(e.$id)}
+                className="flex-row items-center px-4 py-3"
+                style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}
+              >
+                <IconTile icon={icon} color={color} />
+                <View className="flex-1">
+                  <Text className="text-[16px] text-label">{e.concept}</Text>
+                  <Text className="text-[13px] text-secondary mt-0.5">
+                    {e.paidByName} · {source}
+                    {e.category ? ` · ${e.category}` : ""}
+                  </Text>
+                </View>
+                <Money size={15} weight="500" color={t.red}>
+                  −{eur(e.amount)}
+                </Money>
+              </Pressable>
+            );
+          })}
         </View>
       )}
       <Text className="text-center text-[12px] text-tertiary mb-2">Mantén pulsado un gasto para borrarlo</Text>
@@ -280,6 +316,7 @@ function AddExpense({
   const [amount, setAmount] = useState("");
   const [concept, setConcept] = useState("");
   const [shared, setShared] = useState(true);
+  const [account, setAccount] = useState<Account>("joint");
   const [category, setCategory] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -288,11 +325,19 @@ function AddExpense({
     if (!isFinite(value) || value <= 0 || !concept.trim()) return;
     setBusy(true);
     try {
-      await addExpense(hogarId, { amount: value, concept: concept.trim(), paidByName: userName, shared, category: category ?? undefined });
+      await addExpense(hogarId, {
+        amount: value,
+        concept: concept.trim(),
+        paidByName: userName,
+        account,
+        shared: account === "joint" ? true : shared,
+        category: category ?? undefined,
+      });
       onAdded();
       setAmount("");
       setConcept("");
       setShared(true);
+      setAccount("joint");
       setCategory(null);
       onClose();
     } catch (e) {
@@ -345,10 +390,36 @@ function AddExpense({
           </>
         )}
 
-        <View className="flex-row items-center justify-between bg-card rounded-lg2 px-4 py-3 mb-4">
-          <Text className="text-[15px] text-label">Compartido</Text>
-          <Switch value={shared} onValueChange={setShared} trackColor={{ true: t.accent, false: t.separator }} />
+        <Text className="text-[12px] font-medium uppercase tracking-wide text-secondary mb-2">Cuenta</Text>
+        <View className="flex-row mb-4" style={{ gap: 8 }}>
+          {([
+            { key: "joint", label: "Conjunta", icon: "wallet" },
+            { key: "individual", label: "Individual", icon: "person" },
+          ] as const).map((o) => {
+            const on = account === o.key;
+            return (
+              <Pressable
+                key={o.key}
+                onPress={() => setAccount(o.key)}
+                className="flex-1 flex-row items-center justify-center rounded-lg2 py-3"
+                style={{ gap: 7, backgroundColor: on ? t.accent : t.card, borderWidth: 1, borderColor: on ? t.accent : t.separator }}
+              >
+                <Ionicons name={o.icon} size={16} color={on ? "#fff" : t.labelSecondary} />
+                <Text className="text-[15px] font-medium" style={{ color: on ? "#fff" : t.label }}>{o.label}</Text>
+              </Pressable>
+            );
+          })}
         </View>
+
+        {account === "individual" && (
+          <View className="flex-row items-center justify-between bg-card rounded-lg2 px-4 py-3 mb-4">
+            <View className="flex-1 pr-3">
+              <Text className="text-[15px] text-label">Compartido con el hogar</Text>
+              <Text className="text-[12px] text-secondary mt-0.5">Los demás te devuelven su parte</Text>
+            </View>
+            <Switch value={shared} onValueChange={setShared} trackColor={{ true: t.accent, false: t.separator }} />
+          </View>
+        )}
         <Pressable
           onPress={submit}
           disabled={busy}
