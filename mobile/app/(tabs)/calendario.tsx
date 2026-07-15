@@ -19,7 +19,8 @@ import { useAuth } from "@/lib/auth";
 import { appwriteConfigured } from "@/lib/appwrite";
 import { useEvents } from "@/lib/useEvents";
 import { addEvent, daysWithEvents, deleteEvent, eventsOfDay, hhmm, ymd, type Event } from "@/lib/events";
-import { colors } from "@/theme/tokens";
+import { cardShadow } from "@/components/Card";
+import { useTheme } from "@/theme/theme";
 
 const MONTHS = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -45,6 +46,7 @@ export default function Calendario() {
 }
 
 function CalendarView({ hogarId, userName }: { hogarId: string; userName: string }) {
+  const t = useTheme();
   const qc = useQueryClient();
   const { data: events, isLoading } = useEvents(hogarId);
   const today = new Date();
@@ -96,18 +98,18 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
     <Screen title="Calendario" subtitle={upcomingLabel(list)} onRefresh={refresh}>
       {/* Cabecera de mes */}
       <View className="flex-row items-center justify-between px-5 pb-2">
-        <Text className="text-[22px] font-bold text-black">
+        <Text className="text-[22px] font-bold text-label">
           {MONTHS[view.m]} {view.y}
         </Text>
         <View className="flex-row items-center" style={{ gap: 18 }}>
           <Pressable onPress={() => move(-1)} hitSlop={8}>
-            <Ionicons name="chevron-back" size={22} color={colors.accent} />
+            <Ionicons name="chevron-back" size={22} color={t.accent} />
           </Pressable>
           <Pressable onPress={() => { setView({ y: today.getFullYear(), m: today.getMonth() }); setSelected(new Date()); }} hitSlop={8}>
-            <Ionicons name="ellipse" size={12} color={colors.accent} />
+            <Ionicons name="ellipse" size={12} color={t.accent} />
           </Pressable>
           <Pressable onPress={() => move(1)} hitSlop={8}>
-            <Ionicons name="chevron-forward" size={22} color={colors.accent} />
+            <Ionicons name="chevron-forward" size={22} color={t.accent} />
           </Pressable>
         </View>
       </View>
@@ -115,7 +117,7 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
       {/* Días de la semana */}
       <View className="flex-row px-3">
         {WEEK.map((w) => (
-          <Text key={w} className="text-center text-[11px] font-semibold text-neutral-500" style={{ width: `${100 / 7}%` }}>
+          <Text key={w} className="text-center text-[11px] font-semibold text-secondary" style={{ width: `${100 / 7}%` }}>
             {w}
           </Text>
         ))}
@@ -139,15 +141,15 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
                 style={{
                   width: 34, height: 34, borderRadius: 17,
                   alignItems: "center", justifyContent: "center",
-                  backgroundColor: isToday ? colors.accent : isSel ? colors.separator : "transparent",
+                  backgroundColor: isToday ? t.accent : isSel ? t.fill : "transparent",
                 }}
               >
-                <Text style={{ fontSize: 16, color: isToday ? "#fff" : colors.label, fontWeight: isSel || isToday ? "700" : "400" }}>
+                <Text style={{ fontSize: 16, color: isToday ? "#fff" : t.label, fontWeight: isSel || isToday ? "700" : "400" }}>
                   {d}
                 </Text>
               </View>
               <View style={{ height: 5, justifyContent: "center" }}>
-                {hasEv && <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: isToday ? colors.accent : colors.pink }} />}
+                {hasEv && <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: isToday ? t.accent : t.pink }} />}
               </View>
             </Pressable>
           );
@@ -155,29 +157,29 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
       </View>
 
       {/* Agenda del día seleccionado */}
-      <Text className="px-5 pt-3 pb-2 text-[15px] font-semibold text-black">
+      <Text className="px-5 pt-3 pb-2 text-[15px] font-semibold text-label">
         {selected.getDate()} de {MONTHS[selected.getMonth()].toLowerCase()}
       </Text>
       {isLoading ? (
-        <ActivityIndicator color={colors.accent} style={{ marginTop: 12 }} />
+        <ActivityIndicator color={t.accent} style={{ marginTop: 12 }} />
       ) : dayEvents.length === 0 ? (
-        <Text className="text-center text-neutral-400 mt-4 mb-4">Sin eventos este día.</Text>
+        <Text className="text-center text-tertiary mt-4 mb-4">Sin eventos este día.</Text>
       ) : (
-        <View className="bg-white rounded-lg2 mx-4 mb-3 overflow-hidden">
+        <View className="bg-card rounded-lg2 mx-4 mb-3 overflow-hidden" style={cardShadow(t.dark)}>
           {dayEvents.map((e, i) => (
             <Pressable
               key={e.$id}
               onLongPress={() => remove(e.$id)}
               className="flex-row items-center px-4 py-3"
-              style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: colors.separator }}
+              style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}
             >
-              <Text className="text-[14px] font-semibold text-neutral-500" style={{ width: 48 }}>
+              <Text className="text-[14px] font-semibold text-secondary" style={{ width: 48 }}>
                 {hhmm(e.startAt)}
               </Text>
-              <View style={{ width: 3, height: 34, borderRadius: 2, backgroundColor: colors.accent }} />
+              <View style={{ width: 3, height: 34, borderRadius: 2, backgroundColor: t.accent }} />
               <View className="flex-1">
-                <Text className="text-[15px] font-medium text-black">{e.title}</Text>
-                <Text className="text-[12px] text-neutral-500 mt-0.5">
+                <Text className="text-[15px] font-medium text-label">{e.title}</Text>
+                <Text className="text-[12px] text-secondary mt-0.5">
                   {e.ownerName}{e.place ? ` · ${e.place}` : ""}
                 </Text>
               </View>
@@ -189,7 +191,7 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
       <Pressable
         onPress={() => setAddOpen(true)}
         className="rounded-[14px] mx-4 mt-1 py-3.5 items-center flex-row justify-center"
-        style={{ backgroundColor: colors.accent, gap: 8 }}
+        style={{ backgroundColor: t.accent, gap: 8 }}
       >
         <Ionicons name="add" size={20} color="#fff" />
         <Text className="text-white text-base font-semibold">Añadir evento</Text>
@@ -229,6 +231,7 @@ function AddEvent({
   initialDay: Date;
   onAdded: () => void;
 }) {
+  const t = useTheme();
   const [title, setTitle] = useState("");
   const [place, setPlace] = useState("");
   const [when, setWhen] = useState(() => {
@@ -264,31 +267,31 @@ function AddEvent({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable className="flex-1 bg-black/40" onPress={onClose} />
-      <View className="bg-bg-app rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32 }}>
-        <Text className="text-[17px] font-semibold mb-4">Nuevo evento</Text>
+      <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
+      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32, backgroundColor: t.bg }}>
+        <Text className="text-[17px] font-semibold mb-4 text-label">Nuevo evento</Text>
         <TextInput
-          className="bg-white rounded-lg2 px-4 py-3 mb-3 text-[16px] text-black"
+          className="bg-card rounded-lg2 px-4 py-3 mb-3 text-[16px] text-label"
           placeholder="Título"
-          placeholderTextColor={colors.labelSecondary}
+          placeholderTextColor={t.labelTertiary}
           value={title}
           onChangeText={setTitle}
         />
         <TextInput
-          className="bg-white rounded-lg2 px-4 py-3 mb-3 text-[16px] text-black"
+          className="bg-card rounded-lg2 px-4 py-3 mb-3 text-[16px] text-label"
           placeholder="Lugar (opcional)"
-          placeholderTextColor={colors.labelSecondary}
+          placeholderTextColor={t.labelTertiary}
           value={place}
           onChangeText={setPlace}
         />
         <View className="flex-row mb-4" style={{ gap: 8 }}>
-          <Pressable onPress={() => setPicker("date")} className="flex-1 bg-white rounded-lg2 px-4 py-3 flex-row items-center" style={{ gap: 8 }}>
-            <Ionicons name="calendar-outline" size={18} color={colors.accent} />
-            <Text className="text-[15px] text-black">{dateLabel}</Text>
+          <Pressable onPress={() => setPicker("date")} className="flex-1 bg-card rounded-lg2 px-4 py-3 flex-row items-center" style={{ gap: 8 }}>
+            <Ionicons name="calendar-outline" size={18} color={t.accent} />
+            <Text className="text-[15px] text-label">{dateLabel}</Text>
           </Pressable>
-          <Pressable onPress={() => setPicker("time")} className="flex-1 bg-white rounded-lg2 px-4 py-3 flex-row items-center" style={{ gap: 8 }}>
-            <Ionicons name="time-outline" size={18} color={colors.accent} />
-            <Text className="text-[15px] text-black">{timeLabel}</Text>
+          <Pressable onPress={() => setPicker("time")} className="flex-1 bg-card rounded-lg2 px-4 py-3 flex-row items-center" style={{ gap: 8 }}>
+            <Ionicons name="time-outline" size={18} color={t.accent} />
+            <Text className="text-[15px] text-label">{timeLabel}</Text>
           </Pressable>
         </View>
 
@@ -306,7 +309,7 @@ function AddEvent({
           onPress={submit}
           disabled={busy}
           className="rounded-[14px] py-3.5 items-center"
-          style={{ backgroundColor: colors.accent, opacity: busy ? 0.6 : 1 }}
+          style={{ backgroundColor: t.accent, opacity: busy ? 0.6 : 1 }}
         >
           {busy ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-base font-semibold">Guardar</Text>}
         </Pressable>

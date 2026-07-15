@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "@/theme/tokens";
+import { useTheme } from "@/theme/theme";
 import { Toggle } from "@/components/Toggle";
 import { appliances } from "@/lib/samplePrices";
 import { cheapestOptions, fmtEur, fmtKwh, priciestWindow, rangeLabel } from "@/lib/luz";
@@ -23,6 +23,7 @@ export function Planner({
   tomorrow: number[] | null;
   onClose: () => void;
 }) {
+  const t = useTheme();
   const [selId, setSelId] = useState(initialId);
   const [optIdx, setOptIdx] = useState(0);
   const [notify, setNotify] = useState(true);
@@ -73,23 +74,23 @@ export function Planner({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable className="flex-1 bg-black/40" onPress={onClose} />
-      <View className="bg-bg-app rounded-t-[14px] absolute left-0 right-0 bottom-0" style={{ maxHeight: "85%" }}>
+      <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
+      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0" style={{ maxHeight: "85%", backgroundColor: t.bg }}>
         <View className="items-center pt-2 pb-1">
-          <View style={{ width: 36, height: 5, borderRadius: 999, backgroundColor: "#0000002e" }} />
+          <View style={{ width: 36, height: 5, borderRadius: 999, backgroundColor: t.separator }} />
         </View>
-        <View className="flex-row items-center justify-between px-5 py-3 border-b border-neutral-200">
+        <View className="flex-row items-center justify-between px-5 py-3" style={{ borderBottomWidth: 0.5, borderBottomColor: t.separator }}>
           <Pressable onPress={onClose}>
             <Text className="text-base text-accent">Cancelar</Text>
           </Pressable>
-          <Text className="text-[17px] font-semibold">Programar consumo</Text>
+          <Text className="text-[17px] font-semibold text-label">Programar consumo</Text>
           <Pressable onPress={confirm}>
             <Text className="text-base font-semibold text-accent">Listo</Text>
           </Pressable>
         </View>
 
         <ScrollView contentContainerStyle={{ paddingBottom: 28 }}>
-          <Text className="px-5 pt-3 pb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+          <Text className="px-5 pt-3 pb-2 text-xs font-medium uppercase tracking-wide text-secondary">
             ¿Qué quieres poner?
           </Text>
           <View className="flex-row flex-wrap px-3">
@@ -102,8 +103,8 @@ export function Planner({
                       setSelId(ap.id);
                       setOptIdx(0);
                     }}
-                    className="bg-white rounded-lg2 items-center py-3"
-                    style={{ borderWidth: 1.5, borderColor: on ? colors.accent : "transparent" }}
+                    className="bg-card rounded-lg2 items-center py-3"
+                    style={{ borderWidth: 1.5, borderColor: on ? t.accent : "transparent" }}
                   >
                     <View
                       className="rounded-[9px] items-center justify-center"
@@ -111,17 +112,17 @@ export function Planner({
                     >
                       <Ionicons name={ap.icon as IoniconName} size={20} color="#fff" />
                     </View>
-                    <Text className="text-[13px] mt-2">{ap.name}</Text>
+                    <Text className="text-[13px] mt-2 text-label">{ap.name}</Text>
                   </Pressable>
                 </View>
               );
             })}
           </View>
 
-          <Text className="px-5 pt-4 pb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+          <Text className="px-5 pt-4 pb-2 text-xs font-medium uppercase tracking-wide text-secondary">
             Mejores horas para ponerlo
           </Text>
-          <Text className="px-5 pb-2 text-[13px] text-neutral-500">
+          <Text className="px-5 pb-2 text-[13px] text-secondary">
             {a.name} · {a.dur} h · {a.kwh.toFixed(1).replace(".", ",")} kWh por ciclo
           </Text>
           {opts.map((o, i) => {
@@ -134,22 +135,22 @@ export function Planner({
               <Pressable
                 key={i}
                 onPress={() => setOptIdx(i)}
-                className="flex-row items-center bg-white rounded-[12px] mx-4 mb-2 px-3.5 py-3"
-                style={{ borderWidth: 1.5, borderColor: on ? colors.accent : "transparent" }}
+                className="flex-row items-center bg-card rounded-[12px] mx-4 mb-2 px-3.5 py-3"
+                style={{ borderWidth: 1.5, borderColor: on ? t.accent : "transparent" }}
               >
                 <View
                   className="rounded-pill items-center justify-center mr-3"
-                  style={{ width: 26, height: 26, backgroundColor: on ? colors.accent : "#78788029" }}
+                  style={{ width: 26, height: 26, backgroundColor: on ? t.accent : t.fill }}
                 >
-                  <Text style={{ color: on ? "#fff" : colors.labelSecondary, fontWeight: "700", fontSize: 13 }}>
+                  <Text style={{ color: on ? "#fff" : t.labelSecondary, fontWeight: "700", fontSize: 13 }}>
                     {i + 1}
                   </Text>
                 </View>
                 <View className="flex-1">
-                  <Text className="text-base font-semibold text-black">
+                  <Text className="text-base font-semibold text-label">
                     {o.day} · {rangeLabel(o.start, a.dur)}
                   </Text>
-                  <Text className="text-xs text-neutral-500 mt-0.5">
+                  <Text className="text-xs text-secondary mt-0.5">
                     ~{fmtEur(cost)} · ahorras {fmtEur(save)}
                   </Text>
                 </View>
@@ -158,8 +159,8 @@ export function Planner({
             );
           })}
 
-          <View className="flex-row items-center bg-white rounded-lg2 mx-4 mt-2 px-4 py-3" style={{ gap: 12 }}>
-            <Text className="flex-1 text-[14px]">Avisarme 10 min antes de empezar</Text>
+          <View className="flex-row items-center bg-card rounded-lg2 mx-4 mt-2 px-4 py-3" style={{ gap: 12 }}>
+            <Text className="flex-1 text-[14px] text-label">Avisarme 10 min antes de empezar</Text>
             <Toggle value={notify} onChange={setNotify} />
           </View>
 

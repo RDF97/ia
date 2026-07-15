@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ActivityIndicator, Alert, Modal, Pressable, Text, TextInput, View } from "react-native";
 import { useHogar } from "@/lib/hogar";
-import { colors } from "@/theme/tokens";
+import { useTheme } from "@/theme/theme";
 
 export function InviteModal({
   visible,
@@ -12,6 +12,7 @@ export function InviteModal({
   hogarName: string;
   onClose: () => void;
 }) {
+  const t = useTheme();
   const { invite } = useHogar();
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
@@ -33,16 +34,16 @@ export function InviteModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable className="flex-1 bg-black/40" onPress={onClose} />
-      <View className="bg-bg-app rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32 }}>
-        <Text className="text-[17px] font-semibold mb-1">Invitar al hogar</Text>
-        <Text className="text-[13px] text-neutral-500 mb-4">
+      <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
+      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32, backgroundColor: t.bg }}>
+        <Text className="text-[17px] font-semibold mb-1 text-label">Invitar al hogar</Text>
+        <Text className="text-[13px] text-secondary mb-4">
           Escribe el email de la persona. Recibirá un enlace para unirse a “{hogarName}”.
         </Text>
         <TextInput
-          className="bg-white rounded-lg2 px-4 py-3 mb-3 text-[16px] text-black"
+          className="bg-card rounded-lg2 px-4 py-3 mb-3 text-[16px] text-label"
           placeholder="email@ejemplo.com"
-          placeholderTextColor={colors.labelSecondary}
+          placeholderTextColor={t.labelTertiary}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -52,7 +53,7 @@ export function InviteModal({
           onPress={send}
           disabled={busy || !email.trim()}
           className="rounded-[14px] py-3.5 items-center"
-          style={{ backgroundColor: colors.accent, opacity: busy || !email.trim() ? 0.6 : 1 }}
+          style={{ backgroundColor: t.accent, opacity: busy || !email.trim() ? 0.6 : 1 }}
         >
           {busy ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-base font-semibold">Enviar invitación</Text>}
         </Pressable>

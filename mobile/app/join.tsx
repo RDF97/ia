@@ -4,10 +4,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { teams } from "@/lib/appwrite";
 import { useHogar } from "@/lib/hogar";
-import { colors } from "@/theme/tokens";
+import { useTheme } from "@/theme/theme";
 
 // Pantalla a la que lleva el enlace de invitación (deep link homie://join?...).
 export default function Join() {
+  const t = useTheme();
   const params = useLocalSearchParams<{
     teamId?: string;
     membershipId?: string;
@@ -41,20 +42,20 @@ export default function Join() {
   }, []);
 
   return (
-    <SafeAreaView className="flex-1 bg-bg-app items-center justify-center px-6">
+    <SafeAreaView className="flex-1 bg-bg items-center justify-center px-6">
       {status === "working" && (
         <>
-          <ActivityIndicator color={colors.accent} />
-          <Text className="text-neutral-500 mt-3">Uniéndote al hogar…</Text>
+          <ActivityIndicator color={t.accent} />
+          <Text className="text-secondary mt-3">Uniéndote al hogar…</Text>
         </>
       )}
       {status === "ok" && (
-        <Text className="text-[16px] font-semibold" style={{ color: colors.green }}>
+        <Text className="text-[16px] font-semibold" style={{ color: t.green }}>
           ¡Te has unido al hogar! 🎉
         </Text>
       )}
       {status === "error" && (
-        <Text className="text-[15px] text-center" style={{ color: colors.red }}>
+        <Text className="text-[15px] text-center" style={{ color: t.red }}>
           {msg}
         </Text>
       )}

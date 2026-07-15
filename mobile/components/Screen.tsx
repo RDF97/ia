@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { RefreshControl, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { colors } from "@/theme/tokens";
+import { useTheme } from "@/theme/theme";
 
 export function Screen({
   title,
@@ -16,6 +16,7 @@ export function Screen({
   onRefresh?: () => Promise<unknown>;
   children?: ReactNode;
 }) {
+  const t = useTheme();
   const [refreshing, setRefreshing] = useState(false);
 
   const refresh = async () => {
@@ -29,22 +30,23 @@ export function Screen({
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-bg-app" edges={["top"]}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: t.bg }} edges={["top"]}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 24 }}
+        contentContainerStyle={{ paddingBottom: 96 }}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           onRefresh ? (
-            <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />
+            <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={t.accent} />
           ) : undefined
         }
       >
-        <View className="px-5 pt-2 pb-1 flex-row items-end justify-between">
+        <View className="px-5 pt-2 pb-2 flex-row items-end justify-between">
           <View className="flex-1 pr-3">
-            <Text className="text-[34px] font-bold tracking-tight text-black" style={{ lineHeight: 41 }}>
+            <Text className="text-[34px] font-bold" style={{ lineHeight: 41, letterSpacing: -0.5, color: t.label }}>
               {title}
             </Text>
             {subtitle ? (
-              <Text className="text-[13px] text-neutral-500 mt-1">{subtitle}</Text>
+              <Text className="text-[13px] mt-1" style={{ color: t.labelSecondary }}>{subtitle}</Text>
             ) : null}
           </View>
           {right}
