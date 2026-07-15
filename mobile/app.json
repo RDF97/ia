@@ -7,18 +7,42 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "icon": "./assets/icon.png",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.homie.app"
     },
     "android": {
-      "package": "com.homie.app"
+      "package": "com.homie.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive.png",
+        "backgroundColor": "#1F4D52"
+      }
     },
     "web": {
       "bundler": "metro",
-      "output": "single"
+      "output": "single",
+      "favicon": "./assets/icon.png"
     },
-    "plugins": ["expo-router"],
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/adaptive.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#1F4D52"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/adaptive.png",
+          "color": "#1F4D52"
+        }
+      ]
+    ],
     "experiments": {
       "typedRoutes": true
     },
