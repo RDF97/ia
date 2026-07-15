@@ -139,6 +139,55 @@ curl -sS -X POST "$EP/databases/$DB/collections/price_points/indexes" "${H[@]}" 
  -d '{"key":"productId_idx","type":"key","attributes":["productId"],"orders":["ASC"]}'; echo
 ```
 
+### Colección `categories` (categorías + presupuesto de Gastos)
+**Collection ID = `categories`**, **Document Security: ON**, permiso **Create** para **Users**.
+
+| Atributo | Tipo | Tamaño/Config | Requerido | Defecto |
+|---|---|---|---|---|
+| `hogarId` | String | 50 | sí | — |
+| `name` | String | 100 | sí | — |
+| `color` | String | 20 | sí | — |
+| `icon` | String | 40 | sí | — |
+| `budget` | Double | — | no | `0` |
+
+Índice: key `hogarId_idx` sobre `hogarId` (ASC).
+
+```bash
+curl -sS -X POST "$EP/databases/$DB/collections" "${H[@]}" \
+ -d '{"collectionId":"categories","name":"categories","documentSecurity":true,"permissions":["create(\"users\")"]}'; echo
+sleep 1
+curl -sS -X POST "$EP/databases/$DB/collections/categories/attributes/string" "${H[@]}" -d '{"key":"hogarId","size":50,"required":true}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/categories/attributes/string" "${H[@]}" -d '{"key":"name","size":100,"required":true}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/categories/attributes/string" "${H[@]}" -d '{"key":"color","size":20,"required":true}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/categories/attributes/string" "${H[@]}" -d '{"key":"icon","size":40,"required":true}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/categories/attributes/float"  "${H[@]}" -d '{"key":"budget","required":false,"default":0}'; echo
+sleep 3
+curl -sS -X POST "$EP/databases/$DB/collections/categories/indexes" "${H[@]}" \
+ -d '{"key":"hogarId_idx","type":"key","attributes":["hogarId"],"orders":["ASC"]}'; echo
+```
+
+> El interruptor "presupuesto activo" se guarda en las **preferencias del equipo**
+> (team prefs de Appwrite), así que se comparte entre los miembros del hogar sin
+> necesidad de otra colección.
+
+### Nuevos atributos de `tasks` (fechas, asignación, recurrencia y avisos)
+Añádelos a la colección `tasks` que ya existe. Si `assignedToName` ya estaba
+creado, ese comando dará error de "ya existe": es normal, ignóralo.
+
+| Atributo | Tipo | Tamaño/Config | Requerido | Defecto |
+|---|---|---|---|---|
+| `assignedToName` | String | 255 | no | — |
+| `dueAt` | Datetime | — | no | — |
+| `repeat` | String | 20 | no | `none` |
+| `notify` | Boolean | — | no | `false` |
+
+```bash
+curl -sS -X POST "$EP/databases/$DB/collections/tasks/attributes/string"   "${H[@]}" -d '{"key":"assignedToName","size":255,"required":false}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/tasks/attributes/datetime" "${H[@]}" -d '{"key":"dueAt","required":false}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/tasks/attributes/string"   "${H[@]}" -d '{"key":"repeat","size":20,"required":false,"default":"none"}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/tasks/attributes/boolean"  "${H[@]}" -d '{"key":"notify","required":false,"default":false}'; echo
+```
+
 > **OCR de tickets** (pendiente): requiere un proveedor externo (Mindee / Google
 > Vision) con API key, llamado desde una Appwrite Function para no exponer la
 > clave. Se decidirá proveedor antes de implementarlo; el flujo manual de
