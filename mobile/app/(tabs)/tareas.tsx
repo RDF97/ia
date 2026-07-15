@@ -1,15 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { Screen } from "@/components/Screen";
 import { PhaseCard, cardShadow } from "@/components/Card";
 import { Avatar, CheckCircle, SectionTitle } from "@/components/ui";
+import { TaskEditor } from "@/components/tareas/TaskEditor";
 import { useHogar } from "@/lib/hogar";
 import { useAuth } from "@/lib/auth";
 import { appwriteConfigured } from "@/lib/appwrite";
 import { useTasks } from "@/lib/useTasks";
-import { createTask, deleteTask, setTaskDone, type Task } from "@/lib/tasks";
+import { completeTask, createTask, listMemberNames, setTaskDone, type Task } from "@/lib/tasks";
+import { dueInfo, repeatLabel, sortPending } from "@/lib/taskLogic";
+import { syncTaskReminders } from "@/lib/taskReminders";
 import { useTheme } from "@/theme/theme";
 
 export default function Tareas() {
@@ -38,8 +41,19 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
   const { data: tasks, isLoading, isError } = useTasks(hogarId);
   const [title, setTitle] = useState("");
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<Task | "new" | null>(null);
+  const [members, setMembers] = useState<string[]>([]);
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["tasks", hogarId] });
+
+  useEffect(() => {
+    listMemberNames(hogarId).then(setMembers).catch(() => setMembers([]));
+  }, [hogarId]);
+
+  // Programa/actualiza los recordatorios locales según las tareas.
+  useEffect(() => {
+    if (tasks) syncTaskReminders(tasks, userName).catch(() => undefined);
+  }, [tasks, userName]);
 
   const add = async () => {
     const val = title.trim();
@@ -47,7 +61,7 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
     setAdding(true);
     setTitle("");
     try {
-      await createTask(hogarId, val, userName);
+      await createTask(hogarId, { title: val, createdByName: userName });
       refresh();
     } catch (e) {
       oops(e);
@@ -58,27 +72,33 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
 
   const toggle = async (task: Task) => {
     try {
-      await setTaskDone(task, !task.done);
+      if (task.done) await setTaskDone(task, false);
+      else await completeTask(task);
       refresh();
     } catch (e) {
       oops(e);
     }
   };
 
-  const remove = async (id: string) => {
-    try {
-      await deleteTask(id);
-      refresh();
-    } catch (e) {
-      oops(e);
-    }
-  };
-
-  const pending = (tasks ?? []).filter((x) => !x.done);
-  const done = (tasks ?? []).filter((x) => x.done);
+  const all = tasks ?? [];
+  const pending = sortPending(all.filter((x) => !x.done));
+  const done = all.filter((x) => x.done);
 
   return (
-    <Screen title="Tareas" subtitle={`${pending.length} pendientes`} onRefresh={refresh}>
+    <Screen
+      title="Tareas"
+      subtitle={`${pending.length} pendientes`}
+      onRefresh={refresh}
+      right={
+        <Pressable
+          onPress={() => setEditing("new")}
+          className="rounded-pill items-center justify-center"
+          style={{ width: 36, height: 36, backgroundColor: t.fill, marginBottom: 4 }}
+        >
+          <Ionicons name="add" size={20} color={t.accent} />
+        </Pressable>
+      }
+    >
       {isError && (
         <Text className="text-center text-[13px] mb-2" style={{ color: t.red }}>
           No se pudieron cargar las tareas. Desliza hacia abajo para reintentar.
@@ -91,7 +111,7 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
         <Ionicons name="add" size={22} color={t.accent} />
         <TextInput
           className="flex-1 text-[16px] text-label"
-          placeholder="Añadir tarea…"
+          placeholder="Añadir tarea rápida…"
           placeholderTextColor={t.labelTertiary}
           value={title}
           onChangeText={setTitle}
@@ -105,13 +125,25 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
         <ActivityIndicator color={t.accent} style={{ marginTop: 24 }} />
       ) : (
         <>
-          <Section title="Pendientes" tasks={pending} onToggle={toggle} onDelete={remove} />
-          {done.length > 0 && <Section title="Completadas" tasks={done} onToggle={toggle} onDelete={remove} />}
+          <Section title="Pendientes" tasks={pending} onToggle={toggle} onEdit={setEditing} />
+          {done.length > 0 && <Section title="Completadas" tasks={done} onToggle={toggle} onEdit={setEditing} />}
           {pending.length === 0 && done.length === 0 && (
             <Text className="text-center text-tertiary mt-8">No hay tareas todavía. ¡Añade la primera!</Text>
           )}
         </>
       )}
+
+      <TaskEditor
+        target={editing}
+        hogarId={hogarId}
+        userName={userName}
+        members={members}
+        onClose={() => setEditing(null)}
+        onSaved={() => {
+          setEditing(null);
+          refresh();
+        }}
+      />
     </Screen>
   );
 }
@@ -120,12 +152,12 @@ function Section({
   title,
   tasks,
   onToggle,
-  onDelete,
+  onEdit,
 }: {
   title: string;
   tasks: Task[];
   onToggle: (t: Task) => void;
-  onDelete: (id: string) => void;
+  onEdit: (t: Task) => void;
 }) {
   const t = useTheme();
   if (tasks.length === 0) return null;
@@ -140,7 +172,7 @@ function Section({
             style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}
           >
             <CheckCircle done={task.done} onPress={() => onToggle(task)} />
-            <View className="flex-1">
+            <Pressable className="flex-1" onPress={() => onEdit(task)}>
               <Text
                 className="text-[15px]"
                 style={{
@@ -150,17 +182,46 @@ function Section({
               >
                 {task.title}
               </Text>
-              <View className="flex-row items-center mt-1" style={{ gap: 6 }}>
-                <Avatar name={task.createdByName} size={18} />
-                <Text className="text-[12px] text-secondary">{task.createdByName}</Text>
-              </View>
-            </View>
-            <Pressable onPress={() => onDelete(task.$id)} hitSlop={8}>
-              <Ionicons name="trash-outline" size={17} color={t.labelTertiary} />
+              <TaskMeta task={task} />
             </Pressable>
+            <Ionicons name="chevron-forward" size={16} color={t.tabInactive} />
           </View>
         ))}
       </View>
     </>
+  );
+}
+
+function TaskMeta({ task }: { task: Task }) {
+  const t = useTheme();
+  const repeat = task.repeat ?? "none";
+  const hasMeta = task.dueAt || task.assignedToName || repeat !== "none" || task.notify;
+  if (!hasMeta) return null;
+
+  const due = task.dueAt ? dueInfo(task.dueAt) : null;
+  const overdue = !!due?.overdue && !task.done;
+
+  return (
+    <View className="flex-row items-center flex-wrap mt-1.5" style={{ gap: 8 }}>
+      {due && (
+        <View className="flex-row items-center rounded-pill px-2 py-0.5" style={{ gap: 4, backgroundColor: overdue ? t.red + "22" : t.fill }}>
+          <Ionicons name="calendar-outline" size={11} color={overdue ? t.red : t.labelSecondary} />
+          <Text className="text-[11px] font-medium" style={{ color: overdue ? t.red : t.labelSecondary }}>{due.label}</Text>
+        </View>
+      )}
+      {repeat !== "none" && (
+        <View className="flex-row items-center" style={{ gap: 3 }}>
+          <Ionicons name="repeat" size={12} color={t.labelSecondary} />
+          <Text className="text-[11px] text-secondary">{repeatLabel(repeat)}</Text>
+        </View>
+      )}
+      {task.notify && <Ionicons name="notifications" size={11} color={t.labelSecondary} />}
+      {task.assignedToName && (
+        <View className="flex-row items-center" style={{ gap: 4 }}>
+          <Avatar name={task.assignedToName} size={16} />
+          <Text className="text-[11px] text-secondary">{task.assignedToName}</Text>
+        </View>
+      )}
+    </View>
   );
 }
