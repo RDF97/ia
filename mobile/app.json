@@ -55,7 +55,8 @@
       "appwriteExpensesCollectionId": "expenses",
       "appwriteEventsCollectionId": "events",
       "appwriteProductsCollectionId": "products",
-      "appwritePricesCollectionId": "price_points"
+      "appwritePricesCollectionId": "price_points",
+      "appwriteCategoriesCollectionId": "categories"
     }
   }
 }

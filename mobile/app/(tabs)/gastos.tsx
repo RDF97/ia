@@ -1,18 +1,30 @@
-import { useState } from "react";
-import { ActivityIndicator, Alert, Modal, Pressable, Switch, Text, TextInput, View } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { Screen } from "@/components/Screen";
 import { Card, PhaseCard, cardShadow } from "@/components/Card";
 import { Avatar, IconTile, Money, SectionTitle } from "@/components/ui";
+import { BudgetModal } from "@/components/gastos/BudgetModal";
 import { useHogar } from "@/lib/hogar";
 import { useAuth } from "@/lib/auth";
 import { appwriteConfigured } from "@/lib/appwrite";
 import { useExpenses } from "@/lib/useExpenses";
+import { useCategories } from "@/lib/useCategories";
 import { addExpense, balances, deleteExpense, monthlyTotal } from "@/lib/expenses";
+import {
+  budgetStatus,
+  budgetTotals,
+  getBudgetEnabled,
+  setBudgetEnabled,
+  type Category,
+  type CategorySpend,
+} from "@/lib/categories";
 import { useTheme } from "@/theme/theme";
 
+type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 const eur = (v: number) => `${v.toFixed(2).replace(".", ",")} €`;
+const MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
 export default function Gastos() {
   const { active } = useHogar();
@@ -35,12 +47,30 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
   const t = useTheme();
   const qc = useQueryClient();
   const { data: expenses, isLoading, isError } = useExpenses(hogarId);
+  const { data: categories } = useCategories(hogarId);
   const [open, setOpen] = useState(false);
+  const [budgetOpen, setBudgetOpen] = useState(false);
+  const [budgetOn, setBudgetOn] = useState(false);
+
+  useEffect(() => {
+    getBudgetEnabled(hogarId).then(setBudgetOn).catch(() => undefined);
+  }, [hogarId]);
+
+  const toggleBudget = (on: boolean) => {
+    setBudgetOn(on);
+    setBudgetEnabled(hogarId, on).catch(() => setBudgetOn(!on));
+  };
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["expenses", hogarId] });
   const list = expenses ?? [];
+  const cats = categories ?? [];
   const total = monthlyTotal(list);
   const bal = balances(list, members);
+
+  const rows = budgetStatus(cats, list);
+  const budgeted = rows.filter((r) => r.hasBudget);
+  const totals = budgetTotals(rows);
+  const monthLabel = MONTHS[new Date().getMonth()];
 
   const remove = (id: string) =>
     Alert.alert("Borrar gasto", "¿Seguro?", [
@@ -60,7 +90,20 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
     ]);
 
   return (
-    <Screen title="Gastos" subtitle="Este mes" onRefresh={refresh}>
+    <Screen
+      title="Gastos"
+      subtitle="Este mes"
+      onRefresh={refresh}
+      right={
+        <Pressable
+          onPress={() => setBudgetOpen(true)}
+          className="rounded-pill items-center justify-center"
+          style={{ width: 36, height: 36, backgroundColor: t.fill, marginBottom: 4 }}
+        >
+          <Ionicons name="pie-chart-outline" size={17} color={t.accent} />
+        </Pressable>
+      }
+    >
       {isError && (
         <Text className="text-center text-[13px] mb-2" style={{ color: t.red }}>
           No se pudieron cargar los gastos. Desliza hacia abajo para reintentar.
@@ -74,6 +117,16 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
           {eur(total)}
         </Text>
       </Card>
+
+      {budgetOn && (
+        <BudgetSection
+          rows={budgeted}
+          totals={totals}
+          monthLabel={monthLabel}
+          hasCategories={cats.length > 0}
+          onManage={() => setBudgetOpen(true)}
+        />
+      )}
 
       {bal.length > 0 && (
         <>
@@ -135,8 +188,76 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
         <Text className="text-white text-base font-semibold">Añadir gasto</Text>
       </Pressable>
 
-      <AddExpense visible={open} onClose={() => setOpen(false)} hogarId={hogarId} userName={userName} onAdded={refresh} />
+      <AddExpense visible={open} onClose={() => setOpen(false)} hogarId={hogarId} userName={userName} categories={cats} onAdded={refresh} />
+      <BudgetModal visible={budgetOpen} hogarId={hogarId} enabled={budgetOn} onToggle={toggleBudget} onClose={() => setBudgetOpen(false)} />
     </Screen>
+  );
+}
+
+function BudgetSection({
+  rows,
+  totals,
+  monthLabel,
+  hasCategories,
+  onManage,
+}: {
+  rows: CategorySpend[];
+  totals: { budget: number; spent: number };
+  monthLabel: string;
+  hasCategories: boolean;
+  onManage: () => void;
+}) {
+  const t = useTheme();
+  const stateColor = (s: CategorySpend["state"]) => (s === "over" ? t.red : s === "warn" ? t.orange : t.accent);
+
+  if (rows.length === 0) {
+    return (
+      <>
+        <SectionTitle>Presupuesto · {monthLabel}</SectionTitle>
+        <Pressable onPress={onManage} className="bg-card rounded-lg2 mx-4 mb-3 px-4 py-3 flex-row items-center" style={{ gap: 12, ...cardShadow(t.dark) }}>
+          <View className="rounded-lg items-center justify-center" style={{ width: 30, height: 30, backgroundColor: t.accent }}>
+            <Ionicons name="pie-chart" size={16} color="#fff" />
+          </View>
+          <Text className="flex-1 text-[14px] text-secondary">
+            {hasCategories ? "Ponle un límite mensual a tus categorías" : "Crea categorías para empezar a presupuestar"}
+          </Text>
+          <Ionicons name="chevron-forward" size={16} color={t.tabInactive} />
+        </Pressable>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <View className="flex-row items-baseline justify-between px-5 pt-3 pb-2">
+        <Text className="text-[13px] font-medium uppercase tracking-wide text-secondary">Presupuesto · {monthLabel}</Text>
+        <Text className="text-[13px] font-semibold" style={{ color: totals.spent > totals.budget ? t.red : t.labelSecondary, fontVariant: ["tabular-nums"] }}>
+          {eur(totals.spent)} / {eur(totals.budget)}
+        </Text>
+      </View>
+      <View className="bg-card rounded-lg2 mx-4 mb-3 overflow-hidden" style={cardShadow(t.dark)}>
+        {rows.map((r, i) => {
+          const col = stateColor(r.state);
+          const w = `${Math.min(100, Math.round(r.pct * 100))}%` as const;
+          return (
+            <View key={r.$id} className="px-4 py-3" style={{ borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}>
+              <View className="flex-row items-center mb-2" style={{ gap: 10 }}>
+                <View className="rounded-lg items-center justify-center" style={{ width: 26, height: 26, backgroundColor: r.color }}>
+                  <Ionicons name={r.icon as IoniconName} size={14} color="#fff" />
+                </View>
+                <Text className="flex-1 text-[15px] text-label">{r.name}</Text>
+                <Text className="text-[13px] font-semibold" style={{ color: col, fontVariant: ["tabular-nums"] }}>
+                  {eur(r.spent)} <Text className="text-secondary font-normal">/ {eur(r.budget)}</Text>
+                </Text>
+              </View>
+              <View style={{ height: 7, borderRadius: 4, backgroundColor: t.fill, overflow: "hidden" }}>
+                <View style={{ width: w, height: "100%", borderRadius: 4, backgroundColor: col }} />
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    </>
   );
 }
 
@@ -145,18 +266,21 @@ function AddExpense({
   onClose,
   hogarId,
   userName,
+  categories,
   onAdded,
 }: {
   visible: boolean;
   onClose: () => void;
   hogarId: string;
   userName: string;
+  categories: Category[];
   onAdded: () => void;
 }) {
   const t = useTheme();
   const [amount, setAmount] = useState("");
   const [concept, setConcept] = useState("");
   const [shared, setShared] = useState(true);
+  const [category, setCategory] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
@@ -164,11 +288,12 @@ function AddExpense({
     if (!isFinite(value) || value <= 0 || !concept.trim()) return;
     setBusy(true);
     try {
-      await addExpense(hogarId, { amount: value, concept: concept.trim(), paidByName: userName, shared });
+      await addExpense(hogarId, { amount: value, concept: concept.trim(), paidByName: userName, shared, category: category ?? undefined });
       onAdded();
       setAmount("");
       setConcept("");
       setShared(true);
+      setCategory(null);
       onClose();
     } catch (e) {
       Alert.alert("No se pudo guardar", e instanceof Error ? e.message : "Inténtalo de nuevo.");
@@ -197,6 +322,29 @@ function AddExpense({
           value={concept}
           onChangeText={setConcept}
         />
+
+        {categories.length > 0 && (
+          <>
+            <Text className="text-[12px] font-medium uppercase tracking-wide text-secondary mb-2">Categoría</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4" contentContainerStyle={{ gap: 8, paddingRight: 8 }}>
+              {categories.map((c) => {
+                const on = category === c.name;
+                return (
+                  <Pressable
+                    key={c.$id}
+                    onPress={() => setCategory(on ? null : c.name)}
+                    className="flex-row items-center rounded-pill px-3 py-2"
+                    style={{ gap: 6, backgroundColor: on ? c.color : t.fill }}
+                  >
+                    <Ionicons name={c.icon as IoniconName} size={14} color={on ? "#fff" : c.color} />
+                    <Text className="text-[13px] font-medium" style={{ color: on ? "#fff" : t.label }}>{c.name}</Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </>
+        )}
+
         <View className="flex-row items-center justify-between bg-card rounded-lg2 px-4 py-3 mb-4">
           <Text className="text-[15px] text-label">Compartido</Text>
           <Switch value={shared} onValueChange={setShared} trackColor={{ true: t.accent, false: t.separator }} />
