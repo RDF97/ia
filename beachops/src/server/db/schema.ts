@@ -51,11 +51,17 @@ export const memberships = pgTable(
 export const emailAccounts = pgTable("email_accounts", {
   id: uuid("id").primaryKey().defaultRandom(),
   orgId: uuid("org_id").notNull().references(() => orgs.id),
-  provider: text("provider", { enum: ["gmail"] }).notNull().default("gmail"),
+  provider: text("provider", { enum: ["gmail", "imap"] }).notNull().default("gmail"),
   emailAddress: text("email_address").notNull(),
-  // refresh token cifrado con AES-256-GCM (clave en TOKEN_ENCRYPTION_KEY)
+  // Gmail: refresh token cifrado con AES-256-GCM (clave en TOKEN_ENCRYPTION_KEY)
   refreshTokenEnc: text("refresh_token_enc"),
   lastHistoryId: text("last_history_id"),
+  // IMAP (p. ej. Dynu): credenciales y cursor incremental por UID
+  imapHost: text("imap_host"),
+  imapPort: integer("imap_port"),
+  imapPasswordEnc: text("imap_password_enc"),
+  lastUid: integer("last_uid"),
+  uidValidity: text("uid_validity"),
   syncStatus: text("sync_status", { enum: ["active", "error", "revoked"] })
     .notNull()
     .default("active"),

@@ -233,6 +233,53 @@ export async function syncNow() {
   revalidatePath("/");
 }
 
+/** Conecta un buzón IMAP (p. ej. Dynu): valida la conexión antes de guardar. */
+export async function connectImapAccount(
+  _prev: { error?: string; ok?: boolean },
+  formData: FormData,
+): Promise<{ error?: string; ok?: boolean }> {
+  const session = await requireSession();
+  const emailAddress = String(formData.get("email") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  const host = String(formData.get("host") ?? "").trim();
+  const port = Number(formData.get("port") ?? 993);
+  if (!emailAddress || !password || !host) return { error: "Faltan datos" };
+
+  const { testImapConnection } = await import("./imap/sync");
+  try {
+    await testImapConnection(host, port, emailAddress, password);
+  } catch (err) {
+    return { error: `No se pudo conectar: ${err instanceof Error ? err.message : String(err)}` };
+  }
+
+  const { encryptSecret } = await import("./crypto");
+  const db = await getDb();
+  const existing = await db
+    .select()
+    .from(schema.emailAccounts)
+    .where(eq(schema.emailAccounts.orgId, session.orgId));
+  const match = existing.find((a) => a.emailAddress === emailAddress);
+  const values = {
+    provider: "imap" as const,
+    imapHost: host,
+    imapPort: port,
+    imapPasswordEnc: encryptSecret(password),
+    syncStatus: "active" as const,
+    lastError: null,
+    // re-anclar: backfill de 30 días en el próximo ciclo
+    lastUid: null,
+    uidValidity: null,
+  };
+  if (match) {
+    await db.update(schema.emailAccounts).set(values).where(eq(schema.emailAccounts.id, match.id));
+  } else {
+    await db.insert(schema.emailAccounts).values({ orgId: session.orgId, emailAddress, ...values });
+  }
+  await syncAllAccounts();
+  revalidatePath("/config");
+  return { ok: true };
+}
+
 // ── Config: playas, productos y salidas ────────────────────────────────
 
 export async function createLocation(formData: FormData) {

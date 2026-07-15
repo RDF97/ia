@@ -169,7 +169,12 @@ export async function syncAllAccounts(): Promise<void> {
     .where(eq(schema.emailAccounts.syncStatus, "active"));
   for (const account of accounts) {
     try {
-      await syncAccount(account);
+      if (account.provider === "imap") {
+        const { syncImapAccount } = await import("../imap/sync");
+        await syncImapAccount(account);
+      } else {
+        await syncAccount(account);
+      }
     } catch (err) {
       await db
         .update(schema.emailAccounts)

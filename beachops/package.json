@@ -18,8 +18,10 @@
     "cheerio": "^1.2.0",
     "drizzle-orm": "^0.45.2",
     "googleapis": "^173.0.0",
+    "imapflow": "^1.4.7",
     "jose": "^6.2.3",
     "libphonenumber-js": "^1.13.8",
+    "mailparser": "^3.9.14",
     "next": "15.5.20",
     "pg": "^8.22.0",
     "react": "19.1.0",
@@ -30,6 +32,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/mailparser": "^3.4.6",
     "@types/node": "^20",
     "@types/pg": "^8.20.0",
     "@types/react": "^19",

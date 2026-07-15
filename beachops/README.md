@@ -12,8 +12,11 @@ migraciones.
 
 ## Qué hace
 
-- **Conexión Gmail (OAuth, solo lectura)**: backfill del último mes al conectar
-  y sincronización incremental cada 60 s (`history.list`).
+- **Conexión del buzón**: Gmail (OAuth, solo lectura) **o cualquier buzón IMAP**
+  (Dynu, IONOS…, contraseña cifrada AES-256-GCM). En ambos casos: backfill del
+  último mes al conectar y sincronización incremental cada 60 s (Gmail via
+  `history.list`; IMAP por cursor de UID con idempotencia por Message-ID, y
+  re-anclaje automático si el servidor renumera el buzón).
 - **Parsers por plataforma** (`src/server/parsers/`): GetYourGuide y
   Bókun/Viator. Detectan altas, cancelaciones y modificaciones; extraen
   referencia, fecha/hora local, pax adultos/niños, cliente, teléfono (y país

@@ -17,6 +17,7 @@ import {
 import { orgCoords } from "@/server/weather";
 import { requireSession } from "@/server/auth";
 import { getDb, schema } from "@/server/db";
+import { ImapForm } from "./imap-form";
 import { NotificationSettings } from "./notifications";
 
 export const dynamic = "force-dynamic";
@@ -72,6 +73,7 @@ export default async function ConfigPage({
               <li key={a.id} className="flex items-center gap-2">
                 <span className={a.syncStatus === "active" ? "text-emerald-600" : "text-red-600"}>●</span>
                 {a.emailAddress}
+                <span className="text-xs px-1.5 rounded-full bg-slate-100 text-slate-500 uppercase">{a.provider}</span>
                 <span className="text-xs text-slate-400">
                   {a.lastSyncedAt
                     ? `sincronizado ${new Date(a.lastSyncedAt).toLocaleTimeString("es-ES")}`
@@ -89,7 +91,7 @@ export default async function ConfigPage({
             href="/api/gmail/connect"
             className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700"
           >
-            {accounts.length === 0 ? "Conectar Gmail" : "Reconectar Gmail"}
+            {accounts.some((a) => a.provider === "gmail") ? "Reconectar Gmail" : "Conectar Gmail"}
           </a>
           {accounts.length > 0 && (
             <form action={syncNow}>
@@ -99,6 +101,7 @@ export default async function ConfigPage({
             </form>
           )}
         </div>
+        <ImapForm />
       </section>
 
       {/* Notificaciones */}
