@@ -7,6 +7,8 @@ import { useTheme } from "@/theme/theme";
 import { Toggle } from "@/components/Toggle";
 import {
   guessMapping,
+  latin1FromBase64,
+  looksMojibake,
   parseBankRows,
   parseCsv,
   type BankMovement,
@@ -23,6 +25,16 @@ const shortDate = (iso: string) => {
 };
 
 type Step = "pick" | "map" | "review";
+
+/** Lee el CSV como UTF-8 y, si detecta bytes inválidos, reintenta como latin-1. */
+async function readCsvText(asset: DocumentPicker.DocumentPickerAsset): Promise<string> {
+  const webFile = (asset as unknown as { file?: { text?: () => Promise<string> } }).file;
+  if (webFile?.text) return webFile.text();
+  const f = new File(asset.uri);
+  const utf8 = await f.text();
+  if (!looksMojibake(utf8)) return utf8;
+  return latin1FromBase64(await f.base64());
+}
 
 export function CsvModal({
   visible,
@@ -69,8 +81,7 @@ export function CsvModal({
       });
       if (res.canceled) return;
       const asset = res.assets[0];
-      const webFile = (asset as unknown as { file?: { text?: () => Promise<string> } }).file;
-      const text = webFile?.text ? await webFile.text() : await new File(asset.uri).text();
+      const text = await readCsvText(asset);
       const parsed = parseCsv(text);
       if (parsed.length === 0) {
         Alert.alert("Archivo vacío", "No se han encontrado filas en el CSV.");
@@ -126,6 +137,7 @@ export function CsvModal({
           paidByName: userName,
           account,
           shared: account === "joint",
+          spentAt: m.date,
         });
       }
       onImported();

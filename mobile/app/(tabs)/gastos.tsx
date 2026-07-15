@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Modal, Platform, Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { useQueryClient } from "@tanstack/react-query";
 import { Screen } from "@/components/Screen";
 import { Card, PhaseCard, cardShadow } from "@/components/Card";
@@ -326,7 +327,14 @@ function AddExpense({
   const [shared, setShared] = useState(true);
   const [account, setAccount] = useState<Account>("joint");
   const [category, setCategory] = useState<string | null>(null);
+  const [date, setDate] = useState(new Date());
+  const [showDate, setShowDate] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  const onPickDate = (_e: DateTimePickerEvent, d?: Date) => {
+    setShowDate(false);
+    if (d) setDate(d);
+  };
 
   const submit = async () => {
     const value = parseFloat(amount.replace(",", "."));
@@ -340,6 +348,7 @@ function AddExpense({
         account,
         shared: account === "joint" ? true : shared,
         category: category ?? undefined,
+        spentAt: date.toISOString(),
       });
       onAdded();
       setAmount("");
@@ -347,6 +356,7 @@ function AddExpense({
       setShared(true);
       setAccount("joint");
       setCategory(null);
+      setDate(new Date());
       onClose();
     } catch (e) {
       Alert.alert("No se pudo guardar", e instanceof Error ? e.message : "Inténtalo de nuevo.");
@@ -375,6 +385,17 @@ function AddExpense({
           value={concept}
           onChangeText={setConcept}
         />
+
+        <Pressable onPress={() => setShowDate(true)} className="bg-card rounded-lg2 px-4 py-3 mb-3 flex-row items-center" style={{ gap: 10 }}>
+          <Ionicons name="calendar-outline" size={18} color={t.accent} />
+          <Text className="flex-1 text-[16px] text-label">Fecha</Text>
+          <Text className="text-[15px] text-secondary">
+            {`${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`}
+          </Text>
+        </Pressable>
+        {showDate && (
+          <DateTimePicker value={date} mode="date" onChange={onPickDate} display={Platform.OS === "ios" ? "spinner" : "default"} />
+        )}
 
         {categories.length > 0 && (
           <>

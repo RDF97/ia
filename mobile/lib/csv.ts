@@ -1,6 +1,30 @@
 // Parseo tolerante de CSV de banco: detecta separador, comillas, decimales con
 // coma o punto y varios formatos de fecha. Todo puro y testeable.
 
+// Un texto leído como UTF-8 con bytes inválidos contiene el carácter de
+// reemplazo U+FFFD: señal de que el archivo venía en otra codificación (latin-1).
+export function looksMojibake(text: string): boolean {
+  return text.includes("�");
+}
+
+const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+/** Decodifica base64 interpretando cada byte como ISO-8859-1 (latin-1). */
+export function latin1FromBase64(b64: string): string {
+  const s = b64.replace(/[^A-Za-z0-9+/]/g, "");
+  let out = "";
+  for (let i = 0; i < s.length; i += 4) {
+    const e1 = B64.indexOf(s[i]);
+    const e2 = B64.indexOf(s[i + 1]);
+    const e3 = B64.indexOf(s[i + 2]);
+    const e4 = B64.indexOf(s[i + 3]);
+    out += String.fromCharCode((e1 << 2) | (e2 >> 4));
+    if (e3 !== -1) out += String.fromCharCode(((e2 & 15) << 4) | (e3 >> 2));
+    if (e4 !== -1) out += String.fromCharCode(((e3 & 3) << 6) | e4);
+  }
+  return out;
+}
+
 export function detectDelimiter(line: string): string {
   const counts = [";", ",", "\t"].map((d) => [d, line.split(d).length - 1] as const);
   counts.sort((a, b) => b[1] - a[1]);

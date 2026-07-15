@@ -139,7 +139,7 @@ function sameMonth(iso: string, now: Date): boolean {
   return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
 }
 
-type ExpenseLike = Pick<Expense, "amount" | "category" | "$createdAt">;
+type ExpenseLike = Pick<Expense, "amount" | "category" | "spentAt" | "$createdAt">;
 
 /** Gasto del mes por categoría, con estado según el % consumido del límite. */
 export function budgetStatus(
@@ -147,7 +147,7 @@ export function budgetStatus(
   expenses: ExpenseLike[],
   now: Date = new Date(),
 ): CategorySpend[] {
-  const monthly = expenses.filter((e) => sameMonth(e.$createdAt, now));
+  const monthly = expenses.filter((e) => sameMonth(e.spentAt ?? e.$createdAt, now));
   const spentByName = new Map<string, number>();
   for (const e of monthly) {
     const key = normalizeName(e.category ?? "").toLowerCase();

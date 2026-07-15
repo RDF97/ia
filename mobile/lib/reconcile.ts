@@ -5,9 +5,10 @@ export interface ReconMovement extends BankMovement {
   income: boolean; // true si es un abono (importe positivo): no se concilia como gasto
 }
 
-type ExpenseRef = { $id: string; amount: number; $createdAt: string };
+type ExpenseRef = { $id: string; amount: number; spentAt?: string | null; $createdAt: string };
 
 const DAY = 86400000;
+const refDate = (e: ExpenseRef): string => e.spentAt ?? e.$createdAt;
 
 /**
  * Casa cada movimiento (cargo) del banco con un gasto ya registrado por importe
@@ -28,7 +29,7 @@ export function reconcile(
     for (const e of expenses) {
       if (used.has(e.$id)) continue;
       if (Math.abs(e.amount - target) > 0.005) continue;
-      const diff = Math.abs(new Date(e.$createdAt).getTime() - mvTime);
+      const diff = Math.abs(new Date(refDate(e)).getTime() - mvTime);
       if (diff <= toleranceDays * DAY && (best === null || diff < best.diff)) best = { id: e.$id, diff };
     }
     if (best) {

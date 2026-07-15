@@ -55,14 +55,18 @@ y permiso **Create** para el rol **Users**.
 | `paidByName` | String | 255 | sí | — |
 | `shared` | Boolean | — | sí | `true` |
 | `account` | String | 20 | no | `individual` |
+| `spentAt` | Datetime | — | no | — |
 | `hogarId` | String | 50 | sí | — |
 
 Índice: key `hogarId_idx` sobre `hogarId` (ASC).
 
 > `account` (`joint` = cuenta conjunta / `individual` = dinero de cada uno) separa
-> lo pagado con dinero común de lo personal. Si la colección ya existía, añádelo:
+> lo pagado con dinero común de lo personal. `spentAt` es la fecha real del gasto
+> (la elegida al añadirlo, o la del movimiento importado del CSV); si falta, se usa
+> la de creación. Si la colección ya existía, añádelos:
 > ```bash
-> curl -sS -X POST "$EP/databases/$DB/collections/expenses/attributes/string" "${H[@]}" -d '{"key":"account","size":20,"required":false,"default":"individual"}'; echo
+> curl -sS -X POST "$EP/databases/$DB/collections/expenses/attributes/string"   "${H[@]}" -d '{"key":"account","size":20,"required":false,"default":"individual"}'; echo
+> curl -sS -X POST "$EP/databases/$DB/collections/expenses/attributes/datetime" "${H[@]}" -d '{"key":"spentAt","required":false}'; echo
 > ```
 
 ### Colección `events` (calendario)

@@ -11,11 +11,16 @@ export interface Expense extends Models.Document {
   paidByName: string;
   shared: boolean;
   account?: Account | null; // "joint" = cuenta conjunta; ausente = individual (compat)
+  spentAt?: string | null; // fecha real del gasto (ISO); ausente → se usa $createdAt
   hogarId: string;
 }
 
 // Gastos antiguos sin cuenta se tratan como individuales (comportamiento previo).
 export const effectiveAccount = (e: Pick<Expense, "account">): Account => e.account ?? "individual";
+
+// Fecha efectiva del gasto: la real si existe, si no la de creación (compat).
+export const expenseDate = (e: { spentAt?: string | null; $createdAt: string }): string =>
+  e.spentAt ?? e.$createdAt;
 
 export async function listExpenses(hogarId: string): Promise<Expense[]> {
   const res = await databases.listDocuments<Expense>(DB_ID, EXPENSES_COL, [
@@ -28,7 +33,7 @@ export async function listExpenses(hogarId: string): Promise<Expense[]> {
 
 export async function addExpense(
   hogarId: string,
-  data: { amount: number; concept: string; paidByName: string; shared: boolean; category?: string; account?: Account },
+  data: { amount: number; concept: string; paidByName: string; shared: boolean; category?: string; account?: Account; spentAt?: string },
 ): Promise<Expense> {
   return databases.createDocument<Expense>(
     DB_ID,
@@ -41,6 +46,7 @@ export async function addExpense(
       paidByName: data.paidByName,
       shared: data.shared,
       account: data.account ?? "individual",
+      spentAt: data.spentAt ?? new Date().toISOString(),
       hogarId,
     },
     [
@@ -71,18 +77,18 @@ export function isThisMonth(iso: string): boolean {
 }
 
 export function monthlyTotal(expenses: Expense[]): number {
-  return expenses.filter((e) => isThisMonth(e.$createdAt)).reduce((s, e) => s + e.amount, 0);
+  return expenses.filter((e) => isThisMonth(expenseDate(e))).reduce((s, e) => s + e.amount, 0);
 }
 
 /** Reparto del gasto del mes entre cuenta conjunta e individual. */
 export function accountTotals(
-  expenses: Pick<Expense, "amount" | "account" | "$createdAt">[],
+  expenses: Pick<Expense, "amount" | "account" | "spentAt" | "$createdAt">[],
   now: Date = new Date(),
 ): { joint: number; individual: number } {
   let joint = 0;
   let individual = 0;
   for (const e of expenses) {
-    const d = new Date(e.$createdAt);
+    const d = new Date(expenseDate(e));
     if (d.getFullYear() !== now.getFullYear() || d.getMonth() !== now.getMonth()) continue;
     if (effectiveAccount(e) === "joint") joint += e.amount;
     else individual += e.amount;

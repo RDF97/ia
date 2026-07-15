@@ -1,5 +1,17 @@
-import { detectDelimiter, guessMapping, parseAmount, parseBankRows, parseCsv, parseDate } from "./csv";
+import { detectDelimiter, guessMapping, latin1FromBase64, looksMojibake, parseAmount, parseBankRows, parseCsv, parseDate } from "./csv";
 import { reconcile, reconSummary } from "./reconcile";
+
+describe("codificación latin-1", () => {
+  it("detecta mojibake (U+FFFD)", () => {
+    expect(looksMojibake("N�mina")).toBe(true);
+    expect(looksMojibake("Nómina")).toBe(false);
+  });
+  it("decodifica base64 latin-1 con acentos", () => {
+    // bytes ISO-8859-1 de "Nómina" → N(0x4e) ó(0xf3) m(0x6d) i(0x69) n(0x6e) a(0x61)
+    const b64 = "TvNtaW5h";
+    expect(latin1FromBase64(b64)).toBe("Nómina");
+  });
+});
 
 describe("parseCsv", () => {
   it("detecta ; como separador y respeta comillas", () => {
