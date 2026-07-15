@@ -1,3 +1,29 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --bg: 242 242 247;
+    --card: 255 255 255;
+    --elevated: 255 255 255;
+    --label: 0 0 0;
+    --secondary: 138 138 142;
+    --tertiary: 184 184 189;
+    --separator: 198 198 200;
+    --accent: 31 77 82;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: 0 0 0;
+      --card: 28 28 30;
+      --elevated: 44 44 46;
+      --label: 255 255 255;
+      --secondary: 152 152 159;
+      --tertiary: 90 90 94;
+      --separator: 56 56 58;
+      --accent: 63 165 173;
+    }
+  }
+}

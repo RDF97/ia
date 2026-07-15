@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Screen } from "@/components/Screen";
-import { Card, PhaseCard } from "@/components/Card";
+import { Card, PhaseCard, cardShadow } from "@/components/Card";
 import { Avatar, IconTile, Money, SectionTitle } from "@/components/ui";
 import { InviteModal } from "@/components/InviteModal";
 import { useAuth } from "@/lib/auth";
@@ -18,7 +18,7 @@ import { useLuzPrices } from "@/lib/useLuzPrices";
 import { balances, monthlyTotal } from "@/lib/expenses";
 import { eventsOfDay, hhmm } from "@/lib/events";
 import { fmtKwh, tierOf } from "@/lib/luz";
-import { colors } from "@/theme/tokens";
+import { useTheme } from "@/theme/theme";
 
 const eur = (v: number) => `${v.toFixed(2).replace(".", ",")} €`;
 
@@ -51,39 +51,18 @@ export default function Inicio() {
   );
 }
 
-function Tile({
-  label,
-  value,
-  sub,
-  color,
-  onPress,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  color?: string;
-  onPress: () => void;
-}) {
+function Tile({ label, value, sub, color, onPress }: { label: string; value: string; sub?: string; color?: string; onPress: () => void }) {
+  const t = useTheme();
   return (
-    <Pressable
-      onPress={onPress}
-      className="flex-1 bg-white p-3 justify-between"
-      style={{ minHeight: 80, borderRadius: 14 }}
-    >
-      <Text
-        className="text-[11px] text-neutral-500 font-medium"
-        style={{ textTransform: "uppercase", letterSpacing: 0.4 }}
-      >
+    <Pressable onPress={onPress} className="flex-1 bg-card p-3 justify-between" style={{ minHeight: 80, borderRadius: 14, ...cardShadow(t.dark) }}>
+      <Text className="text-[11px] text-secondary font-medium" style={{ textTransform: "uppercase", letterSpacing: 0.4 }}>
         {label}
       </Text>
       <View>
-        <Text
-          className="text-[18px] font-semibold"
-          style={{ color: color ?? colors.label, fontVariant: ["tabular-nums"], letterSpacing: -0.3 }}
-        >
+        <Text className="text-[18px] font-semibold" style={{ color: color ?? t.label, fontVariant: ["tabular-nums"], letterSpacing: -0.3 }}>
           {value}
         </Text>
-        {sub ? <Text className="text-[11px] font-medium text-neutral-500 mt-0.5">{sub}</Text> : null}
+        {sub ? <Text className="text-[11px] font-medium text-secondary mt-0.5">{sub}</Text> : null}
       </View>
     </Pressable>
   );
@@ -102,6 +81,7 @@ function Dashboard({
   userName: string;
   onInvite: () => void;
 }) {
+  const t = useTheme();
   const router = useRouter();
   const qc = useQueryClient();
   const expenses = useExpenses(hogarId).data ?? [];
@@ -120,20 +100,20 @@ function Dashboard({
     ]);
 
   const total = monthlyTotal(expenses);
-  const pendingTasks = tasks.filter((t) => !t.done).length;
+  const pendingTasks = tasks.filter((x) => !x.done).length;
   const pendingShop = shopping.filter((s) => !s.done).length;
   const bal = balances(expenses, members);
   const todayEvents = eventsOfDay(events, new Date());
 
   let luzValue = "—";
-  let luzColor: string = colors.label;
+  let luzColor: string = t.label;
   if (luz) {
     const min = Math.min(...luz.today);
     const max = Math.max(...luz.today);
     const now = luz.today[new Date().getHours()];
     const tier = tierOf(now, min, max);
     luzValue = `${fmtKwh(now)} €`;
-    luzColor = tier === "ok" ? colors.green : tier === "mid" ? colors.orange : colors.red;
+    luzColor = tier === "ok" ? t.green : tier === "mid" ? t.orange : t.red;
   }
 
   return (
@@ -147,40 +127,37 @@ function Dashboard({
         </Pressable>
       }
     >
-      {/* Hogar + invitar */}
       <Card>
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center" style={{ gap: 10 }}>
-            <View className="rounded-lg2 items-center justify-center" style={{ width: 40, height: 40, backgroundColor: colors.accent }}>
+            <View className="rounded-lg2 items-center justify-center" style={{ width: 40, height: 40, backgroundColor: t.accent }}>
               <Ionicons name="home" size={20} color="#fff" />
             </View>
             <View>
-              <Text className="text-[16px] font-semibold text-black">{hogarName}</Text>
-              <Text className="text-[13px] text-neutral-500">
+              <Text className="text-[16px] font-semibold text-label">{hogarName}</Text>
+              <Text className="text-[13px] text-secondary">
                 {members} {members === 1 ? "miembro" : "miembros"}
               </Text>
             </View>
           </View>
-          <Pressable onPress={onInvite} className="rounded-pill px-3 py-2 flex-row items-center" style={{ backgroundColor: colors.accent, gap: 6 }}>
+          <Pressable onPress={onInvite} className="rounded-pill px-3 py-2 flex-row items-center" style={{ backgroundColor: t.accent, gap: 6 }}>
             <Ionicons name="person-add-outline" size={15} color="#fff" />
             <Text className="text-white text-[13px] font-semibold">Invitar</Text>
           </Pressable>
         </View>
       </Card>
 
-      {/* Tiles resumen */}
       <View className="flex-row mx-4 mb-3" style={{ gap: 8 }}>
         <Tile label="Gastos mes" value={eur(total)} onPress={() => router.navigate("/gastos")} />
         <Tile label="Tareas" value={String(pendingTasks)} sub="pendientes" onPress={() => router.navigate("/tareas")} />
         <Tile label="Luz ahora" value={luzValue} color={luzColor} sub="€/kWh" onPress={() => router.navigate("/luz")} />
       </View>
 
-      {/* Hoy (agenda) */}
       <SectionTitle>Hoy</SectionTitle>
-      <View className="bg-white rounded-lg2 mx-4 mb-3 overflow-hidden">
+      <View className="bg-card rounded-lg2 mx-4 mb-3 overflow-hidden" style={cardShadow(t.dark)}>
         {todayEvents.length === 0 ? (
           <Pressable onPress={() => router.navigate("/calendario")} className="px-4 py-4">
-            <Text className="text-neutral-400">Sin eventos hoy · toca para añadir</Text>
+            <Text className="text-tertiary">Sin eventos hoy · toca para añadir</Text>
           </Pressable>
         ) : (
           todayEvents.map((e, i) => (
@@ -188,47 +165,41 @@ function Dashboard({
               key={e.$id}
               onPress={() => router.navigate("/calendario")}
               className="flex-row items-center px-4 py-3"
-              style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: colors.separator }}
+              style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}
             >
-              <Text className="text-[14px] font-semibold text-neutral-500" style={{ width: 48 }}>{hhmm(e.startAt)}</Text>
-              <View style={{ width: 3, height: 30, borderRadius: 2, backgroundColor: colors.accent }} />
+              <Text className="text-[14px] font-semibold text-secondary" style={{ width: 48 }}>{hhmm(e.startAt)}</Text>
+              <View style={{ width: 3, height: 30, borderRadius: 2, backgroundColor: t.accent }} />
               <View className="flex-1">
-                <Text className="text-[15px] font-medium text-black">{e.title}</Text>
-                {e.place ? <Text className="text-[12px] text-neutral-500 mt-0.5">{e.place}</Text> : null}
+                <Text className="text-[15px] font-medium text-label">{e.title}</Text>
+                {e.place ? <Text className="text-[12px] text-secondary mt-0.5">{e.place}</Text> : null}
               </View>
             </Pressable>
           ))
         )}
       </View>
 
-      {/* Compra pendiente */}
       <Pressable onPress={() => router.navigate("/compra")}>
         <Card>
           <View className="flex-row items-center" style={{ gap: 12 }}>
-            <IconTile icon="cart" color="#8E8E93" size={34} />
-            <Text className="flex-1 text-[15px] text-black">Compra pendiente</Text>
-            <Money size={15} color={colors.accent}>
+            <IconTile icon="cart" color={t.gray} size={34} />
+            <Text className="flex-1 text-[15px] text-label">Compra pendiente</Text>
+            <Money size={15} color={t.accent}>
               {pendingShop} {pendingShop === 1 ? "producto" : "productos"}
             </Money>
           </View>
         </Card>
       </Pressable>
 
-      {/* Quién debe a quién — estilo .debt-card del mockup */}
       {bal.length > 0 && (
         <>
           <SectionTitle>Quién debe a quién</SectionTitle>
-          <View className="rounded-card mx-4 mb-3 px-4 py-3" style={{ backgroundColor: colors.accentSoft }}>
+          <View className="rounded-card mx-4 mb-3 px-4 py-3" style={{ backgroundColor: t.accentSoft }}>
             {bal.map((b, i) => (
-              <View
-                key={b.name}
-                className="flex-row items-center py-2"
-                style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: colors.separator }}
-              >
+              <View key={b.name} className="flex-row items-center py-2" style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}>
                 <Avatar name={b.name} size={32} />
                 <View className="flex-1">
-                  <Text className="text-[12px] text-neutral-500">{b.name}</Text>
-                  <Money size={17} weight="700" color={b.net >= 0 ? colors.accent : colors.red}>
+                  <Text className="text-[12px] text-secondary">{b.name}</Text>
+                  <Money size={17} weight="700" color={b.net >= 0 ? t.accent : t.red}>
                     {b.net >= 0 ? `le deben ${eur(b.net)}` : `debe ${eur(-b.net)}`}
                   </Money>
                 </View>

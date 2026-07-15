@@ -12,9 +12,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth";
 import { appwriteConfigured } from "@/lib/appwrite";
-import { colors } from "@/theme/tokens";
+import { useTheme } from "@/theme/theme";
 
 export default function Login() {
+  const t = useTheme();
   const { login, register } = useAuth();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
@@ -37,7 +38,7 @@ export default function Login() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-bg-app">
+    <SafeAreaView className="flex-1 bg-bg">
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -46,19 +47,19 @@ export default function Login() {
           <View className="items-center mb-8">
             <View
               className="rounded-card items-center justify-center mb-3"
-              style={{ width: 64, height: 64, backgroundColor: colors.accent }}
+              style={{ width: 64, height: 64, backgroundColor: t.accent }}
             >
               <Text className="text-white text-3xl font-bold">H</Text>
             </View>
-            <Text className="text-[28px] font-bold text-black">Homie</Text>
-            <Text className="text-[14px] text-neutral-500 mt-1">
+            <Text className="text-[28px] font-bold text-label">Homie</Text>
+            <Text className="text-[14px] text-secondary mt-1">
               {mode === "login" ? "Inicia sesión en tu hogar" : "Crea tu cuenta"}
             </Text>
           </View>
 
           {!appwriteConfigured && (
-            <View className="bg-white rounded-lg2 p-3 mb-4" style={{ borderWidth: 1, borderColor: colors.orange }}>
-              <Text className="text-[13px] text-black">
+            <View className="bg-card rounded-lg2 p-3 mb-4" style={{ borderWidth: 1, borderColor: t.orange }}>
+              <Text className="text-[13px] text-label">
                 Backend no configurado todavía. Añade tu endpoint y Project ID de Appwrite en
                 app.json para activar el login.
               </Text>
@@ -67,18 +68,18 @@ export default function Login() {
 
           {mode === "register" && (
             <TextInput
-              className="bg-white rounded-lg2 px-4 py-3 mb-3 text-[16px] text-black"
+              className="bg-card rounded-lg2 px-4 py-3 mb-3 text-[16px] text-label"
               placeholder="Nombre"
-              placeholderTextColor={colors.labelSecondary}
+              placeholderTextColor={t.labelTertiary}
               value={name}
               onChangeText={setName}
               autoCapitalize="words"
             />
           )}
           <TextInput
-            className="bg-white rounded-lg2 px-4 py-3 mb-3 text-[16px] text-black"
+            className="bg-card rounded-lg2 px-4 py-3 mb-3 text-[16px] text-label"
             placeholder="Email"
-            placeholderTextColor={colors.labelSecondary}
+            placeholderTextColor={t.labelTertiary}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -86,21 +87,21 @@ export default function Login() {
             autoComplete="email"
           />
           <TextInput
-            className="bg-white rounded-lg2 px-4 py-3 mb-3 text-[16px] text-black"
+            className="bg-card rounded-lg2 px-4 py-3 mb-3 text-[16px] text-label"
             placeholder="Contraseña"
-            placeholderTextColor={colors.labelSecondary}
+            placeholderTextColor={t.labelTertiary}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
           />
 
-          {error && <Text className="text-[13px] mb-3" style={{ color: colors.red }}>{error}</Text>}
+          {error && <Text className="text-[13px] mb-3" style={{ color: t.red }}>{error}</Text>}
 
           <Pressable
             onPress={submit}
             disabled={busy}
             className="rounded-[14px] py-3.5 items-center"
-            style={{ backgroundColor: colors.accent, opacity: busy ? 0.6 : 1 }}
+            style={{ backgroundColor: t.accent, opacity: busy ? 0.6 : 1 }}
           >
             {busy ? (
               <ActivityIndicator color="#fff" />
@@ -118,7 +119,7 @@ export default function Login() {
             }}
             className="mt-4 items-center"
           >
-            <Text className="text-[14px]" style={{ color: colors.accent }}>
+            <Text className="text-[14px]" style={{ color: t.accent }}>
               {mode === "login" ? "¿No tienes cuenta? Regístrate" : "¿Ya tienes cuenta? Inicia sesión"}
             </Text>
           </Pressable>

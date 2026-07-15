@@ -11,11 +11,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { HogarProvider, useHogar } from "@/lib/hogar";
 import { appwriteConfigured } from "@/lib/appwrite";
-import { colors } from "@/theme/tokens";
+import { useTheme } from "@/theme/theme";
 
 const queryClient = new QueryClient();
 
 function RootNavigator() {
+  const t = useTheme();
   const { user, loading: authLoading } = useAuth();
   const { active, loading: hogarLoading } = useHogar();
   const segments = useSegments();
@@ -49,8 +50,8 @@ function RootNavigator() {
 
   if (authLoading && appwriteConfigured) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator color={colors.accent} />
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: t.bg }}>
+        <ActivityIndicator color={t.accent} />
       </View>
     );
   }

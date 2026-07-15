@@ -1,4 +1,4 @@
-import { balances, monthlyTotal, type Expense } from "./expenses";
+import { accountTotals, balances, monthlyTotal, type Expense } from "./expenses";
 
 // Helper para construir gastos mínimos (solo los campos que usa la lógica).
 function exp(partial: Partial<Expense>): Expense {
@@ -49,5 +49,32 @@ describe("expenses · cálculos", () => {
     const res = balances(list, 2);
     // solo cuenta el de 80 → parte 40 → A +40
     expect(res.find((r) => r.name === "A")!.net).toBeCloseTo(40, 5);
+  });
+
+  test("balances: la cuenta conjunta NO genera deudas aunque sea compartido", () => {
+    const list = [
+      exp({ amount: 200, paidByName: "A", shared: true, account: "joint" }), // común: no reparte
+      exp({ amount: 80, paidByName: "A", shared: true, account: "individual" }), // sí reparte
+    ];
+    const res = balances(list, 2);
+    // solo el de 80 individual → parte 40 → A +40
+    expect(res.find((r) => r.name === "A")!.net).toBeCloseTo(40, 5);
+  });
+
+  test("balances trata los gastos sin cuenta como individuales (compat)", () => {
+    const list = [exp({ amount: 100, paidByName: "A", shared: true })];
+    expect(balances(list, 2).find((r) => r.name === "A")!.net).toBeCloseTo(50, 5);
+  });
+
+  test("accountTotals separa conjunta e individual del mes", () => {
+    const now = new Date("2026-07-15T12:00:00.000Z");
+    const thisMonth = "2026-07-10T09:00:00.000Z";
+    const list = [
+      exp({ amount: 200, account: "joint", $createdAt: thisMonth }),
+      exp({ amount: 50, account: "individual", $createdAt: thisMonth }),
+      exp({ amount: 30, $createdAt: thisMonth }), // sin cuenta → individual
+      exp({ amount: 999, account: "joint", $createdAt: "2026-06-01T09:00:00.000Z" }), // otro mes
+    ];
+    expect(accountTotals(list, now)).toEqual({ joint: 200, individual: 80 });
   });
 });

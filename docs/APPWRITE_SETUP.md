@@ -54,9 +54,20 @@ y permiso **Create** para el rol **Users**.
 | `category` | String | 100 | no | — |
 | `paidByName` | String | 255 | sí | — |
 | `shared` | Boolean | — | sí | `true` |
+| `account` | String | 20 | no | `individual` |
+| `spentAt` | Datetime | — | no | — |
 | `hogarId` | String | 50 | sí | — |
 
 Índice: key `hogarId_idx` sobre `hogarId` (ASC).
+
+> `account` (`joint` = cuenta conjunta / `individual` = dinero de cada uno) separa
+> lo pagado con dinero común de lo personal. `spentAt` es la fecha real del gasto
+> (la elegida al añadirlo, o la del movimiento importado del CSV); si falta, se usa
+> la de creación. Si la colección ya existía, añádelos:
+> ```bash
+> curl -sS -X POST "$EP/databases/$DB/collections/expenses/attributes/string"   "${H[@]}" -d '{"key":"account","size":20,"required":false,"default":"individual"}'; echo
+> curl -sS -X POST "$EP/databases/$DB/collections/expenses/attributes/datetime" "${H[@]}" -d '{"key":"spentAt","required":false}'; echo
+> ```
 
 ### Colección `events` (calendario)
 **Collection ID = `events`**, **Document Security: ON**, permiso **Create** para **Users**.
@@ -137,6 +148,55 @@ curl -sS -X POST "$EP/databases/$DB/collections/price_points/indexes" "${H[@]}" 
 sleep 1
 curl -sS -X POST "$EP/databases/$DB/collections/price_points/indexes" "${H[@]}" \
  -d '{"key":"productId_idx","type":"key","attributes":["productId"],"orders":["ASC"]}'; echo
+```
+
+### Colección `categories` (categorías + presupuesto de Gastos)
+**Collection ID = `categories`**, **Document Security: ON**, permiso **Create** para **Users**.
+
+| Atributo | Tipo | Tamaño/Config | Requerido | Defecto |
+|---|---|---|---|---|
+| `hogarId` | String | 50 | sí | — |
+| `name` | String | 100 | sí | — |
+| `color` | String | 20 | sí | — |
+| `icon` | String | 40 | sí | — |
+| `budget` | Double | — | no | `0` |
+
+Índice: key `hogarId_idx` sobre `hogarId` (ASC).
+
+```bash
+curl -sS -X POST "$EP/databases/$DB/collections" "${H[@]}" \
+ -d '{"collectionId":"categories","name":"categories","documentSecurity":true,"permissions":["create(\"users\")"]}'; echo
+sleep 1
+curl -sS -X POST "$EP/databases/$DB/collections/categories/attributes/string" "${H[@]}" -d '{"key":"hogarId","size":50,"required":true}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/categories/attributes/string" "${H[@]}" -d '{"key":"name","size":100,"required":true}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/categories/attributes/string" "${H[@]}" -d '{"key":"color","size":20,"required":true}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/categories/attributes/string" "${H[@]}" -d '{"key":"icon","size":40,"required":true}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/categories/attributes/float"  "${H[@]}" -d '{"key":"budget","required":false,"default":0}'; echo
+sleep 3
+curl -sS -X POST "$EP/databases/$DB/collections/categories/indexes" "${H[@]}" \
+ -d '{"key":"hogarId_idx","type":"key","attributes":["hogarId"],"orders":["ASC"]}'; echo
+```
+
+> El interruptor "presupuesto activo" se guarda en las **preferencias del equipo**
+> (team prefs de Appwrite), así que se comparte entre los miembros del hogar sin
+> necesidad de otra colección.
+
+### Nuevos atributos de `tasks` (fechas, asignación, recurrencia y avisos)
+Añádelos a la colección `tasks` que ya existe. Si `assignedToName` ya estaba
+creado, ese comando dará error de "ya existe": es normal, ignóralo.
+
+| Atributo | Tipo | Tamaño/Config | Requerido | Defecto |
+|---|---|---|---|---|
+| `assignedToName` | String | 255 | no | — |
+| `dueAt` | Datetime | — | no | — |
+| `repeat` | String | 20 | no | `none` |
+| `notify` | Boolean | — | no | `false` |
+
+```bash
+curl -sS -X POST "$EP/databases/$DB/collections/tasks/attributes/string"   "${H[@]}" -d '{"key":"assignedToName","size":255,"required":false}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/tasks/attributes/datetime" "${H[@]}" -d '{"key":"dueAt","required":false}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/tasks/attributes/string"   "${H[@]}" -d '{"key":"repeat","size":20,"required":false,"default":"none"}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/tasks/attributes/boolean"  "${H[@]}" -d '{"key":"notify","required":false,"default":false}'; echo
 ```
 
 > **OCR de tickets** (pendiente): requiere un proveedor externo (Mindee / Google

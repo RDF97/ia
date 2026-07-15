@@ -3,9 +3,10 @@ import { ActivityIndicator, Pressable, Text, TextInput, View } from "react-nativ
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useHogar } from "@/lib/hogar";
 import { useAuth } from "@/lib/auth";
-import { colors } from "@/theme/tokens";
+import { useTheme } from "@/theme/theme";
 
 export default function HogarOnboarding() {
+  const t = useTheme();
   const { createHogar } = useHogar();
   const { logout } = useAuth();
   const [name, setName] = useState("");
@@ -27,31 +28,31 @@ export default function HogarOnboarding() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-bg-app">
+    <SafeAreaView className="flex-1 bg-bg">
       <View className="flex-1 justify-center px-6">
-        <Text className="text-[28px] font-bold text-black" style={{ lineHeight: 34 }}>
+        <Text className="text-[28px] font-bold text-label" style={{ lineHeight: 34 }}>
           Crea tu hogar
         </Text>
-        <Text className="text-[14px] text-neutral-500 mt-1 mb-6">
+        <Text className="text-[14px] text-secondary mt-1 mb-6">
           Un "hogar" es el espacio que compartís. Luego podrás invitar a otra persona.
         </Text>
 
         <TextInput
-          className="bg-white rounded-lg2 px-4 py-3 mb-3 text-[16px] text-black"
+          className="bg-card rounded-lg2 px-4 py-3 mb-3 text-[16px] text-label"
           placeholder="Nombre del hogar (p. ej. Casa Ruben · María)"
-          placeholderTextColor={colors.labelSecondary}
+          placeholderTextColor={t.labelTertiary}
           value={name}
           onChangeText={setName}
           autoCapitalize="sentences"
         />
 
-        {error && <Text className="text-[13px] mb-3" style={{ color: colors.red }}>{error}</Text>}
+        {error && <Text className="text-[13px] mb-3" style={{ color: t.red }}>{error}</Text>}
 
         <Pressable
           onPress={submit}
           disabled={busy || !name.trim()}
           className="rounded-[14px] py-3.5 items-center"
-          style={{ backgroundColor: colors.accent, opacity: busy || !name.trim() ? 0.6 : 1 }}
+          style={{ backgroundColor: t.accent, opacity: busy || !name.trim() ? 0.6 : 1 }}
         >
           {busy ? (
             <ActivityIndicator color="#fff" />
@@ -60,12 +61,12 @@ export default function HogarOnboarding() {
           )}
         </Pressable>
 
-        <Text className="text-[13px] text-neutral-500 text-center mt-6">
+        <Text className="text-[13px] text-secondary text-center mt-6">
           ¿Te han invitado? Abre el enlace de invitación que te han enviado.
         </Text>
 
         <Pressable onPress={logout} className="mt-4 items-center">
-          <Text className="text-[14px]" style={{ color: colors.accent }}>
+          <Text className="text-[14px]" style={{ color: t.accent }}>
             Cerrar sesión
           </Text>
         </Pressable>

@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { useHogar } from "@/lib/hogar";
 import { InviteModal } from "@/components/InviteModal";
 import { Avatar } from "@/components/ui";
-import { colors } from "@/theme/tokens";
+import { useTheme } from "@/theme/theme";
 
 function Row({
   icon,
@@ -25,24 +25,26 @@ function Row({
   onPress: () => void;
   first?: boolean;
 }) {
+  const t = useTheme();
   return (
     <Pressable
       onPress={onPress}
       className="flex-row items-center px-4 py-3"
-      style={{ gap: 12, borderTopWidth: first ? 0 : 0.5, borderTopColor: colors.separator }}
+      style={{ gap: 12, borderTopWidth: first ? 0 : 0.5, borderTopColor: t.separator }}
     >
       <View className="rounded-lg items-center justify-center" style={{ width: 30, height: 30, backgroundColor: color }}>
         <Ionicons name={icon} size={15} color="#fff" />
       </View>
-      <Text className="flex-1 text-[15px]" style={{ color: danger ? colors.red : colors.label }}>
+      <Text className="flex-1 text-[15px]" style={{ color: danger ? t.red : t.label }}>
         {label}
       </Text>
-      <Ionicons name="chevron-forward" size={16} color={colors.tabInactive} />
+      <Ionicons name="chevron-forward" size={16} color={t.tabInactive} />
     </Pressable>
   );
 }
 
 export default function Perfil() {
+  const t = useTheme();
   const router = useRouter();
   const { user, logout } = useAuth();
   const { active, leaveHogar } = useHogar();
@@ -82,62 +84,62 @@ export default function Perfil() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-bg-app" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-bg" edges={["top"]}>
       <View className="flex-row items-center px-4 py-2" style={{ gap: 8 }}>
         <Pressable onPress={() => router.back()} hitSlop={8} className="flex-row items-center">
-          <Ionicons name="chevron-back" size={24} color={colors.accent} />
-          <Text className="text-[16px]" style={{ color: colors.accent }}>Inicio</Text>
+          <Ionicons name="chevron-back" size={24} color={t.accent} />
+          <Text className="text-[16px]" style={{ color: t.accent }}>Inicio</Text>
         </Pressable>
       </View>
       <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
         <View className="px-5 pt-1 pb-3">
-          <Text className="text-[34px] font-bold tracking-tight text-black" style={{ lineHeight: 41 }}>
+          <Text className="text-[34px] font-bold tracking-tight text-label" style={{ lineHeight: 41 }}>
             Perfil
           </Text>
         </View>
 
         {/* Cuenta */}
-        <View className="bg-white rounded-card mx-4 mb-3 p-4 flex-row items-center" style={{ gap: 14 }}>
+        <View className="bg-card rounded-card mx-4 mb-3 p-4 flex-row items-center" style={{ gap: 14 }}>
           <Avatar name={user?.name || user?.email || "?"} size={52} />
           <View className="flex-1">
-            <Text className="text-[17px] font-semibold text-black">{user?.name || "Sin nombre"}</Text>
-            <Text className="text-[13px] text-neutral-500 mt-0.5">{user?.email}</Text>
+            <Text className="text-[17px] font-semibold text-label">{user?.name || "Sin nombre"}</Text>
+            <Text className="text-[13px] text-secondary mt-0.5">{user?.email}</Text>
           </View>
         </View>
 
         {/* Hogar */}
         {active && (
           <>
-            <Text className="px-5 pt-2 pb-2 text-[13px] font-medium uppercase tracking-wide text-neutral-500">
+            <Text className="px-5 pt-2 pb-2 text-[13px] font-medium uppercase tracking-wide text-secondary">
               Tu hogar
             </Text>
-            <View className="bg-white rounded-lg2 mx-4 mb-3 overflow-hidden">
+            <View className="bg-card rounded-lg2 mx-4 mb-3 overflow-hidden">
               <View className="flex-row items-center px-4 py-3" style={{ gap: 12 }}>
-                <View className="rounded-lg items-center justify-center" style={{ width: 30, height: 30, backgroundColor: colors.accent }}>
+                <View className="rounded-lg items-center justify-center" style={{ width: 30, height: 30, backgroundColor: t.accent }}>
                   <Ionicons name="home" size={15} color="#fff" />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-[15px] text-black">{active.name}</Text>
-                  <Text className="text-[12px] text-neutral-500">
+                  <Text className="text-[15px] text-label">{active.name}</Text>
+                  <Text className="text-[12px] text-secondary">
                     {active.total} {active.total === 1 ? "miembro" : "miembros"}
                   </Text>
                 </View>
               </View>
-              <Row icon="person-add" color={colors.green} label="Invitar a alguien" onPress={() => setInviteOpen(true)} />
-              <Row icon="exit-outline" color={colors.red} label="Salir del hogar" danger onPress={confirmLeave} />
+              <Row icon="person-add" color={t.green} label="Invitar a alguien" onPress={() => setInviteOpen(true)} />
+              <Row icon="exit-outline" color={t.red} label="Salir del hogar" danger onPress={confirmLeave} />
             </View>
           </>
         )}
 
         {/* Sesión */}
-        <Text className="px-5 pt-2 pb-2 text-[13px] font-medium uppercase tracking-wide text-neutral-500">
+        <Text className="px-5 pt-2 pb-2 text-[13px] font-medium uppercase tracking-wide text-secondary">
           Cuenta
         </Text>
-        <View className="bg-white rounded-lg2 mx-4 mb-3 overflow-hidden">
-          <Row first icon="log-out-outline" color="#8E8E93" label="Cerrar sesión" danger onPress={confirmLogout} />
+        <View className="bg-card rounded-lg2 mx-4 mb-3 overflow-hidden">
+          <Row first icon="log-out-outline" color={t.gray} label="Cerrar sesión" danger onPress={confirmLogout} />
         </View>
 
-        <Text className="text-center text-[12px] text-neutral-400 mt-4">
+        <Text className="text-center text-[12px] text-tertiary mt-4">
           Homie v{Constants.expoConfig?.version ?? "0.1.0"} · hecho con ♥
         </Text>
       </ScrollView>

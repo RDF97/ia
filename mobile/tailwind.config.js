@@ -1,3 +1,5 @@
+const v = (name) => `rgb(var(${name}) / <alpha-value>)`;
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ["./app/**/*.{js,jsx,ts,tsx}", "./components/**/*.{js,jsx,ts,tsx}"],
@@ -5,24 +7,25 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Tokens del design system del mockup Homie
-        accent: "#1F4D52",
-        "accent-dark": "#3FA5AD",
-        blue: "#007AFF",
+        // Semánticos (cambian claro/oscuro vía variables CSS)
+        bg: v("--bg"),
+        card: v("--card"),
+        elevated: v("--elevated"),
+        label: v("--label"),
+        secondary: v("--secondary"),
+        tertiary: v("--tertiary"),
+        separator: v("--separator"),
+        accent: v("--accent"),
+        // Estáticos
         green: "#34C759",
         orange: "#FF9500",
         red: "#FF3B30",
-        yellow: "#FFCC00",
+        blue: "#007AFF",
         teal: "#5AC8FA",
         purple: "#AF52DE",
         pink: "#FF2D55",
-        "bg-app": "#F2F2F7",
       },
-      borderRadius: {
-        card: "18px",
-        lg2: "14px",
-        pill: "999px",
-      },
+      borderRadius: { card: "18px", lg2: "14px", pill: "999px" },
     },
   },
   plugins: [],

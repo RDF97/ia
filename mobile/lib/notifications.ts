@@ -64,6 +64,11 @@ export async function scheduleDaily(
   });
 }
 
+export async function notificationsGranted(): Promise<boolean> {
+  const current = await Notifications.getPermissionsAsync();
+  return current.granted;
+}
+
 export async function cancelScheduled(ids: string[]): Promise<void> {
   await Promise.all(
     ids.map((id) => Notifications.cancelScheduledNotificationAsync(id).catch(() => undefined)),

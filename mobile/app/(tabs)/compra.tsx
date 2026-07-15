@@ -11,7 +11,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { Screen } from "@/components/Screen";
-import { PhaseCard } from "@/components/Card";
+import { PhaseCard, cardShadow } from "@/components/Card";
 import { CheckCircle } from "@/components/ui";
 import { ProductsModal } from "@/components/compra/ProductsModal";
 import { useHogar } from "@/lib/hogar";
@@ -20,7 +20,7 @@ import { appwriteConfigured } from "@/lib/appwrite";
 import { useShopping } from "@/lib/useShopping";
 import { addItem, deleteItem, setItemDone, type ShoppingItem } from "@/lib/shopping";
 import { recordPrice } from "@/lib/products";
-import { colors } from "@/theme/tokens";
+import { useTheme } from "@/theme/theme";
 
 export default function Compra() {
   const { active } = useHogar();
@@ -43,6 +43,7 @@ const oops = (e: unknown) =>
   Alert.alert("No se pudo completar", e instanceof Error ? e.message : "Revisa tu conexión e inténtalo de nuevo.");
 
 function CompraList({ hogarId, userName }: { hogarId: string; userName: string }) {
+  const t = useTheme();
   const qc = useQueryClient();
   const { data: items, isLoading, isError } = useShopping(hogarId);
   const [name, setName] = useState("");
@@ -102,36 +103,36 @@ function CompraList({ hogarId, userName }: { hogarId: string; userName: string }
         <Pressable
           onPress={() => setDbOpen(true)}
           className="rounded-pill items-center justify-center"
-          style={{ width: 36, height: 36, backgroundColor: "#7878801f", marginBottom: 4 }}
+          style={{ width: 36, height: 36, backgroundColor: t.fill, marginBottom: 4 }}
         >
-          <Ionicons name="pricetags-outline" size={17} color={colors.accent} />
+          <Ionicons name="pricetags-outline" size={17} color={t.accent} />
         </Pressable>
       }
     >
       <View
-        className="flex-row items-center bg-white rounded-pill mx-4 mb-4 px-4 py-2"
-        style={{ gap: 8, borderWidth: 0.5, borderColor: colors.separator }}
+        className="flex-row items-center bg-card rounded-pill mx-4 mb-4 px-4 py-2"
+        style={{ gap: 8, borderWidth: 0.5, borderColor: t.separator }}
       >
-        <Ionicons name="add" size={22} color={colors.accent} />
+        <Ionicons name="add" size={22} color={t.accent} />
         <TextInput
-          className="flex-1 text-[16px] text-black"
+          className="flex-1 text-[16px] text-label"
           placeholder="Añadir a la lista…"
-          placeholderTextColor={colors.labelSecondary}
+          placeholderTextColor={t.labelTertiary}
           value={name}
           onChangeText={setName}
           onSubmitEditing={add}
           returnKeyType="done"
         />
-        {busy && <ActivityIndicator color={colors.accent} />}
+        {busy && <ActivityIndicator color={t.accent} />}
       </View>
 
       {isError && (
-        <Text className="text-center text-[13px] mb-2" style={{ color: colors.red }}>
+        <Text className="text-center text-[13px] mb-2" style={{ color: t.red }}>
           No se pudo cargar la lista. Desliza hacia abajo para reintentar.
         </Text>
       )}
       {isLoading ? (
-        <ActivityIndicator color={colors.accent} style={{ marginTop: 24 }} />
+        <ActivityIndicator color={t.accent} style={{ marginTop: 24 }} />
       ) : (
         <>
           <Section title="Por comprar" items={pending} onToggle={toggle} onDelete={remove} />
@@ -139,7 +140,7 @@ function CompraList({ hogarId, userName }: { hogarId: string; userName: string }
             <Section title="Comprado" items={bought} onToggle={toggle} onDelete={remove} />
           )}
           {pending.length === 0 && bought.length === 0 && (
-            <Text className="text-center text-neutral-400 mt-8">
+            <Text className="text-center text-tertiary mt-8">
               Lista vacía. ¡Añade el primer producto!
             </Text>
           )}
@@ -171,6 +172,7 @@ function PricePrompt({
   onDone: () => void;
   onCancel: () => void;
 }) {
+  const t = useTheme();
   const [price, setPrice] = useState("");
   const [store, setStore] = useState("");
   const [busy, setBusy] = useState(false);
@@ -201,26 +203,26 @@ function PricePrompt({
 
   return (
     <Modal visible={item !== null} transparent animationType="slide" onRequestClose={onCancel}>
-      <Pressable className="flex-1 bg-black/40" onPress={onCancel} />
-      <View className="bg-bg-app rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32 }}>
-        <Text className="text-[17px] font-semibold mb-1">¿A cuánto lo has comprado?</Text>
-        <Text className="text-[13px] text-neutral-500 mb-4">
+      <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onCancel} />
+      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32, backgroundColor: t.bg }}>
+        <Text className="text-[17px] font-semibold mb-1 text-label">¿A cuánto lo has comprado?</Text>
+        <Text className="text-[13px] text-secondary mb-4">
           {item?.name} · alimenta la base de precios para comparar supermercados.
         </Text>
         <View className="flex-row mb-3" style={{ gap: 8 }}>
           <TextInput
-            className="bg-white rounded-lg2 px-4 py-3 text-[16px] text-black"
+            className="bg-card rounded-lg2 px-4 py-3 text-[16px] text-label"
             style={{ width: 110 }}
             placeholder="Precio €"
-            placeholderTextColor={colors.labelSecondary}
+            placeholderTextColor={t.labelTertiary}
             value={price}
             onChangeText={setPrice}
             keyboardType="decimal-pad"
           />
           <TextInput
-            className="flex-1 bg-white rounded-lg2 px-4 py-3 text-[16px] text-black"
+            className="flex-1 bg-card rounded-lg2 px-4 py-3 text-[16px] text-label"
             placeholder="Supermercado (Mercadona, Día…)"
-            placeholderTextColor={colors.labelSecondary}
+            placeholderTextColor={t.labelTertiary}
             value={store}
             onChangeText={setStore}
           />
@@ -229,12 +231,12 @@ function PricePrompt({
           onPress={() => finish(true)}
           disabled={busy}
           className="rounded-[14px] py-3.5 items-center"
-          style={{ backgroundColor: colors.accent, opacity: busy ? 0.6 : 1 }}
+          style={{ backgroundColor: t.accent, opacity: busy ? 0.6 : 1 }}
         >
           {busy ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-base font-semibold">Guardar precio</Text>}
         </Pressable>
         <Pressable onPress={() => finish(false)} disabled={busy} className="mt-3 items-center py-1">
-          <Text className="text-[14px]" style={{ color: colors.accent }}>Omitir · solo marcar comprado</Text>
+          <Text className="text-[14px]" style={{ color: t.accent }}>Omitir · solo marcar comprado</Text>
         </Pressable>
       </View>
     </Modal>
@@ -252,35 +254,36 @@ function Section({
   onToggle: (i: ShoppingItem) => void;
   onDelete: (id: string) => void;
 }) {
+  const t = useTheme();
   if (items.length === 0) return null;
   return (
     <>
-      <Text className="px-5 pt-2 pb-2 text-[13px] font-medium uppercase tracking-wide text-neutral-500">
+      <Text className="px-5 pt-2 pb-2 text-[13px] font-medium uppercase tracking-wide text-secondary">
         {title}
       </Text>
-      <View className="bg-white rounded-lg2 mx-4 mb-3 overflow-hidden">
+      <View className="bg-card rounded-lg2 mx-4 mb-3 overflow-hidden" style={cardShadow(t.dark)}>
         {items.map((item, i) => (
           <View
             key={item.$id}
             className="flex-row items-center px-4 py-3"
-            style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: colors.separator }}
+            style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}
           >
             <CheckCircle done={item.done} onPress={() => onToggle(item)} />
             <View className="flex-1">
               <Text
                 className="text-[15px]"
                 style={{
-                  color: item.done ? "rgba(60,60,67,0.35)" : colors.label,
+                  color: item.done ? t.labelTertiary : t.label,
                   textDecorationLine: item.done ? "line-through" : "none",
                 }}
               >
                 {item.name}
-                {item.qty ? <Text className="text-neutral-500">  {item.qty}</Text> : null}
+                {item.qty ? <Text className="text-secondary">  {item.qty}</Text> : null}
               </Text>
-              <Text className="text-[12px] text-neutral-500 mt-0.5">{item.createdByName}</Text>
+              <Text className="text-[12px] text-secondary mt-0.5">{item.createdByName}</Text>
             </View>
             <Pressable onPress={() => onDelete(item.$id)} hitSlop={8}>
-              <Ionicons name="trash-outline" size={17} color="rgba(60,60,67,0.4)" />
+              <Ionicons name="trash-outline" size={17} color={t.labelTertiary} />
             </Pressable>
           </View>
         ))}
