@@ -7,6 +7,7 @@ import { Card, PhaseCard, cardShadow } from "@/components/Card";
 import { Avatar, IconTile, Money, SectionTitle } from "@/components/ui";
 import { Segmented } from "@/components/Segmented";
 import { BudgetModal } from "@/components/gastos/BudgetModal";
+import { CsvModal } from "@/components/gastos/CsvModal";
 import { useHogar } from "@/lib/hogar";
 import { useAuth } from "@/lib/auth";
 import { appwriteConfigured } from "@/lib/appwrite";
@@ -52,6 +53,7 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
   const [open, setOpen] = useState(false);
   const [budgetOpen, setBudgetOpen] = useState(false);
   const [budgetOn, setBudgetOn] = useState(false);
+  const [csvOpen, setCsvOpen] = useState(false);
   const [filter, setFilter] = useState<"all" | Account>("all");
 
   useEffect(() => {
@@ -224,8 +226,14 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
         <Text className="text-white text-base font-semibold">Añadir gasto</Text>
       </Pressable>
 
+      <Pressable onPress={() => setCsvOpen(true)} className="flex-row items-center justify-center mx-4 mt-3" style={{ gap: 6 }}>
+        <Ionicons name="document-text-outline" size={16} color={t.accent} />
+        <Text className="text-[14px] font-semibold text-accent">Conciliar con CSV del banco</Text>
+      </Pressable>
+
       <AddExpense visible={open} onClose={() => setOpen(false)} hogarId={hogarId} userName={userName} categories={cats} onAdded={refresh} />
       <BudgetModal visible={budgetOpen} hogarId={hogarId} enabled={budgetOn} onToggle={toggleBudget} onClose={() => setBudgetOpen(false)} />
+      <CsvModal visible={csvOpen} hogarId={hogarId} userName={userName} expenses={list} onClose={() => setCsvOpen(false)} onImported={refresh} />
     </Screen>
   );
 }
