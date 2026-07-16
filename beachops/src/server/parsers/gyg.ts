@@ -51,7 +51,19 @@ export const gygParser: EmailParser = {
     const dateRaw =
       fields.get("date") ??
       text.match(/Date:?\s*([A-Za-z]+ \d{1,2},\s*\d{4}(?:\s+\d{1,2}:\d{2}\s*(?:AM|PM)?)?)/i)?.[1];
-    const parsedDate = dateRaw ? parseGygDate(dateRaw) : null;
+    let parsedDate = dateRaw ? parseGygDate(dateRaw) : null;
+    // Hora en campo aparte ("Time: 12:30 PM") si la línea de fecha no la traía
+    if (parsedDate && !parsedDate.time) {
+      const timeRaw =
+        fields.get("time") ?? text.match(/Time:?\s*(\d{1,2}:\d{2}\s*(?:AM|PM)?)/i)?.[1];
+      const t = timeRaw?.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+      if (t) {
+        let hour = Number(t[1]);
+        if (t[3]?.toUpperCase() === "PM" && hour < 12) hour += 12;
+        if (t[3]?.toUpperCase() === "AM" && hour === 12) hour = 0;
+        parsedDate = { ...parsedDate, time: `${String(hour).padStart(2, "0")}:${t[2]}` };
+      }
+    }
     // Solo las altas exigen fecha; una cancelación/modificación se resuelve
     // por referencia contra la reserva existente.
     if (!parsedDate && kind === "new") {
@@ -59,8 +71,10 @@ export const gygParser: EmailParser = {
     }
 
     const participants = fields.get("number of participants") ?? text;
-    const adults = participants.match(/(\d+)\s*x\s*Adult/i)?.[1];
-    const children = participants.match(/(\d+)\s*x\s*(Child|Kid|Infant)/i)?.[1];
+    const adults =
+      participants.match(/(\d+)\s*[x×]?\s*Adult/i)?.[1] ??
+      participants.match(/(\d+)\s*[x×]\s*(Participant|Person|Traveler)/i)?.[1];
+    const children = participants.match(/(\d+)\s*[x×]?\s*(Child|Kid|Infant)/i)?.[1];
 
     const customerBlock = fields.get("main customer") ?? "";
     const customerLines = customerBlock.split("\n").map((l) => l.trim()).filter(Boolean);

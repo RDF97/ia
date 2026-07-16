@@ -306,10 +306,41 @@ export async function upsertParsedBooking(
     }
   }
 
+  // Nunca degradar: si ya existe la reserva con datos completos, un email
+  // duplicado sin detalle (pax 0, sin hora, sin cliente) no debe pisarlos.
+  const old = prior[0];
+  if (old && parsed.kind !== "cancellation") {
+    if (parsed.paxAdults === 0 && old.paxAdults > 0) {
+      parsed = { ...parsed, paxAdults: old.paxAdults, paxChildren: old.paxChildren };
+    }
+    if (!parsed.activityTime && old.activityTime) {
+      parsed = { ...parsed, activityTime: old.activityTime.slice(0, 5) };
+      if (!departureId) departureId = old.departureId;
+    }
+    parsed = {
+      ...parsed,
+      customerName: parsed.customerName ?? old.customerName ?? undefined,
+      customerPhone: parsed.customerPhone ?? old.customerPhone ?? undefined,
+      customerEmail: parsed.customerEmail ?? old.customerEmail ?? undefined,
+      customerCountry: parsed.customerCountry ?? old.customerCountry ?? undefined,
+      priceAmount: parsed.priceAmount ?? old.priceAmount ?? undefined,
+    };
+    if (!departureId) departureId = old.departureId;
+    if (!productId) productId = old.productId;
+    if (!locationId) locationId = old.locationId;
+    if (
+      /^(hi|hello|hola|dear)\b/i.test(parsed.rawProductName) &&
+      old.rawProductName &&
+      !/^(hi|hello|hola|dear)\b/i.test(old.rawProductName)
+    ) {
+      parsed = { ...parsed, rawProductName: old.rawProductName };
+    }
+  }
+
   const isCancellation = parsed.kind === "cancellation";
   const status = isCancellation
     ? ("cancelled" as const)
-    : effectiveTarget && departureId
+    : departureId
       ? ("confirmed" as const)
       : ("pending_review" as const);
 

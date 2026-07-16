@@ -270,6 +270,35 @@ describe("pipeline email → reserva", () => {
     expect(dep.startTime.slice(0, 5)).toBe("15:00");
   });
 
+  it("un duplicado sin datos no degrada una reserva ya completa", async () => {
+    const db = await getDb();
+    // Alta completa
+    await ingest(
+      "msg-gyg-full",
+      "no-reply@getyourguide.com",
+      "Booking - S436088 - GYGNODEGRADA1",
+      fixture("gyg-new.html").replace(/GYGTESTFRQ75/g, "GYGNODEGRADA1"),
+    );
+    // Notificación pobre del mismo booking: sin pax, sin hora, saludo como título
+    await ingest(
+      "msg-gyg-poor",
+      "no-reply@getyourguide.com",
+      "Urgent: New booking received - S436088 - GYGNODEGRADA1",
+      "<h1>Hi SECRET POINT MALLORCA, S.L.U.,</h1><p>You've received a booking.</p><p>Date July 11, 2026</p>",
+    );
+    const rows = await db
+      .select()
+      .from(schema.bookings)
+      .where(eq(schema.bookings.externalRef, "GYGNODEGRADA1"));
+    expect(rows).toHaveLength(1);
+    expect(rows[0].paxAdults).toBe(2); // conserva los datos buenos
+    expect(rows[0].activityTime?.slice(0, 5)).toBe("12:30");
+    expect(rows[0].customerName).toBe("Ana Torres");
+    expect(rows[0].status).toBe("confirmed");
+    expect(rows[0].departureId).not.toBeNull();
+    expect(rows[0].rawProductName).toContain("Kayak");
+  });
+
   it("un email irrelevante se ignora sin crear nada", async () => {
     const db = await getDb();
     await ingest("msg-spam-1", "newsletter@example.com", "Ofertas de verano", "<p>spam</p>");

@@ -58,7 +58,8 @@ export function fullText(html: string): string {
 }
 
 // Saludos y avisos genéricos que no son el nombre del producto.
-const NON_PRODUCT_HEADING = /supply partner|great news|booking|cancelled|reserva/i;
+const NON_PRODUCT_HEADING =
+  /^(hi|hello|hola|dear)\b|supply partner|great news|booking|cancelled|reserva|s\.l\.u|s\.l\./i;
 
 /** El encabezado que parece el título del producto (no un saludo del email). */
 export function productHeading(html: string, minLength = 15): string | undefined {
