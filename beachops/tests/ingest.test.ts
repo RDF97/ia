@@ -200,6 +200,34 @@ describe("pipeline email → reserva", () => {
     expect(raw.detectedKind).toBe("other");
   });
 
+  it("un producto sin regla de mapeo se asigna igualmente y aprende la regla", async () => {
+    const db = await getDb();
+    await ingest(
+      "msg-bokun-nuevo-prod",
+      "no-reply@bokun.io",
+      "New booking: Sun 19.Jul '26 @ 10:00 (SEC-T555) Ext. booking ref: 777",
+      fixture("bokun-new.html")
+        .replace("Sat 11.Jul '26 @ 09:30", "Sun 19.Jul '26 @ 10:00")
+        .replace("VIA-96827518", "VIA-NUEVOPROD")
+        .replace(/5644751P2 - Kayaking and snorkeling in the Mondragó Natural Park in Mallorca/g, "9999999Z9 - Sunset Snorkel Adventure Tour"),
+    );
+    const rows = await db
+      .select()
+      .from(schema.bookings)
+      .where(eq(schema.bookings.externalRef, "VIA-NUEVOPROD"));
+    expect(rows).toHaveLength(1);
+    expect(rows[0].status).toBe("confirmed"); // asignada, no pending_review
+    expect(rows[0].departureId).not.toBeNull();
+    expect(rows[0].locationId).not.toBeNull();
+    // Se aprendió la regla para la próxima vez
+    const learned = await db
+      .select()
+      .from(schema.mappingRules)
+      .where(eq(schema.mappingRules.matchValue, "9999999Z9"));
+    expect(learned).toHaveLength(1);
+    expect(learned[0].priority).toBe(500);
+  });
+
   it("un email irrelevante se ignora sin crear nada", async () => {
     const db = await getDb();
     await ingest("msg-spam-1", "newsletter@example.com", "Ofertas de verano", "<p>spam</p>");

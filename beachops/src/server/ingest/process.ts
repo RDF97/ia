@@ -116,10 +116,35 @@ export async function processRawEmail(raw: RawEmail): Promise<void> {
     return;
   }
 
-  const bookingId = await upsertParsedBooking(raw.orgId, parsed, raw.id, raw.subject);
+  const result = await upsertParsedBooking(raw.orgId, parsed, raw.id, raw.subject);
+  const bookingId = result.bookingId;
 
   if (isRecent(raw.receivedAt)) {
     await notifyBookingEvent(raw.orgId, parsed, bookingId);
+    if (result.adHocCreated) {
+      await sendPushToOrg(raw.orgId, {
+        title: `📅 Salida extra creada — ${result.adHocCreated.time}`,
+        body: `El ${result.adHocCreated.date} llegó una reserva fuera de la plantilla; se creó la salida automáticamente.`,
+        url: `/cuadro/${result.adHocCreated.date}`,
+        tag: `adhoc-${result.adHocCreated.date}-${result.adHocCreated.time}`,
+      });
+    }
+    if (result.fallbackMapping) {
+      await sendPushToOrg(raw.orgId, {
+        title: "⚠ Producto sin regla de mapeo",
+        body: `"${parsed.rawProductName}" se asignó a ${result.fallbackMapping}. Revísalo y crea la regla en Configuración.`,
+        url: `/cuadro/${result.activityDate}`,
+        tag: `fallback-${bookingId}`,
+      });
+    }
+    if (result.unassigned) {
+      await sendPushToOrg(raw.orgId, {
+        title: "⚠ Reserva sin asignar",
+        body: `${parsed.customerName ?? parsed.externalRef} · ${result.activityDate} — asígnala a una salida desde el cuadro.`,
+        url: `/cuadro/${result.activityDate}`,
+        tag: `unassigned-${bookingId}`,
+      });
+    }
   }
 
   await db
@@ -136,13 +161,24 @@ export async function processRawEmail(raw: RawEmail): Promise<void> {
     .where(eq(schema.rawEmails.id, raw.id));
 }
 
-/** Upsert de la reserva parseada. Devuelve el id de la reserva. */
+export type UpsertResult = {
+  bookingId: string;
+  activityDate: string;
+  /** Se creó una salida fuera de la plantilla */
+  adHocCreated: { date: string; time: string } | null;
+  /** Ninguna regla casó: descripción del destino elegido automáticamente */
+  fallbackMapping: string | null;
+  /** No se pudo asignar (varias playas y sin regla) */
+  unassigned: boolean;
+};
+
+/** Upsert de la reserva parseada. */
 export async function upsertParsedBooking(
   orgId: string,
   parsed: ParsedBooking,
   sourceEmailId: string | null,
   subject: string | null,
-): Promise<string> {
+): Promise<UpsertResult> {
   const db = await getDb();
 
   // Cancelaciones/modificaciones pueden llegar sin fecha: se hereda de la
@@ -173,37 +209,82 @@ export async function upsertParsedBooking(
   let departureId: string | null = null;
   let productId: string | null = null;
   let locationId: string | null = null;
+  let adHocCreated: { date: string; time: string } | null = null;
+  let fallbackMapping: string | null = null;
 
-  if (target) {
-    productId = target.productId;
-    locationId = target.locationId;
+  // Sin regla que case: si la org tiene una sola playa, se asigna igualmente
+  // (producto más parecido por nombre, o el primero), se aprende la regla y
+  // se avisa. La reserva nunca se queda fuera del cuadro por falta de regla.
+  let effectiveTarget = target;
+  if (!effectiveTarget && parsed.kind === "new") {
+    const [locations, products] = await Promise.all([
+      db.select().from(schema.locations).where(eq(schema.locations.orgId, orgId)),
+      db.select().from(schema.products).where(eq(schema.products.orgId, orgId)),
+    ]);
+    const activeLocations = locations.filter((l) => l.active);
+    if (activeLocations.length === 1) {
+      const loc = activeLocations[0];
+      const candidates = products.filter((p) => p.active && p.locationId === loc.id);
+      const byName =
+        candidates.find((p) =>
+          parsed.rawProductName.toLowerCase().includes(p.name.toLowerCase()),
+        ) ?? candidates.find((p) => p.kind === "tour") ?? candidates[0];
+      if (byName) {
+        effectiveTarget = { productId: byName.id, locationId: loc.id };
+        fallbackMapping = `${byName.name} · ${loc.name}`;
+        // Regla aprendida (prioridad baja): el próximo email entra directo.
+        const matchValue = (parsed.externalProductCode ?? parsed.rawProductName).slice(0, 120);
+        const dup = rules.some(
+          (r) => r.active && r.matchValue.toLowerCase() === matchValue.toLowerCase(),
+        );
+        if (!dup && matchValue.trim()) {
+          await db.insert(schema.mappingRules).values({
+            orgId,
+            priority: 500,
+            matchType: "contains",
+            matchValue,
+            targetProductId: byName.id,
+            targetLocationId: loc.id,
+          });
+        }
+      }
+    }
+  }
+
+  if (effectiveTarget) {
+    productId = effectiveTarget.productId;
+    locationId = effectiveTarget.locationId;
     const slots = await db
       .select()
       .from(schema.timeSlots)
       .where(eq(schema.timeSlots.orgId, orgId));
-    const slot = target.timeSlotId
-      ? slots.find((s) => s.id === target.timeSlotId) ?? null
-      : resolveTimeSlot(slots, target.locationId, target.productId, parsed.activityTime);
+    const slot = effectiveTarget.timeSlotId
+      ? slots.find((s) => s.id === effectiveTarget!.timeSlotId) ?? null
+      : resolveTimeSlot(slots, effectiveTarget.locationId, effectiveTarget.productId, parsed.activityTime);
     if (slot) {
       departureId = await ensureDeparture(orgId, slot.id, activityDate);
     } else if (parsed.activityTime) {
       // Hora fuera de la plantilla: se acepta igualmente creando una
-      // salida "extra" para ese día a esa hora.
-      departureId = await ensureAdHocDeparture(
+      // salida "extra" para ese día a esa hora, con aviso.
+      const adHoc = await ensureAdHocDeparture(
         orgId,
         activityDate,
         parsed.activityTime,
-        target.productId,
-        target.locationId,
+        effectiveTarget.productId,
+        effectiveTarget.locationId,
         slots,
       );
+      departureId = adHoc.id;
+      if (adHoc.created) {
+        adHocCreated = { date: activityDate, time: parsed.activityTime.slice(0, 5) };
+      }
     }
   }
 
   const isCancellation = parsed.kind === "cancellation";
   const status = isCancellation
     ? ("cancelled" as const)
-    : target && departureId
+    : effectiveTarget && departureId
       ? ("confirmed" as const)
       : ("pending_review" as const);
 
@@ -236,26 +317,19 @@ export async function upsertParsedBooking(
     updatedAt: new Date(),
   };
 
-  if (isCancellation) {
-    // Una cancelación solo debe tocar el estado de la reserva existente
-    // (si no existe, se crea ya cancelada para dejar constancia).
-    const existing = await db
-      .select({ id: schema.bookings.id })
-      .from(schema.bookings)
-      .where(
-        and(
-          eq(schema.bookings.orgId, orgId),
-          eq(schema.bookings.source, parsed.source),
-          eq(schema.bookings.externalRef, parsed.externalRef),
-        ),
-      );
-    if (existing.length > 0) {
-      await db
-        .update(schema.bookings)
-        .set({ status: "cancelled", cancelledAt: new Date(), updatedAt: new Date() })
-        .where(eq(schema.bookings.id, existing[0].id));
-      return existing[0].id;
-    }
+  if (isCancellation && prior.length > 0) {
+    // Una cancelación solo debe tocar el estado de la reserva existente.
+    await db
+      .update(schema.bookings)
+      .set({ status: "cancelled", cancelledAt: new Date(), updatedAt: new Date() })
+      .where(eq(schema.bookings.id, prior[0].id));
+    return {
+      bookingId: prior[0].id,
+      activityDate,
+      adHocCreated: null,
+      fallbackMapping: null,
+      unassigned: false,
+    };
   }
 
   const inserted = await db
@@ -266,7 +340,13 @@ export async function upsertParsedBooking(
       set: values,
     })
     .returning({ id: schema.bookings.id });
-  return inserted[0].id;
+  return {
+    bookingId: inserted[0].id,
+    activityDate,
+    adHocCreated,
+    fallbackMapping,
+    unassigned: status === "pending_review",
+  };
 }
 
 /** Notifica alta/cancelación/modificación y, si procede, la sobre-reserva. */
@@ -353,7 +433,7 @@ export async function ensureAdHocDeparture(
   productId: string,
   locationId: string,
   slots: TimeSlot[],
-): Promise<string> {
+): Promise<{ id: string; created: boolean }> {
   const db = await getDb();
   const time = startTime.length === 5 ? `${startTime}:00` : startTime;
   const existing = await db
@@ -368,7 +448,7 @@ export async function ensureAdHocDeparture(
         isNull(schema.departures.timeSlotId),
       ),
     );
-  if (existing.length > 0) return existing[0].id;
+  if (existing.length > 0) return { id: existing[0].id, created: false };
 
   const capacity = Math.max(
     12,
@@ -387,7 +467,7 @@ export async function ensureAdHocDeparture(
       notes: "Salida extra creada automáticamente (hora fuera de la plantilla)",
     })
     .returning({ id: schema.departures.id });
-  return row.id;
+  return { id: row.id, created: true };
 }
 
 /** Crea (si no existe) la salida materializada franja+fecha y devuelve su id. */
