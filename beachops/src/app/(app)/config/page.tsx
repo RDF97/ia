@@ -5,6 +5,7 @@ import {
   createProduct,
   createTimeSlot,
   deleteMappingRule,
+  disconnectEmailAccount,
   syncNow,
   toggleLocation,
   toggleProduct,
@@ -82,6 +83,14 @@ export default async function ConfigPage({
                 {a.syncStatus !== "active" && (
                   <span className="text-xs text-red-500">{a.lastError ?? "error"} — reconecta</span>
                 )}
+                <form action={disconnectEmailAccount.bind(null, a.id)} className="ml-auto">
+                  <button
+                    className="text-xs px-2 py-0.5 rounded border border-slate-300 text-slate-500 hover:text-red-600 hover:border-red-300"
+                    title="Borra las credenciales; los emails y reservas ya importados se conservan"
+                  >
+                    ✕ desconectar
+                  </button>
+                </form>
               </li>
             ))}
           </ul>

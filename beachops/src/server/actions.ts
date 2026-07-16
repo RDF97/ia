@@ -233,6 +233,31 @@ export async function syncNow() {
   revalidatePath("/");
 }
 
+/**
+ * Desconecta una cuenta de correo: borra sus credenciales y la cuenta.
+ * Los emails ya importados y sus reservas se conservan (solo se desvinculan).
+ */
+export async function disconnectEmailAccount(accountId: string) {
+  const session = await requireSession();
+  const db = await getDb();
+  const [account] = await db
+    .select()
+    .from(schema.emailAccounts)
+    .where(
+      and(
+        eq(schema.emailAccounts.id, accountId),
+        eq(schema.emailAccounts.orgId, session.orgId),
+      ),
+    );
+  if (!account) return;
+  await db
+    .update(schema.rawEmails)
+    .set({ emailAccountId: null })
+    .where(eq(schema.rawEmails.emailAccountId, accountId));
+  await db.delete(schema.emailAccounts).where(eq(schema.emailAccounts.id, accountId));
+  revalidatePath("/config");
+}
+
 /** Conecta un buzón IMAP (p. ej. Dynu): valida la conexión antes de guardar. */
 export async function connectImapAccount(
   _prev: { error?: string; ok?: boolean },
