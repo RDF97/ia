@@ -3,15 +3,19 @@ import { ActivityIndicator, Pressable, Text, TextInput, View } from "react-nativ
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useHogar } from "@/lib/hogar";
 import { useAuth } from "@/lib/auth";
+import { redeemInvite } from "@/lib/invites";
 import { useTheme } from "@/theme/theme";
 
 export default function HogarOnboarding() {
   const t = useTheme();
-  const { createHogar } = useHogar();
+  const { createHogar, reload } = useHogar();
   const { logout } = useAuth();
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [joining, setJoining] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
 
   const submit = async () => {
     if (!name.trim()) return;
@@ -24,6 +28,20 @@ export default function HogarOnboarding() {
       setError(e instanceof Error ? e.message : "No se pudo crear el hogar");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const join = async () => {
+    if (!code.trim()) return;
+    setJoining(true);
+    setJoinError(null);
+    try {
+      await redeemInvite(code);
+      await reload(); // el candado de navegación te lleva a las pestañas
+    } catch (e) {
+      setJoinError(e instanceof Error ? e.message : "No se pudo unir al hogar");
+    } finally {
+      setJoining(false);
     }
   };
 
@@ -61,11 +79,37 @@ export default function HogarOnboarding() {
           )}
         </Pressable>
 
-        <Text className="text-[13px] text-secondary text-center mt-6">
-          ¿Te han invitado? Abre el enlace de invitación que te han enviado.
-        </Text>
+        <View className="flex-row items-center my-6" style={{ gap: 12 }}>
+          <View className="flex-1" style={{ height: 0.5, backgroundColor: t.separator }} />
+          <Text className="text-[12px] text-tertiary">o únete a uno</Text>
+          <View className="flex-1" style={{ height: 0.5, backgroundColor: t.separator }} />
+        </View>
 
-        <Pressable onPress={logout} className="mt-4 items-center">
+        <Text className="text-[14px] text-secondary mb-2">
+          ¿Te han invitado? Pega aquí el código (o abre el enlace que te han pasado).
+        </Text>
+        <View className="flex-row" style={{ gap: 8 }}>
+          <TextInput
+            className="flex-1 bg-card rounded-lg2 px-4 py-3 text-[16px] text-label"
+            placeholder="Código de invitación"
+            placeholderTextColor={t.labelTertiary}
+            value={code}
+            onChangeText={setCode}
+            autoCapitalize="characters"
+            autoCorrect={false}
+          />
+          <Pressable
+            onPress={join}
+            disabled={joining || !code.trim()}
+            className="rounded-lg2 px-5 items-center justify-center"
+            style={{ backgroundColor: t.accent, opacity: joining || !code.trim() ? 0.6 : 1 }}
+          >
+            {joining ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-base font-semibold">Unirme</Text>}
+          </Pressable>
+        </View>
+        {joinError && <Text className="text-[13px] mt-2" style={{ color: t.red }}>{joinError}</Text>}
+
+        <Pressable onPress={logout} className="mt-6 items-center">
           <Text className="text-[14px]" style={{ color: t.accent }}>
             Cerrar sesión
           </Text>

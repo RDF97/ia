@@ -1,0 +1,10 @@
+{
+  "name": "join-hogar",
+  "version": "1.0.0",
+  "description": "Añade al usuario a un hogar (equipo) a partir de un código de invitación.",
+  "type": "module",
+  "main": "src/main.js",
+  "dependencies": {
+    "node-appwrite": "^14.0.0"
+  }
+}

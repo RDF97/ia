@@ -7,7 +7,6 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import * as Linking from "expo-linking";
 import { ID, type Models } from "react-native-appwrite";
 import { teams } from "./appwrite";
 import { useAuth } from "./auth";
@@ -20,7 +19,6 @@ interface HogarContextValue {
   loading: boolean;
   reload: () => Promise<void>;
   createHogar: (name: string) => Promise<Hogar>;
-  invite: (email: string) => Promise<void>;
   leaveHogar: () => Promise<void>;
 }
 
@@ -61,17 +59,6 @@ export function HogarProvider({ children }: { children: ReactNode }) {
     [reload],
   );
 
-  // Invita por email: la persona recibe un enlace para unirse al hogar.
-  const invite = useCallback(
-    async (email: string) => {
-      const active = hogares[0];
-      if (!active) throw new Error("No hay un hogar activo");
-      const redirect = Linking.createURL("/join");
-      await teams.createMembership(active.$id, ["member"], email, undefined, undefined, redirect);
-    },
-    [hogares],
-  );
-
   // Salir del hogar: si eres el único miembro se elimina el hogar entero;
   // si hay más, se borra solo tu membresía.
   const leaveHogar = useCallback(async () => {
@@ -89,8 +76,8 @@ export function HogarProvider({ children }: { children: ReactNode }) {
   }, [hogares, user, reload]);
 
   const value = useMemo<HogarContextValue>(
-    () => ({ hogares, active: hogares[0] ?? null, loading, reload, createHogar, invite, leaveHogar }),
-    [hogares, loading, reload, createHogar, invite, leaveHogar],
+    () => ({ hogares, active: hogares[0] ?? null, loading, reload, createHogar, leaveHogar }),
+    [hogares, loading, reload, createHogar, leaveHogar],
   );
 
   return <HogarContext.Provider value={value}>{children}</HogarContext.Provider>;
