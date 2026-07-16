@@ -228,6 +228,23 @@ describe("pipeline email → reserva", () => {
     expect(learned[0].priority).toBe(500);
   });
 
+  it("una respuesta directa de cliente (RE:) se marca como mensaje", async () => {
+    const db = await getDb();
+    await ingest(
+      "msg-reply-1",
+      '"Billie" <billie@example.com>',
+      "RE: Cost ?",
+      "<p>How much is the kayak tour?</p>",
+    );
+    const [raw] = await db
+      .select()
+      .from(schema.rawEmails)
+      .where(eq(schema.rawEmails.gmailMessageId, "msg-reply-1"));
+    expect(raw.detectedKind).toBe("message");
+    expect(raw.parseStatus).toBe("ignored");
+    expect(raw.parseError).toBeNull();
+  });
+
   it("un email irrelevante se ignora sin crear nada", async () => {
     const db = await getDb();
     await ingest("msg-spam-1", "newsletter@example.com", "Ofertas de verano", "<p>spam</p>");

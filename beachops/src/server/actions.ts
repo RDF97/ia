@@ -227,7 +227,10 @@ export async function ignoreEmail(rawEmailId: string) {
   revalidatePath("/emails");
 }
 
-/** Reprocesa todos los emails fallidos (p. ej. tras mejorar los parsers). */
+/**
+ * Reprocesa los emails fallidos y también los de reservas que quedaron
+ * "sin asignar" (para que cojan las mejoras de mapeo/parsers).
+ */
 export async function retryAllFailed() {
   const session = await requireSession();
   const db = await getDb();
@@ -240,10 +243,21 @@ export async function retryAllFailed() {
         eq(schema.rawEmails.parseStatus, "failed"),
       ),
     );
-  for (const raw of failed) {
+  const pending = await db
+    .select({ raw: schema.rawEmails })
+    .from(schema.rawEmails)
+    .innerJoin(schema.bookings, eq(schema.rawEmails.bookingId, schema.bookings.id))
+    .where(
+      and(
+        eq(schema.rawEmails.orgId, session.orgId),
+        eq(schema.bookings.status, "pending_review"),
+      ),
+    );
+  for (const raw of [...failed, ...pending.map((p) => p.raw)]) {
     await processRawEmail(raw);
   }
   revalidatePath("/emails");
+  revalidatePath("/");
 }
 
 export async function syncNow() {

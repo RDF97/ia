@@ -27,6 +27,29 @@ export async function processRawEmail(raw: RawEmail): Promise<void> {
 
   const parser = detectParser(email);
   if (!parser) {
+    // Respuestas directas de clientes al buzón ("RE: ...") → mensaje con aviso
+    if (/^\s*(re|rv|fw|fwd)\s*:/i.test(raw.subject ?? "")) {
+      await db
+        .update(schema.rawEmails)
+        .set({
+          detectedSource: "unknown",
+          detectedKind: "message",
+          parseStatus: "ignored",
+          parseError: null,
+          processedAt: new Date(),
+        })
+        .where(eq(schema.rawEmails.id, raw.id));
+      if (isRecent(raw.receivedAt)) {
+        const sender = raw.fromAddress?.replace(/\s*<[^>]*>/, "").replace(/"/g, "") ?? "Cliente";
+        await sendPushToOrg(raw.orgId, {
+          title: `💬 Respuesta de cliente — ${sender}`,
+          body: raw.subject ?? "Nuevo mensaje",
+          url: "/emails",
+          tag: `msg-${raw.id}`,
+        });
+      }
+      return;
+    }
     const failed = looksLikeBooking(email);
     await db
       .update(schema.rawEmails)
@@ -60,6 +83,7 @@ export async function processRawEmail(raw: RawEmail): Promise<void> {
         detectedSource: parser.source,
         detectedKind: "message",
         parseStatus: "ignored",
+        parseError: null,
         processedAt: new Date(),
       })
       .where(eq(schema.rawEmails.id, raw.id));
@@ -83,6 +107,7 @@ export async function processRawEmail(raw: RawEmail): Promise<void> {
         detectedSource: parser.source,
         detectedKind: "other",
         parseStatus: "ignored",
+        parseError: null,
         processedAt: new Date(),
       })
       .where(eq(schema.rawEmails.id, raw.id));

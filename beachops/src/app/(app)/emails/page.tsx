@@ -82,7 +82,9 @@ export default async function EmailsPage() {
                   <td className="px-2 py-1.5">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${s.cls}`}>{s.text}</span>
                   </td>
-                  <td className="px-2 py-1.5 text-xs text-red-500 max-w-52">{r.parseError}</td>
+                  <td className="px-2 py-1.5 text-xs text-red-500 max-w-52">
+                    {r.parseStatus === "failed" ? r.parseError : null}
+                  </td>
                   <td className="px-2 py-1.5 whitespace-nowrap">
                     {r.parseStatus === "failed" && (
                       <span className="flex gap-1">
