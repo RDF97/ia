@@ -1,5 +1,5 @@
 import { parseBokunDate } from "./dates";
-import { extractLabeledFields, fullText } from "./html";
+import { bestBody, extractLabeledFields, fullText } from "./html";
 import { parsePhone } from "./phone";
 import { EmailInput, EmailKind, EmailParser, ParseError, ParsedBooking } from "./types";
 
@@ -29,7 +29,8 @@ export const bokunParser: EmailParser = {
   },
 
   parse(email: EmailInput): ParsedBooking {
-    const html = email.bodyHtml ?? "";
+    const kind = this.classify(email);
+    const html = bestBody(email.bodyHtml, email.bodyText);
     const fields = extractLabeledFields(html);
     const subjectMatch = (email.subject ?? "").match(SUBJECT_RE);
 
@@ -40,13 +41,15 @@ export const bokunParser: EmailParser = {
 
     const dateRaw = fields.get("date") ?? email.subject ?? "";
     const parsedDate = parseBokunDate(dateRaw);
-    if (!parsedDate) throw new ParseError("activityDate", `Fecha no reconocida: ${dateRaw}`);
+    if (!parsedDate && kind === "new") {
+      throw new ParseError("activityDate", `Fecha no reconocida: ${dateRaw}`);
+    }
 
     const productRaw = fields.get("product") ?? fields.get("rate") ?? "";
     const productMatch = productRaw.match(/^(\w+)\s*-\s*(.+)$/);
     const rawProductName = productMatch ? productMatch[2].trim() : productRaw.trim();
     const externalProductCode = productMatch?.[1];
-    if (!rawProductName) {
+    if (!rawProductName && kind === "new") {
       throw new ParseError("rawProductName", "No se encontró el producto en el email");
     }
 
@@ -69,13 +72,13 @@ export const bokunParser: EmailParser = {
 
     return {
       source: "bokun_viator",
-      kind: this.classify(email),
+      kind,
       channel: fields.get("booking channel") ?? fields.get("sold by") ?? "Bókun",
       externalRef: ref,
       externalRefSecondary: fields.get("product booking ref") ?? subjectMatch?.[2],
-      activityDate: parsedDate.date,
-      activityTime: parsedDate.time,
-      rawProductName,
+      activityDate: parsedDate?.date,
+      activityTime: parsedDate?.time,
+      rawProductName: rawProductName || "Producto Bókun",
       externalProductCode,
       paxAdults: adults ? Number(adults) : 0,
       paxChildren: children ? Number(children) : 0,

@@ -142,6 +142,64 @@ describe("pipeline email → reserva", () => {
     expect(dep.capacityOverride).toBe(12);
   });
 
+  it("una cancelación sin fecha en el cuerpo cancela la reserva existente por referencia", async () => {
+    const db = await getDb();
+    // Alta previa (con fecha)
+    await ingest(
+      "msg-gyg-3",
+      "no-reply@getyourguide.com",
+      "Booking - S436088 - GYGCANCELSINFECHA",
+      fixture("gyg-new.html").replace(/GYGTESTFRQ75/g, "GYGCANCELSINFECHA"),
+    );
+    // Cancelación sin cuerpo útil, referencia solo en el asunto
+    await ingest(
+      "msg-gyg-4",
+      "no-reply@getyourguide.com",
+      "A booking has been canceled - S436088 - GYGCANCELSINFECHA",
+      "<p>Open the app for details</p>",
+    );
+    const rows = await db
+      .select()
+      .from(schema.bookings)
+      .where(eq(schema.bookings.externalRef, "GYGCANCELSINFECHA"));
+    expect(rows).toHaveLength(1);
+    expect(rows[0].status).toBe("cancelled");
+    expect(rows[0].activityDate).toBe("2026-07-11"); // conserva la fecha original
+  });
+
+  it("un mensaje de cliente se marca como mensaje, sin crear reserva", async () => {
+    const db = await getDb();
+    await ingest(
+      "msg-gyg-5",
+      '"Sandra Frick via GetYourGuide" <customer-x@reply.getyourguide.com>',
+      "URGENT (directions): Sandra Frick has messaged you",
+      "<p>Where is the meeting point?</p>",
+    );
+    const [raw] = await db
+      .select()
+      .from(schema.rawEmails)
+      .where(eq(schema.rawEmails.gmailMessageId, "msg-gyg-5"));
+    expect(raw.detectedKind).toBe("message");
+    expect(raw.parseStatus).toBe("ignored");
+    expect(raw.bookingId).toBeNull();
+  });
+
+  it("una reseña se ignora sin marcar fallo", async () => {
+    const db = await getDb();
+    await ingest(
+      "msg-gyg-6",
+      "GetYourGuide <do-not-reply@getyourguide.com>",
+      "You have a new review on GetYourGuide - ⭐⭐⭐⭐⭐",
+      "<p>Amazing!</p>",
+    );
+    const [raw] = await db
+      .select()
+      .from(schema.rawEmails)
+      .where(eq(schema.rawEmails.gmailMessageId, "msg-gyg-6"));
+    expect(raw.parseStatus).toBe("ignored");
+    expect(raw.detectedKind).toBe("other");
+  });
+
   it("un email irrelevante se ignora sin crear nada", async () => {
     const db = await getDb();
     await ingest("msg-spam-1", "newsletter@example.com", "Ofertas de verano", "<p>spam</p>");

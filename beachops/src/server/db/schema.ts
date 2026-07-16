@@ -144,7 +144,7 @@ export const rawEmails = pgTable(
       enum: ["getyourguide", "bokun_viator", "unknown"],
     }),
     detectedKind: text("detected_kind", {
-      enum: ["new", "cancellation", "amendment", "other"],
+      enum: ["new", "cancellation", "amendment", "message", "other"],
     }),
     parseStatus: text("parse_status", {
       enum: ["pending", "parsed", "failed", "ignored", "manual_resolved"],

@@ -40,6 +40,17 @@ export function normalize(s: string): string {
   return s.replace(/\s+/g, " ").trim();
 }
 
+export function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/** El cuerpo utilizable de un email: HTML, o el texto plano envuelto. */
+export function bestBody(bodyHtml: string | null, bodyText?: string | null): string {
+  if (bodyHtml) return bodyHtml;
+  if (bodyText) return `<pre>${escapeHtml(bodyText)}</pre>`;
+  return "";
+}
+
 /** Todo el texto plano del email, con espacios normalizados. */
 export function fullText(html: string): string {
   const $ = cheerio.load(html);

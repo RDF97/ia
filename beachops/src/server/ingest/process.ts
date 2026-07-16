@@ -50,6 +50,45 @@ export async function processRawEmail(raw: RawEmail): Promise<void> {
     return;
   }
 
+  const kind = parser.classify(email);
+
+  // Consultas/mensajes de clientes: no son reservas, pero avisan al equipo.
+  if (kind === "message") {
+    await db
+      .update(schema.rawEmails)
+      .set({
+        detectedSource: parser.source,
+        detectedKind: "message",
+        parseStatus: "ignored",
+        processedAt: new Date(),
+      })
+      .where(eq(schema.rawEmails.id, raw.id));
+    if (isRecent(raw.receivedAt)) {
+      const sender = raw.fromAddress?.replace(/\s*<[^>]*>/, "").replace(/"/g, "") ?? "Cliente";
+      await sendPushToOrg(raw.orgId, {
+        title: `💬 Consulta de cliente — ${sender}`,
+        body: raw.subject ?? "Nuevo mensaje",
+        url: "/emails",
+        tag: `msg-${raw.id}`,
+      });
+    }
+    return;
+  }
+
+  // Reseñas y demás correo de plataforma que no es una reserva
+  if (kind === "other") {
+    await db
+      .update(schema.rawEmails)
+      .set({
+        detectedSource: parser.source,
+        detectedKind: "other",
+        parseStatus: "ignored",
+        processedAt: new Date(),
+      })
+      .where(eq(schema.rawEmails.id, raw.id));
+    return;
+  }
+
   let parsed: ParsedBooking;
   try {
     parsed = parser.parse(email);
@@ -106,6 +145,24 @@ export async function upsertParsedBooking(
 ): Promise<string> {
   const db = await getDb();
 
+  // Cancelaciones/modificaciones pueden llegar sin fecha: se hereda de la
+  // reserva existente (por referencia); si no existe, la fecha de recepción.
+  const prior = await db
+    .select()
+    .from(schema.bookings)
+    .where(
+      and(
+        eq(schema.bookings.orgId, orgId),
+        eq(schema.bookings.source, parsed.source),
+        eq(schema.bookings.externalRef, parsed.externalRef),
+      ),
+    );
+  const activityDate =
+    parsed.activityDate ??
+    prior[0]?.activityDate ??
+    new Date().toISOString().slice(0, 10);
+  parsed = { ...parsed, activityDate };
+
   // Mapeo → producto/playa; franja por hora parseada (o forzada por la regla).
   const rules = await db
     .select()
@@ -128,13 +185,13 @@ export async function upsertParsedBooking(
       ? slots.find((s) => s.id === target.timeSlotId) ?? null
       : resolveTimeSlot(slots, target.locationId, target.productId, parsed.activityTime);
     if (slot) {
-      departureId = await ensureDeparture(orgId, slot.id, parsed.activityDate);
+      departureId = await ensureDeparture(orgId, slot.id, activityDate);
     } else if (parsed.activityTime) {
       // Hora fuera de la plantilla: se acepta igualmente creando una
       // salida "extra" para ese día a esa hora.
       departureId = await ensureAdHocDeparture(
         orgId,
-        parsed.activityDate,
+        activityDate,
         parsed.activityTime,
         target.productId,
         target.locationId,
@@ -158,7 +215,7 @@ export async function upsertParsedBooking(
     externalRef: parsed.externalRef,
     externalRefSecondary: parsed.externalRefSecondary,
     status,
-    activityDate: parsed.activityDate,
+    activityDate,
     activityTime: parsed.activityTime,
     productId,
     locationId,
@@ -219,15 +276,22 @@ async function notifyBookingEvent(
   bookingId: string,
 ): Promise<void> {
   const db = await getDb();
-  const pax = parsed.paxAdults + parsed.paxChildren;
-  const when = `${parsed.activityDate}${parsed.activityTime ? ` · ${parsed.activityTime}` : ""}`;
-  const who = parsed.customerName ?? parsed.externalRef;
-  const url = `/cuadro/${parsed.activityDate}`;
+  const [booking] = await db
+    .select()
+    .from(schema.bookings)
+    .where(eq(schema.bookings.id, bookingId));
+  if (!booking) return;
+
+  const pax = booking.paxAdults + booking.paxChildren;
+  const when = `${booking.activityDate}${booking.activityTime ? ` · ${booking.activityTime.slice(0, 5)}` : ""}`;
+  const who = booking.customerName ?? booking.externalRef;
+  const url = `/cuadro/${booking.activityDate}`;
 
   const titles = {
     new: `🛶 Nueva reserva — ${parsed.channel}`,
     cancellation: `✕ Reserva cancelada — ${parsed.channel}`,
     amendment: `✎ Reserva modificada — ${parsed.channel}`,
+    message: null,
     other: null,
   } as const;
   const title = titles[parsed.kind];
@@ -242,11 +306,7 @@ async function notifyBookingEvent(
 
   // ¿La franja ha quedado sobre-reservada tras esta alta?
   if (parsed.kind !== "new") return;
-  const [booking] = await db
-    .select()
-    .from(schema.bookings)
-    .where(eq(schema.bookings.id, bookingId));
-  if (!booking?.departureId) return;
+  if (!booking.departureId) return;
   const [departure] = await db
     .select()
     .from(schema.departures)

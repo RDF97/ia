@@ -1,5 +1,5 @@
 import { parseGygDate } from "./dates";
-import { extractLabeledFields, fullText, productHeading } from "./html";
+import { bestBody, extractLabeledFields, fullText, productHeading } from "./html";
 import { parsePhone } from "./phone";
 import { EmailInput, EmailKind, EmailParser, ParseError, ParsedBooking } from "./types";
 
@@ -10,31 +10,53 @@ export const gygParser: EmailParser = {
 
   detect(email: EmailInput): boolean {
     const from = email.fromAddress?.toLowerCase() ?? "";
-    if (from.includes("getyourguide.com")) return true;
+    if (from.includes("getyourguide")) return true;
     const haystack = `${email.subject ?? ""} ${email.bodyHtml ?? ""}`;
     return haystack.includes("reply.getyourguide.com") || REF_RE.test(email.subject ?? "");
   },
 
   classify(email: EmailInput): EmailKind {
-    const text = `${email.subject ?? ""} ${fullText(email.bodyHtml ?? "")}`.toLowerCase();
-    if (/cancel(ló|led|ada|ación|lation)/.test(text)) return "cancellation";
-    if (/(modified|amended|has been changed|updated booking)/.test(text)) return "amendment";
+    const subject = (email.subject ?? "").toLowerCase();
+    const from = (email.fromAddress ?? "").toLowerCase();
+    // Consultas/mensajes de clientes via la mensajería de GYG
+    if (
+      from.includes("via getyourguide") ||
+      /\(directions\)|has messaged|sent you a message|new message/.test(subject)
+    ) {
+      return "message";
+    }
+    if (/review on getyourguide|new review/.test(subject)) return "other";
+    const text = `${subject} ${fullText(email.bodyHtml ?? "")}`.toLowerCase();
+    if (/cancel(ló|led|ed|ada|ación|lation)/.test(text)) return "cancellation";
+    if (/(modified|amended|has been changed|updated booking|detail change|booking changes)/.test(text)) {
+      return "amendment";
+    }
     if (/(booking|reserva)/.test(text)) return "new";
     return "other";
   },
 
   parse(email: EmailInput): ParsedBooking {
-    const html = email.bodyHtml ?? "";
+    const kind = this.classify(email);
+    const html = bestBody(email.bodyHtml, email.bodyText);
     const fields = extractLabeledFields(html);
     const text = fullText(html);
 
+    // La referencia puede venir en el cuerpo o solo en el asunto
     const ref =
-      fields.get("reference number")?.match(REF_RE)?.[0] ?? text.match(REF_RE)?.[0];
+      fields.get("reference number")?.match(REF_RE)?.[0] ??
+      text.match(REF_RE)?.[0] ??
+      email.subject?.match(REF_RE)?.[0];
     if (!ref) throw new ParseError("externalRef", "No se encontró la referencia GYG");
 
-    const dateRaw = fields.get("date") ?? text.match(/Date\s+([^€]+?)(?:Number|$)/)?.[1];
+    const dateRaw =
+      fields.get("date") ??
+      text.match(/Date:?\s*([A-Za-z]+ \d{1,2},\s*\d{4}(?:\s+\d{1,2}:\d{2}\s*(?:AM|PM)?)?)/i)?.[1];
     const parsedDate = dateRaw ? parseGygDate(dateRaw) : null;
-    if (!parsedDate) throw new ParseError("activityDate", `Fecha no reconocida: ${dateRaw}`);
+    // Solo las altas exigen fecha; una cancelación/modificación se resuelve
+    // por referencia contra la reserva existente.
+    if (!parsedDate && kind === "new") {
+      throw new ParseError("activityDate", `Fecha no reconocida: ${dateRaw}`);
+    }
 
     const participants = fields.get("number of participants") ?? text;
     const adults = participants.match(/(\d+)\s*x\s*Adult/i)?.[1];
@@ -56,11 +78,11 @@ export const gygParser: EmailParser = {
 
     return {
       source: "getyourguide",
-      kind: this.classify(email),
+      kind,
       channel: "GetYourGuide",
       externalRef: ref,
-      activityDate: parsedDate.date,
-      activityTime: parsedDate.time,
+      activityDate: parsedDate?.date,
+      activityTime: parsedDate?.time,
       rawProductName,
       paxAdults: adults ? Number(adults) : 0,
       paxChildren: children ? Number(children) : 0,

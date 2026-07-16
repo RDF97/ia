@@ -227,6 +227,25 @@ export async function ignoreEmail(rawEmailId: string) {
   revalidatePath("/emails");
 }
 
+/** Reprocesa todos los emails fallidos (p. ej. tras mejorar los parsers). */
+export async function retryAllFailed() {
+  const session = await requireSession();
+  const db = await getDb();
+  const failed = await db
+    .select()
+    .from(schema.rawEmails)
+    .where(
+      and(
+        eq(schema.rawEmails.orgId, session.orgId),
+        eq(schema.rawEmails.parseStatus, "failed"),
+      ),
+    );
+  for (const raw of failed) {
+    await processRawEmail(raw);
+  }
+  revalidatePath("/emails");
+}
+
 export async function syncNow() {
   await requireSession();
   await syncAllAccounts();

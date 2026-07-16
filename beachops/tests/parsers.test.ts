@@ -86,6 +86,47 @@ describe("parser GetYourGuide", () => {
     expect(parsed.kind).toBe("cancellation");
     expect(parsed.externalRef).toBe("GYGTESTFRQ75");
   });
+
+  it("cancelación con referencia solo en el asunto y sin fecha en el cuerpo", () => {
+    const parsed = gygParser.parse({
+      fromAddress: "GetYourGuide <do-not-reply@getyourguide.com>",
+      subject: "A booking has been canceled - S436088 - GYGSOLOASUNTO",
+      bodyHtml: "<p>Open the app to see details</p>",
+    });
+    expect(parsed.kind).toBe("cancellation");
+    expect(parsed.externalRef).toBe("GYGSOLOASUNTO");
+    expect(parsed.activityDate).toBeUndefined();
+  });
+
+  it("reserva nueva con cuerpo en texto plano (sin HTML)", () => {
+    const parsed = gygParser.parse({
+      fromAddress: "GetYourGuide <do-not-reply@getyourguide.com>",
+      subject: "Booking - S436088 - GYGTEXTONLY1",
+      bodyHtml: null,
+      bodyText:
+        "Reference number GYGTEXTONLY1\nDate July 20, 2026 10:00 AM\n2 x Adults (Age 10 - 99)\nPrice € 90.00",
+    });
+    expect(parsed.externalRef).toBe("GYGTEXTONLY1");
+    expect(parsed.activityDate).toBe("2026-07-20");
+    expect(parsed.paxAdults).toBe(2);
+  });
+
+  it("mensajes de clientes y reseñas se clasifican como message/other", () => {
+    expect(
+      gygParser.classify({
+        fromAddress: '"Sandra Frick via GetYourGuide" <customer-x@reply.getyourguide.com>',
+        subject: "URGENT (directions): Sandra Frick has messaged you",
+        bodyHtml: "<p>Where do we meet?</p>",
+      }),
+    ).toBe("message");
+    expect(
+      gygParser.classify({
+        fromAddress: "GetYourGuide Review <do-not-reply@getyourguide.com>",
+        subject: "You have a new review on GetYourGuide - 5 stars",
+        bodyHtml: "<p>Great tour</p>",
+      }),
+    ).toBe("other");
+  });
 });
 
 describe("parser Bókun/Viator", () => {

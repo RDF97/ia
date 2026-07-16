@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
-import { ignoreEmail, reprocessEmail, syncNow } from "@/server/actions";
+import { ignoreEmail, reprocessEmail, retryAllFailed, syncNow } from "@/server/actions";
 import { requireSession } from "@/server/auth";
 import { getDb, schema } from "@/server/db";
 
@@ -36,9 +37,16 @@ export default async function EmailsPage() {
       </header>
 
       {failed.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
-          ⚠ {failed.length} email{failed.length > 1 ? "s" : ""} no se pudieron procesar. Revísalos
-          abajo: puedes reintentar (tras ajustar reglas) o crear la reserva a mano.
+        <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700 flex items-center gap-3 flex-wrap">
+          <span>
+            ⚠ {failed.length} email{failed.length > 1 ? "s" : ""} no se pudieron procesar. Toca un
+            asunto para ver su contenido.
+          </span>
+          <form action={retryAllFailed} className="ml-auto">
+            <button className="px-3 py-1 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700">
+              ↻ Reintentar todos los fallidos
+            </button>
+          </form>
         </div>
       )}
 
@@ -56,14 +64,21 @@ export default async function EmailsPage() {
           </thead>
           <tbody>
             {rows.map((r) => {
-              const s = STATUS[r.parseStatus] ?? STATUS.pending;
+              const s =
+                r.detectedKind === "message"
+                  ? { text: "💬 mensaje", cls: "bg-sky-100 text-sky-700" }
+                  : STATUS[r.parseStatus] ?? STATUS.pending;
               return (
                 <tr key={r.id} className="border-t border-slate-100 align-top">
                   <td className="px-3 py-1.5 whitespace-nowrap text-xs text-slate-500">
                     {r.receivedAt ? new Date(r.receivedAt).toLocaleString("es-ES") : "—"}
                   </td>
                   <td className="px-2 py-1.5 text-xs max-w-40 truncate">{r.fromAddress}</td>
-                  <td className="px-2 py-1.5 max-w-72 truncate">{r.subject}</td>
+                  <td className="px-2 py-1.5 max-w-72 truncate">
+                    <Link href={`/emails/${r.id}`} className="hover:text-blue-700 hover:underline">
+                      {r.subject ?? "(sin asunto)"}
+                    </Link>
+                  </td>
                   <td className="px-2 py-1.5">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${s.cls}`}>{s.text}</span>
                   </td>

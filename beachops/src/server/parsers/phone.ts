@@ -1,4 +1,5 @@
-import parsePhoneNumberFromString from "libphonenumber-js";
+// Import con nombre: el default rompe con el empaquetado CJS/ESM del servidor
+import { parsePhoneNumberFromString } from "libphonenumber-js";
 
 /** Normaliza un teléfono y deriva el país (ISO-2) del prefijo. */
 export function parsePhone(raw: string | undefined | null): {

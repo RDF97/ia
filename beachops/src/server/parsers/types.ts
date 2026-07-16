@@ -1,5 +1,5 @@
 export type BookingSource = "getyourguide" | "bokun_viator";
-export type EmailKind = "new" | "cancellation" | "amendment" | "other";
+export type EmailKind = "new" | "cancellation" | "amendment" | "message" | "other";
 
 /** Lo mínimo de un email para poder parsearlo (subconjunto de raw_emails). */
 export type EmailInput = {
@@ -15,8 +15,9 @@ export type ParsedBooking = {
   channel: string;
   externalRef: string;
   externalRefSecondary?: string;
-  /** Fecha de la actividad en hora local de la org: YYYY-MM-DD */
-  activityDate: string;
+  /** Fecha de la actividad en hora local (YYYY-MM-DD). Puede faltar en
+   *  cancelaciones/modificaciones: se resuelve con la reserva existente. */
+  activityDate?: string;
   /** Hora local HH:MM, si el email la trae */
   activityTime?: string;
   rawProductName: string;
