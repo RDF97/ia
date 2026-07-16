@@ -1,6 +1,24 @@
 import { Account, Client, Teams } from "react-native-appwrite";
 import Constants from "expo-constants";
 
+// react-native-appwrite, al procesar mensajes de tiempo real, lee
+// `window.localStorage` (que no existe en React Native) y lanza un error que
+// rompe el auto-refresco. Le damos un almacén en memoria mínimo.
+const g = globalThis as unknown as { window?: { localStorage?: unknown } };
+if (typeof g.window === "undefined") g.window = {};
+if (!g.window.localStorage) {
+  const store: Record<string, string> = {};
+  g.window.localStorage = {
+    getItem: (k: string) => (Object.prototype.hasOwnProperty.call(store, k) ? store[k] : null),
+    setItem: (k: string, v: string) => {
+      store[k] = String(v);
+    },
+    removeItem: (k: string) => {
+      delete store[k];
+    },
+  };
+}
+
 const extra = (Constants.expoConfig?.extra ?? {}) as {
   appwriteEndpoint?: string;
   appwriteProjectId?: string;
