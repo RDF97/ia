@@ -4,12 +4,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { teams } from "@/lib/appwrite";
 import { useHogar } from "@/lib/hogar";
+import { redeemInvite } from "@/lib/invites";
 import { useTheme } from "@/theme/theme";
 
 // Pantalla a la que lleva el enlace de invitación (deep link homie://join?...).
 export default function Join() {
   const t = useTheme();
   const params = useLocalSearchParams<{
+    code?: string;
     teamId?: string;
     membershipId?: string;
     userId?: string;
@@ -22,14 +24,19 @@ export default function Join() {
 
   useEffect(() => {
     (async () => {
-      const { teamId, membershipId, userId, secret } = params;
-      if (!teamId || !membershipId || !userId || !secret) {
-        setStatus("error");
-        setMsg("Enlace de invitación inválido o incompleto.");
-        return;
-      }
+      const { code, teamId, membershipId, userId, secret } = params;
       try {
-        await teams.updateMembershipStatus(teamId, membershipId, userId, secret);
+        if (code) {
+          // Enlace nuevo por código: la función del servidor añade al hogar.
+          await redeemInvite(code);
+        } else if (teamId && membershipId && userId && secret) {
+          // Enlace clásico por email (secreto de Appwrite).
+          await teams.updateMembershipStatus(teamId, membershipId, userId, secret);
+        } else {
+          setStatus("error");
+          setMsg("Enlace de invitación inválido o incompleto.");
+          return;
+        }
         await reload();
         setStatus("ok");
         setTimeout(() => router.replace("/"), 900);

@@ -1,4 +1,4 @@
-import { Account, Client, Teams } from "react-native-appwrite";
+import { Account, Client, Functions, Teams } from "react-native-appwrite";
 import Constants from "expo-constants";
 
 // react-native-appwrite, al procesar mensajes de tiempo real, lee
@@ -38,3 +38,4 @@ export const client = new Client()
 
 export const account = new Account(client);
 export const teams = new Teams(client);
+export const functions = new Functions(client);

@@ -11,6 +11,8 @@ const extra = (Constants.expoConfig?.extra ?? {}) as {
   appwriteProductsCollectionId?: string;
   appwritePricesCollectionId?: string;
   appwriteCategoriesCollectionId?: string;
+  appwriteInvitesCollectionId?: string;
+  appwriteJoinFunctionId?: string;
 };
 
 export const DB_ID = extra.appwriteDatabaseId ?? "homie";
@@ -21,5 +23,7 @@ export const EVENTS_COL = extra.appwriteEventsCollectionId ?? "events";
 export const PRODUCTS_COL = extra.appwriteProductsCollectionId ?? "products";
 export const PRICES_COL = extra.appwritePricesCollectionId ?? "price_points";
 export const CATEGORIES_COL = extra.appwriteCategoriesCollectionId ?? "categories";
+export const INVITES_COL = extra.appwriteInvitesCollectionId ?? "invites";
+export const JOIN_FUNCTION_ID = extra.appwriteJoinFunctionId ?? "joinHogar";
 
 export const databases = new Databases(client);

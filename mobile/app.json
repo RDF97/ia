@@ -56,7 +56,9 @@
       "appwriteEventsCollectionId": "events",
       "appwriteProductsCollectionId": "products",
       "appwritePricesCollectionId": "price_points",
-      "appwriteCategoriesCollectionId": "categories"
+      "appwriteCategoriesCollectionId": "categories",
+      "appwriteInvitesCollectionId": "invites",
+      "appwriteJoinFunctionId": "joinHogar"
     }
   }
 }
