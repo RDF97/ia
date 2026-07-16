@@ -6,6 +6,7 @@ import { parsePhone } from "../src/server/parsers/phone";
 import { detectParser } from "../src/server/parsers/registry";
 import { gygParser } from "../src/server/parsers/gyg";
 import { bokunParser } from "../src/server/parsers/bokun";
+import { freedomeParser } from "../src/server/parsers/freedome";
 
 function fixture(name: string): string {
   return readFileSync(path.join(__dirname, "..", "fixtures", "emails", name), "utf8");
@@ -126,6 +127,41 @@ describe("parser GetYourGuide", () => {
         bodyHtml: "<p>Great tour</p>",
       }),
     ).toBe("other");
+  });
+});
+
+describe("parser Freedome", () => {
+  const freedomeNew = {
+    fromAddress: '"Socios Freedome" <socios@freedome.eu>',
+    subject: "Reserva confirmada #3570000",
+    bodyHtml: fixture("freedome-new.html"),
+  };
+
+  it("se detecta por el remitente", () => {
+    expect(detectParser(freedomeNew)?.source).toBe("freedome");
+  });
+
+  it("parsea una reserva confirmada", () => {
+    const parsed = freedomeParser.parse(freedomeNew);
+    expect(parsed.externalRef).toBe("3570000");
+    expect(parsed.activityDate).toBe("2026-07-29");
+    expect(parsed.activityTime).toBe("15:00");
+    expect(parsed.paxAdults).toBe(4);
+    expect(parsed.rawProductName).toContain("kayak por el Parque Natural de Mondragó");
+    expect(parsed.customerName).toBe("Nombre Apellido Prueba");
+    expect(parsed.customerPhone).toBe("+34600112233"); // el del cliente, no el de soporte
+    expect(parsed.customerEmail).toBe("cliente@example.com");
+    expect(parsed.priceAmount).toBe("188.00");
+    expect(parsed.kind).toBe("new");
+  });
+
+  it("clasifica cancelaciones y variantes de asunto", () => {
+    expect(
+      freedomeParser.classify({ ...freedomeNew, subject: "Reserva cancelada #3570000" }),
+    ).toBe("cancellation");
+    expect(
+      freedomeParser.classify({ ...freedomeNew, subject: "Tienes una nueva reserva #3570000" }),
+    ).toBe("new");
   });
 });
 

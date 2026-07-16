@@ -141,7 +141,7 @@ export const rawEmails = pgTable(
     bodyHtml: text("body_html"),
     bodyText: text("body_text"),
     detectedSource: text("detected_source", {
-      enum: ["getyourguide", "bokun_viator", "unknown"],
+      enum: ["getyourguide", "bokun_viator", "freedome", "unknown"],
     }),
     detectedKind: text("detected_kind", {
       enum: ["new", "cancellation", "amendment", "message", "other"],
@@ -171,7 +171,9 @@ export const bookings = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     orgId: uuid("org_id").notNull().references(() => orgs.id),
     departureId: uuid("departure_id").references(() => departures.id),
-    source: text("source", { enum: ["getyourguide", "bokun_viator", "manual"] }).notNull(),
+    source: text("source", {
+      enum: ["getyourguide", "bokun_viator", "freedome", "manual"],
+    }).notNull(),
     channel: text("channel"),
     externalRef: text("external_ref"),
     externalRefSecondary: text("external_ref_secondary"),
@@ -221,7 +223,7 @@ export const mappingRules = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     orgId: uuid("org_id").notNull().references(() => orgs.id),
     priority: integer("priority").notNull().default(100),
-    source: text("source", { enum: ["getyourguide", "bokun_viator"] }),
+    source: text("source", { enum: ["getyourguide", "bokun_viator", "freedome"] }),
     matchField: text("match_field", {
       enum: ["raw_product_name", "subject"],
     })

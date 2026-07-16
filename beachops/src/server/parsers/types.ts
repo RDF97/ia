@@ -1,4 +1,4 @@
-export type BookingSource = "getyourguide" | "bokun_viator";
+export type BookingSource = "getyourguide" | "bokun_viator" | "freedome";
 export type EmailKind = "new" | "cancellation" | "amendment" | "message" | "other";
 
 /** Lo mínimo de un email para poder parsearlo (subconjunto de raw_emails). */

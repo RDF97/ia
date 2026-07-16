@@ -245,6 +245,31 @@ describe("pipeline email → reserva", () => {
     expect(raw.parseError).toBeNull();
   });
 
+  it("una reserva de Freedome entra al cuadro con su franja de las 15:00", async () => {
+    const db = await getDb();
+    await ingest(
+      "msg-freedome-1",
+      '"Socios Freedome" <socios@freedome.eu>',
+      "Reserva confirmada #3570000",
+      fixture("freedome-new.html"),
+    );
+    const rows = await db
+      .select()
+      .from(schema.bookings)
+      .where(eq(schema.bookings.externalRef, "3570000"));
+    expect(rows).toHaveLength(1);
+    expect(rows[0].source).toBe("freedome");
+    expect(rows[0].status).toBe("confirmed");
+    expect(rows[0].activityDate).toBe("2026-07-29");
+    expect(rows[0].paxAdults).toBe(4);
+    expect(rows[0].departureId).not.toBeNull();
+    const [dep] = await db
+      .select()
+      .from(schema.departures)
+      .where(eq(schema.departures.id, rows[0].departureId!));
+    expect(dep.startTime.slice(0, 5)).toBe("15:00");
+  });
+
   it("un email irrelevante se ignora sin crear nada", async () => {
     const db = await getDb();
     await ingest("msg-spam-1", "newsletter@example.com", "Ofertas de verano", "<p>spam</p>");

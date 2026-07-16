@@ -1,8 +1,9 @@
 import { bokunParser } from "./bokun";
+import { freedomeParser } from "./freedome";
 import { gygParser } from "./gyg";
 import { EmailInput, EmailParser } from "./types";
 
-export const parsers: EmailParser[] = [gygParser, bokunParser];
+export const parsers: EmailParser[] = [gygParser, bokunParser, freedomeParser];
 
 export function detectParser(email: EmailInput): EmailParser | null {
   return parsers.find((p) => p.detect(email)) ?? null;
