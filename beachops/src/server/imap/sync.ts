@@ -30,6 +30,7 @@ export async function testImapConnection(
   port: number,
   user: string,
   password: string,
+  timeoutMs = 15_000,
 ): Promise<void> {
   const imap = new ImapFlow({
     host,
@@ -37,9 +38,27 @@ export async function testImapConnection(
     secure: port === 993,
     auth: { user, pass: password },
     logger: false,
+    connectionTimeout: timeoutMs,
+    greetingTimeout: timeoutMs,
   });
-  await imap.connect();
-  await imap.logout();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () =>
+        reject(
+          new Error(
+            `el servidor ${host}:${port} no responde (¿es el servidor IMAP correcto? El webmail no vale)`,
+          ),
+        ),
+      timeoutMs,
+    );
+  });
+  try {
+    await Promise.race([imap.connect().then(() => imap.logout()), timeout]);
+  } finally {
+    clearTimeout(timer);
+    imap.close();
+  }
 }
 
 /**
