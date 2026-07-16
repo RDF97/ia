@@ -1,0 +1,520 @@
+<title>La de Manu · Redes que no parezcan IA</title>
+<style>
+  :root {
+    /* Paleta "pizarra e brasa" — granito atlántico, verde ría, brasa */
+    --paper: #E9EBE5;          /* granito claro, frío-verdoso, NO crema */
+    --paper-2: #DFE2DA;
+    --ink: #1E262A;            /* pizarra casi negra */
+    --ink-soft: #47514F;
+    --ink-faint: #6E7671;
+    --line: #C9CDC2;
+    --ria: #13564A;            /* verde ría — color de marca estructural */
+    --ria-deep: #0C3B32;
+    --brasa: #C0551F;          /* brasa / pemento — pop cálido */
+    --brasa-soft: #E7A66B;
+    /* señales: IA = frío y muerto / de verdad = cálido y vivo */
+    --cold-bg: #DADEDD;
+    --cold-ink: #6B7573;
+    --cold-line: #BFC6C4;
+    --warn: #9A4038;
+    --warm-bg: #F4ECDF;
+    --warm-line: #E4C69C;
+
+    --bg: var(--paper);
+    --card: #F3F4EF;
+    --card-2: #FBFBF7;
+
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, "Times New Roman", serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+
+    --wrap: 44rem;
+    --wrap-wide: 64rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #14191B; --paper-2: #1A2023;
+      --ink: #E7EAE3; --ink-soft: #AEB6B1; --ink-faint: #808983;
+      --line: #2C3438;
+      --ria: #4FB79E; --ria-deep: #7FD3BE;
+      --brasa: #E1793C; --brasa-soft: #C0551F;
+      --cold-bg: #1E2528; --cold-ink: #7E8985; --cold-line: #313A3D;
+      --warn: #E08479;
+      --warm-bg: #241C13; --warm-line: #4A3A25;
+      --bg: var(--paper); --card: #1B2124; --card-2: #202729;
+    }
+  }
+  :root[data-theme="light"] {
+    --paper: #E9EBE5; --paper-2: #DFE2DA;
+    --ink: #1E262A; --ink-soft: #47514F; --ink-faint: #6E7671; --line: #C9CDC2;
+    --ria: #13564A; --ria-deep: #0C3B32; --brasa: #C0551F;
+    --cold-bg: #DADEDD; --cold-ink: #6B7573; --cold-line: #BFC6C4; --warn: #9A4038;
+    --warm-bg: #F4ECDF; --warm-line: #E4C69C;
+    --bg: var(--paper); --card: #F3F4EF; --card-2: #FBFBF7;
+  }
+  :root[data-theme="dark"] {
+    --paper: #14191B; --paper-2: #1A2023;
+    --ink: #E7EAE3; --ink-soft: #AEB6B1; --ink-faint: #808983; --line: #2C3438;
+    --ria: #4FB79E; --ria-deep: #7FD3BE; --brasa: #E1793C;
+    --cold-bg: #1E2528; --cold-ink: #7E8985; --cold-line: #313A3D; --warn: #E08479;
+    --warm-bg: #241C13; --warm-line: #4A3A25; --bg: var(--paper); --card: #1B2124; --card-2: #202729;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--sans); font-size: 17px; line-height: 1.62;
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  }
+  .wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 1.4rem; }
+  .wide { max-width: var(--wrap-wide); }
+
+  h1, h2, h3 { font-family: var(--serif); font-weight: 600; line-height: 1.1; text-wrap: balance; letter-spacing: -0.01em; }
+  p { margin: 0 0 1rem; }
+  a { color: var(--ria); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  strong { font-weight: 650; }
+
+  .kicker { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--brasa); margin: 0 0 1rem; }
+  .eyebrow { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-faint); }
+
+  /* ---- HERO ---- */
+  header.hero { padding: clamp(3.5rem, 9vw, 6.5rem) 0 2.5rem; border-bottom: 1px solid var(--line); position: relative; overflow: hidden; }
+  .hero h1 { font-size: clamp(2.6rem, 8vw, 4.8rem); margin: 0 0 1.2rem; }
+  .hero h1 .em { color: var(--brasa); font-style: italic; }
+  .hero .lede { font-size: clamp(1.05rem, 2.4vw, 1.3rem); color: var(--ink-soft); max-width: 34rem; }
+  .hero .meta { margin-top: 2rem; font-family: var(--mono); font-size: 0.74rem; color: var(--ink-faint); letter-spacing: 0.04em; display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; }
+  .hero .meta span { white-space: nowrap; }
+  .plate { position: absolute; right: -6rem; top: -4rem; width: 22rem; height: 22rem; border-radius: 50%; background: radial-gradient(circle at 40% 35%, var(--ria) 0%, var(--ria-deep) 70%); opacity: 0.09; pointer-events: none; }
+  @media (max-width: 720px) { .plate { display: none; } }
+
+  section { padding: 3rem 0; border-bottom: 1px solid var(--line); }
+  section > .wrap > .kicker + h2, h2.sec { font-size: clamp(1.7rem, 4.5vw, 2.4rem); margin: 0 0 0.4rem; }
+  .sec-intro { color: var(--ink-soft); max-width: 38rem; margin-bottom: 2rem; }
+
+  /* ---- diagnóstico cards ---- */
+  .grid { display: grid; gap: 1rem; }
+  .cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .cols-3 { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 680px) { .cols-2, .cols-3 { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 4px; padding: 1.3rem 1.4rem; }
+  .card h3 { font-size: 1.15rem; margin: 0 0 0.5rem; }
+  .card p { margin: 0; color: var(--ink-soft); font-size: 0.96rem; }
+  .card .n { font-family: var(--mono); font-size: 0.72rem; color: var(--brasa); letter-spacing: 0.1em; }
+
+  /* ---- regla de oro band ---- */
+  .band { background: var(--ria); color: #F1F5F1; border: none; text-align: center; padding: clamp(3rem,7vw,4.5rem) 0; }
+  .band .quote { font-family: var(--serif); font-size: clamp(1.9rem, 6vw, 3.2rem); line-height: 1.12; margin: 0; color: #FFFFFF; }
+  .band .quote em { color: var(--brasa-soft); font-style: italic; }
+  .band .sub { margin-top: 1.2rem; color: #C6D8D0; font-size: 1rem; max-width: 32rem; margin-left: auto; margin-right: auto; }
+  @media (prefers-color-scheme: dark) { .band { background: var(--ria-deep); } }
+  :root[data-theme="dark"] .band { background: var(--ria-deep); }
+  :root[data-theme="light"] .band { background: var(--ria); }
+
+  /* ---- verify box ---- */
+  .verify { background: var(--warm-bg); border: 1px solid var(--warm-line); border-left: 4px solid var(--brasa); border-radius: 4px; padding: 1.4rem 1.5rem; }
+  .verify h3 { font-family: var(--sans); font-weight: 700; font-size: 1rem; margin: 0 0 0.8rem; display: flex; align-items: center; gap: 0.5rem; }
+  .verify ul { margin: 0; padding-left: 1.1rem; }
+  .verify li { margin-bottom: 0.5rem; font-size: 0.95rem; color: var(--ink-soft); }
+  .verify li b { color: var(--ink); }
+  .verify .rule { margin-top: 1rem; font-family: var(--serif); font-style: italic; font-size: 1.15rem; color: var(--brasa); }
+
+  /* ---- antes / después ---- */
+  .ba { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: stretch; }
+  @media (max-width: 680px) { .ba { grid-template-columns: 1fr; } }
+  .ba .side { border-radius: 4px; padding: 1.2rem 1.3rem; border: 1px solid; }
+  .ba .ia { background: var(--cold-bg); border-color: var(--cold-line); color: var(--cold-ink); }
+  .ba .real { background: var(--warm-bg); border-color: var(--warm-line); color: var(--ink); }
+  .ba .tag { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 0.4rem; margin-bottom: 0.7rem; }
+  .ba .ia .tag { color: var(--warn); }
+  .ba .real .tag { color: var(--brasa); }
+  .ba .side p { margin: 0; font-size: 0.95rem; }
+  .ba .ia p { font-style: italic; }
+  .ba .real p { color: var(--ink-soft); }
+  .ba .real p strong { color: var(--ink); }
+
+  .swap { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 1rem; }
+  @media (max-width: 680px) { .swap { grid-template-columns: 1fr; } }
+  .swap .row { display: contents; }
+  .swap .from, .swap .to { padding: 0.85rem 1rem; border-radius: 4px; font-size: 0.93rem; }
+  .swap .from { background: var(--cold-bg); color: var(--cold-ink); border: 1px solid var(--cold-line); }
+  .swap .to { background: var(--warm-bg); color: var(--ink); border: 1px solid var(--warm-line); }
+  .swap .to b { color: var(--brasa); }
+
+  /* ---- checklist mono ---- */
+  .scan { background: var(--card-2); border: 1px solid var(--line); border-radius: 4px; padding: 1.3rem 1.5rem; font-family: var(--mono); font-size: 0.86rem; line-height: 1.5; }
+  .scan .head { color: var(--brasa); letter-spacing: 0.1em; text-transform: uppercase; font-size: 0.72rem; margin-bottom: 0.9rem; }
+  .scan .item { display: flex; gap: 0.7rem; padding: 0.35rem 0; color: var(--ink-soft); border-top: 1px dashed var(--line); }
+  .scan .item:first-of-type { border-top: none; }
+  .scan .box { color: var(--warn); flex: none; }
+
+  /* ---- lists ---- */
+  ul.clean { list-style: none; padding: 0; margin: 0; }
+  ul.clean li { padding: 0.55rem 0 0.55rem 1.6rem; position: relative; border-top: 1px solid var(--line); color: var(--ink-soft); font-size: 0.97rem; }
+  ul.clean li:first-child { border-top: none; }
+  ul.clean li::before { content: "›"; position: absolute; left: 0.2rem; color: var(--ria); font-weight: 700; }
+  ul.clean li b { color: var(--ink); }
+
+  .sino { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 680px) { .sino { grid-template-columns: 1fr; } }
+  .sino .col { border-radius: 4px; padding: 1.1rem 1.3rem; border: 1px solid var(--line); background: var(--card); }
+  .sino h4 { margin: 0 0 0.7rem; font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.1em; text-transform: uppercase; }
+  .sino .yes h4 { color: var(--ria); }
+  .sino .no h4 { color: var(--warn); }
+  .sino ul { margin: 0; padding-left: 1.1rem; }
+  .sino li { font-size: 0.93rem; color: var(--ink-soft); margin-bottom: 0.35rem; }
+
+  /* ---- pilares ---- */
+  .pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+  @media (max-width: 860px) { .pillars { grid-template-columns: repeat(2,1fr); } }
+  @media (max-width: 560px) { .pillars { grid-template-columns: 1fr; } }
+  .pillar { border: 1px solid var(--line); border-radius: 4px; padding: 1.2rem; background: var(--card); }
+  .pillar .num { font-family: var(--mono); font-size: 0.72rem; color: var(--brasa); }
+  .pillar h3 { font-size: 1.08rem; margin: 0.3rem 0 0.5rem; }
+  .pillar p { margin: 0; font-size: 0.9rem; color: var(--ink-soft); }
+
+  /* ---- callout ---- */
+  .callout { border-left: 4px solid var(--brasa); background: var(--card); border-radius: 0 4px 4px 0; padding: 1.1rem 1.3rem; }
+  .callout .t { font-weight: 700; margin-bottom: 0.4rem; display: flex; gap: 0.5rem; align-items: baseline; }
+  .callout .t .ico { color: var(--brasa); }
+  .callout p { margin: 0; color: var(--ink-soft); font-size: 0.95rem; }
+  .callout + .callout { margin-top: 0.8rem; }
+
+  /* ---- table ---- */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 4px; }
+  table { border-collapse: collapse; width: 100%; min-width: 34rem; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 0.75rem 0.9rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  thead th { background: var(--card); font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); }
+  tbody tr:last-child td { border-bottom: none; }
+  td .day { font-weight: 650; color: var(--ink); }
+  td .fmt { color: var(--ink-faint); font-size: 0.82rem; }
+
+  /* ---- timeline ---- */
+  .timeline { display: grid; gap: 1rem; }
+  .week { display: grid; grid-template-columns: auto 1fr; gap: 1.2rem; align-items: start; }
+  .week .mark { font-family: var(--serif); font-size: 2.2rem; color: var(--brasa); line-height: 1; width: 3.2rem; }
+  .week .body h3 { font-size: 1.12rem; margin: 0 0 0.5rem; }
+  .week .body ul { margin: 0; padding-left: 1.1rem; }
+  .week .body li { font-size: 0.93rem; color: var(--ink-soft); margin-bottom: 0.3rem; }
+
+  /* ---- metrics ---- */
+  .metrics { display: grid; grid-template-columns: repeat(2,1fr); gap: 0.8rem; }
+  @media (max-width: 620px){ .metrics { grid-template-columns: 1fr; } }
+  .metric { border: 1px solid var(--line); border-radius: 4px; padding: 0.9rem 1.1rem; background: var(--card); }
+  .metric b { color: var(--ria); }
+  .metric span { display: block; font-size: 0.88rem; color: var(--ink-soft); margin-top: 0.2rem; }
+
+  /* ---- footer ---- */
+  footer { padding: 3rem 0 4rem; }
+  footer .files { display: grid; grid-template-columns: repeat(2,1fr); gap: 0.7rem; margin: 1.2rem 0 1.8rem; }
+  @media (max-width: 560px){ footer .files { grid-template-columns: 1fr; } }
+  footer .file { border: 1px solid var(--line); border-radius: 4px; padding: 0.8rem 1rem; background: var(--card); }
+  footer .file code { font-family: var(--mono); font-size: 0.82rem; color: var(--brasa); }
+  footer .file span { display:block; font-size: 0.85rem; color: var(--ink-soft); margin-top: 0.2rem; }
+  footer .note { font-size: 0.85rem; color: var(--ink-faint); border-top: 1px solid var(--line); padding-top: 1.2rem; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal { opacity: 0; transform: translateY(12px); transition: opacity .6s ease, transform .6s ease; }
+    .reveal.in { opacity: 1; transform: none; }
+    .card, .pillar, .metric { transition: transform .18s ease, border-color .18s ease; }
+    .card:hover, .pillar:hover, .metric:hover { transform: translateY(-2px); border-color: var(--ria); }
+  }
+  :focus-visible { outline: 2px solid var(--ria); outline-offset: 2px; border-radius: 2px; }
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="plate" aria-hidden="true"></div>
+    <p class="kicker">Guía de contenido · @lademanu · Tui, Galicia</p>
+    <h1>Menos IA,<br><span class="em">máis mordisco.</span></h1>
+    <p class="lede">Vuestro Instagram no necesita imágenes generadas. Necesita el pulpo de verdad, la luz del ventanal, el sonido de la plancha y la retranca de la casa. Esto es el plan para conseguirlo con un móvil.</p>
+    <div class="meta">
+      <span>◍ Tapería en Tui, o Baixo Miño</span>
+      <span>◍ Producto de mar + menú del mediodía</span>
+      <span>◍ Nº1 de Tui · miles de reseñas</span>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <p class="kicker">01 · El diagnóstico</p>
+    <h2 class="sec">Por qué "parece IA" te cuesta reservas</h2>
+    <p class="sec-intro">No es cuestión de gusto. Para un restaurante, el contenido con pinta de IA hace daño de formas muy concretas — y justo en lo que más te importa.</p>
+    <div class="grid cols-2">
+      <div class="card"><span class="n">A</span><h3>Rompe el apetito</h3><p>La comida de IA tiene fallos que el cerebro nota sin saber nombrarlos: brillo de plástico, vapor pintado, salsas imposibles. En vez de hambre, da un pequeño rechazo. Vendes un plato que no se puede servir.</p></div>
+      <div class="card"><span class="n">B</span><h3>Rompe la confianza</h3><p>Tu negocio es una promesa física: la comida será como se ve. Si la foto es falsa, el cliente asume que también recortas en lo que no ve. En 2026 la gente ya trae "detector de IA" de serie.</p></div>
+      <div class="card"><span class="n">C</span><h3>Mata tu ventaja: ser de aquí</h3><p>Una cadena no puede competir con esta calle, este río, estas manos. La imagen IA es de ningún sitio: podría ser cualquier restaurante del mundo. Convierte "el de toda la vida" en algo que huele a cocina fantasma.</p></div>
+      <div class="card"><span class="n">D</span><h3>Frena el alcance</h3><p>Instagram hunde lo plantillero y etiqueta lo "Hecho con IA". Y nadie guarda ni comparte un plato falso. Menos guardados y envíos = menos gente nueva de tu zona te ve.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <p class="quote">Comida real,<br>sitio real, <em>gente real.</em></p>
+    <p class="sub">La regla de oro. Cuando dudes qué publicar, elige lo que sea más tuyo y menos de catálogo.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="kicker">02 · Honestidad primero</p>
+    <h2 class="sec">Antes de publicar, verifica tus datos</h2>
+    <p class="sec-intro">Esta guía usa datos sacados de reseñas y webs públicas. Algunos hay que confirmarlos con vosotros: publicar un dato falso es justo lo que rompe la confianza (es la queja nº1 en Google: "no se parece a las fotos").</p>
+    <div class="verify">
+      <h3><span aria-hidden="true">⚠︎</span> Confírmalo y únelo en TODOS los textos</h3>
+      <ul>
+        <li><b>Precio del menú del mediodía</b> — usa el mismo en todos los posts (no un post a 13,50 € y otro a 14,50 €).</li>
+        <li><b>Qué se ve por el ventanal</b> — nombra solo lo que sale de verdad en el encuadre, no un monumento que no entra.</li>
+        <li><b>Tamaño del equipo / aforo</b> — di el dato real; no inventes "somos 4 mesas".</li>
+        <li><b>Platos de ejemplo</b> — usa solo los que estén hoy en carta.</li>
+        <li><b>Nota y reseñas, km a Santiago, nombre de la calle</b> — verifica antes de ponerlo en público.</li>
+      </ul>
+      <p class="rule">Si no lo puedes fotografiar hoy, no lo prometas.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="kicker">03 · Los 6 cambios de esta semana</p>
+    <h2 class="sec">Cambia la IA por lo real</h2>
+    <p class="sec-intro">Es el mismo trabajo, y funciona mejor. A la izquierda la tentación de IA; a la derecha lo que haces en su lugar.</p>
+    <div class="swap">
+      <div class="row"><div class="from">Render del plato estrella</div><div class="to">El plato <b>real</b> recién salido del pase, junto a la ventana. Ráfaga de 10, te quedas con 1. Dispara al instante para pillar el vapor.</div></div>
+      <div class="row"><div class="from">Foto de stock de "interior acogedor"</div><div class="to">10 s de vídeo de <b>tu</b> sala a la hora buena, primero vacía y luego llenándose. Que se reconozca.</div></div>
+      <div class="row"><div class="from">Caption escrito por IA</div><div class="to">Mándate una <b>nota de voz</b> describiendo el plato como a un habitual, y transcríbela.</div></div>
+      <div class="row"><div class="from">Avatar o "portavoz" generado</div><div class="to"><b>Manu 15 s a cámara</b>, aunque tiemble el pulso: "hola, soy Manu, hoy tenemos…".</div></div>
+      <div class="row"><div class="from">Gráfica "perfecta" del menú</div><div class="to">Foto de la <b>pizarra escrita a mano</b>, o vídeo de la compra de la mañana: el pescado sobre hielo.</div></div>
+      <div class="row"><div class="from">"Mejorar con IA" hasta el plástico</div><div class="to"><b>Edición mínima</b> (luz y recorte). Limpia el objetivo del móvil antes de disparar y ya ganas más que con cualquier filtro.</div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="kicker">04 · El escáner anti-IA</p>
+    <h2 class="sec">Pásale esto a cada post</h2>
+    <p class="sec-intro">Si marcas una sola de estas casillas, no lo publiques todavía.</p>
+    <div class="scan">
+      <div class="head">◇ señales de "look IA" — detener publicación</div>
+      <div class="item"><span class="box">▢</span> Comida demasiado perfecta: cero migas, brillo de plástico, vapor pintado.</div>
+      <div class="item"><span class="box">▢</span> Al ampliar: texto ilegible en la pizarra, manos con dedos de más, cubiertos fundidos.</div>
+      <div class="item"><span class="box">▢</span> No se reconoce tu sitio: podría ser cualquier restaurante.</div>
+      <div class="item"><span class="box">▢</span> No hay una persona real; nunca se repite una cara.</div>
+      <div class="item"><span class="box">▢</span> El texto suena a folleto: "experiencia culinaria", "déjate seducir", "un viaje de sabores".</div>
+      <div class="item"><span class="box">▢</span> No dice nada concreto: sin nombre del plato, sin precio, sin "solo hoy".</div>
+      <div class="item"><span class="box">▢</span> Muro de hashtags genéricos y ni una etiqueta local ni la ubicación puesta.</div>
+      <div class="item"><span class="box">▢</span> Aparece la etiqueta "Hecho con IA" en el post.</div>
+      <div class="item"><span class="box">▢</span> Casi todo son fotos fijas: nada de Reels ni sonido real.</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="kicker">05 · Foto con el móvil</p>
+    <h2 class="sec">Luz de ventana, sin filtros de plástico</h2>
+    <p class="sec-intro">No hace falta cámara ni estudio. Hace falta luz y acercarse.</p>
+    <ul class="clean">
+      <li><b>Luz de ventana, nunca flash ni la luz amarilla del techo.</b> Plato a medio metro del cristal; apaga las luces del local para que el blanco del plato salga blanco.</li>
+      <li><b>Luz de lado, no de frente.</b> Deja que la sombra caiga al lado contrario: da volumen. La luz frontal aplana la comida.</li>
+      <li><b>Tu ventanal al río es luz preciosa pero fuerte.</b> Si el sol pega duro, suaviza con una cortina fina y rellena las sombras con una servilleta o carta blanca enfrente. Gratis.</li>
+      <li><b>Baja un pelín la luz.</b> Mantén el dedo sobre el plato hasta "AE/AF LOCK" y desliza hacia abajo: así no se queman los brillos de las salsas.</li>
+      <li><b>Ángulo según el plato:</b> 45° por defecto, cenital para lo plano (el pulpo), de frente para lo alto (tartas, un bao).</li>
+      <li><b>Pilla el momento.</b> El vapor y el queso fundido duran segundos. Dispara nada más salir de cocina. Formato 4:5 (feed) o 9:16 (Reels).</li>
+      <li><b>Edición ligera</b> en Snapseed o Lightroom: baja altas luces, sube un poco las sombras, un toque de calidez. Sin pasarse. Mala luz no se rescata con filtros: repite la foto junto a la ventana.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="kicker">06 · La voz de la casa</p>
+    <h2 class="sec">Escribe como habla Manu en la barra</h2>
+    <p class="sec-intro">Ya tenéis una voz buenísima —"nos comeremos la vida a mordiscos"—. El truco es no traicionarla con tono de folleto.</p>
+    <div class="sino">
+      <div class="col yes"><h4>◎ Sí</h4><ul>
+        <li>Trata de tú: "aquí no eres cliente, eres vecino".</li>
+        <li>Galego natural sin traducir todo: "vén petiscar", "malo será".</li>
+        <li>Retranca: "hoxe chove, mellor plan que unhas tapas quentiñas non hai".</li>
+        <li>Morriña para quien vive fuera: "a tapa que sabe á casa".</li>
+        <li>La frontera: "bo proveito / bom apetite" para el vecino de Valença.</li>
+        <li>Nombra a la gente y al producto. Concreto gana a bonito.</li>
+      </ul></div>
+      <div class="col no"><h4>✕ No</h4><ul>
+        <li>"Experiencia gastronómica", "sinfonía de sabores".</li>
+        <li>Slogans en castellano metidos con calzador dentro de un texto en galego.</li>
+        <li>Gramática perfecta y vacía, sin una gota de personalidad.</li>
+        <li>Emojis a puñados y hashtags genéricos por decenas.</li>
+        <li>Frases de galleta de la fortuna que valen para cualquier bar.</li>
+      </ul></div>
+    </div>
+    <div style="margin-top:1.2rem">
+      <div class="ba">
+        <div class="side ia"><div class="tag"><span>✕</span> antes · IA</div><p>✨ Vive una experiencia culinaria única. Déjate seducir por nuestro pulpo, una sinfonía de sabores marinos. La excelencia hecha plato. 🐙✨</p></div>
+        <div class="side real"><div class="tag"><span>◎</span> después · de verdad</div><p>Pulpo á feira. En su plato de madera, con el pimentón, su aceite y sal gorda. Poco más se le pide a un domingo. <strong>Vén petiscalo antes de que voe.</strong> Reservas: 674 54 94 94.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap wide">
+    <p class="kicker">07 · Los 6 pilares</p>
+    <h2 class="sec">De qué va cada post</h2>
+    <p class="sec-intro">Reparte lo que publicas entre estos seis y nunca te quedas sin idea.</p>
+    <div class="pillars">
+      <div class="pillar"><span class="num">01</span><h3>Plato ao pase</h3><p>El producto de mar y el plato estrella, real y recién salido. Dispara hambre: convierte scroll en reserva.</p></div>
+      <div class="pillar"><span class="num">02</span><h3>Menú · calidad-precio</h3><p>Tu mayor reclamo, "calidad de restaurante a precio de bar". Genera guardados: "me lo guardo para cuando vaya".</p></div>
+      <div class="pillar"><span class="num">03</span><h3>A casa: Manu y el equipo</h3><p>Caras y manos reales, sonido real. Construye la confianza que ningún avatar da.</p></div>
+      <div class="pillar"><span class="num">04</span><h3>Tui, o Miño e a fronteira</h3><p>El lugar reconocible. Lo único que la IA y las cadenas no pueden copiar.</p></div>
+      <div class="pillar"><span class="num">05</span><h3>Da praza á mesa</h3><p>Producto, temporada y colaboraciones. Storytelling km0 de verdad + alcance prestado de a quien etiquetas.</p></div>
+      <div class="pillar"><span class="num">06</span><h3>Voz de la comunidad</h3><p>Reseñas reales, clientes que te etiquetan, retranca. Prueba social honesta, no testimonios inventados.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="kicker">08 · Reels</p>
+    <h2 class="sec">La fórmula, y una trampa que evitar</h2>
+    <p class="sec-intro">Lo que no se toca: <b>movimiento + texto en el primer fotograma → proceso (corte, chorreo, vapor) → plano final del plato + llamada a reservar.</b> Los primeros 2 segundos deciden todo.</p>
+    <div class="callout">
+      <div class="t"><span class="ico">⚠︎</span> Nada de "audios de tendencia" comerciales</div>
+      <p>Una cuenta de <b>empresa</b> tiene restringida la música comercial: si pones una canción de moda, Instagram te silencia el Reel o te limita el alcance. Usa <b>sonido real</b> (la plancha, el corte, la sala) o la biblioteca de música para empresas de la app. El sonido real, además, es el mejor ASMR y no lo puede fingir ninguna IA.</p>
+    </div>
+    <div class="callout">
+      <div class="t"><span class="ico">▸</span> El efecto "de vacío a lleno" es fácil</div>
+      <p>Apoya el móvil fijo, graba 2 s del plato <b>vacío</b>, para, pon el plato <b>lleno</b> en el mismo sitio, graba 2 s más y une los clips con un corte seco cuando tu mano cruza la pantalla. Sin edición avanzada.</p>
+    </div>
+    <div style="margin-top:1.4rem" class="grid cols-3">
+      <div class="card"><span class="n">Reel</span><h3>Pulpo, de la olla al plato</h3><p>Tijeras cortando el pulpo humeante → pimentón cayendo → chorro de aceite → plano final. Texto: "O pulpo NON se toca ata que…".</p></div>
+      <div class="card"><span class="n">Reel</span><h3>Manu a cámara</h3><p>15 s: "Hola, soy Manu, hoy tenemos…", enseña el pescado de la mañana, emplata, levanta el plato. Cierra: "Reserva, que enchemos".</p></div>
+      <div class="card"><span class="n">Reel</span><h3>El menú a mano</h3><p>Macro de la mano escribiendo el precio en la pizarra → los platos del día → la tarta con el "+1 €". El precio concreto se guarda y se comparte.</p></div>
+    </div>
+    <p style="margin-top:1rem;font-size:0.9rem;color:var(--ink-faint)">Las 9 ideas completas con lista de planos están en <code style="font-family:var(--mono);color:var(--brasa)">reels.md</code>.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap wide">
+    <p class="kicker">09 · Semana tipo</p>
+    <h2 class="sec">Con tu horario real</h2>
+    <p class="sec-intro">2–3 Reels + 1–2 carruseles + Stories 3–5 días. La constancia modesta gana a los picos. <b>Graba en lote</b> una hora antes de abrir y programa la semana en 20 minutos.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Día</th><th>Qué publicas</th><th>Nota</th></tr></thead>
+        <tbody>
+          <tr><td><span class="day">Martes</span><br><span class="fmt">mediodía · Reel</span></td><td>Plato del día, "de vacío a lleno" con un plato de mar.</td><td>Graba en lote 4–6 platos. Publica 12–13 h. Geoetiqueta "Tui".</td></tr>
+          <tr><td><span class="day">Miércoles</span><br><span class="fmt">mediodía · carrusel</span></td><td>"Qué pides si vienes por primera vez" o "Menú: 2 platos + postre".</td><td>1ª línea buscable; 3–5 hashtags locales; CTA en la última diapo.</td></tr>
+          <tr><td><span class="day">Jueves</span><br><span class="fmt">mediodía · Reel</span></td><td>Detrás de la barra: Manu 15 s a cámara o "un día en la cocina".</td><td>Refuerza el finde. Stories con encuesta o "sold out".</td></tr>
+          <tr><td><span class="day">Viernes</span><br><span class="fmt">doble servicio · Reel</span></td><td>Producto de mar / ASMR (pulpo, brasa) + plano final del plato.</td><td>Publica 19–20 h apuntando a la noche. Story con enlace a reserva.</td></tr>
+          <tr><td><span class="day">Sábado</span><br><span class="fmt">doble servicio</span></td><td>Colaboración (adega/proveedor) o repost de reseña + sala con vistas.</td><td>Capta Vigo y Valença: un guiño en português. Etiqueta cuentas locales.</td></tr>
+          <tr><td><span class="day">Domingo</span><br><span class="fmt">cerrado</span></td><td>Sin post: análisis y programación.</td><td>Revisa métricas y deja la semana programada.</td></tr>
+          <tr><td><span class="day">Lunes</span><br><span class="fmt">cerrado</span></td><td>Post ligero programado: "abrimos mañá" con horario + ubicación.</td><td>Presencia sin quemarte. Revisa tus 3 posts fijados arriba.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="kicker">10 · Distribución local + montaje</p>
+    <h2 class="sec">Que el alcance sea de gente que puede venir</h2>
+    <div class="sino">
+      <div class="col yes"><h4>◎ Distribución local</h4><ul>
+        <li>Geoetiqueta SIEMPRE la ubicación del local en cada post.</li>
+        <li>3–5 hashtags locales, no 30 genéricos: #Tui #TapasTui #BaixoMiño #CociñaGalega.</li>
+        <li>Google Business como "tapería en Tui" y responde TODAS las reseñas. Es tu activo nº1.</li>
+        <li>Camino Portugués: "menú do peregrino" con sello de credencial.</li>
+        <li>Colaboraciones = alcance gratis: adegas, la plaza, negocios vecinos.</li>
+        <li>UGC: QR en la mesa, repostea a quien te etiqueta.</li>
+      </ul></div>
+      <div class="col no" style="border-color:var(--warm-line);background:var(--warm-bg)"><h4 style="color:var(--brasa)">⚙ Montaje (una vez y olvídate)</h4><ul>
+        <li>Enlace de reserva que NO dependa de la web: <b>wa.me/34674549494</b> en la bio.</li>
+        <li>WhatsApp Business con respuestas rápidas.</li>
+        <li>Botón "Reservar" en el perfil de Instagram.</li>
+        <li>Bio clara + 3 posts fijados arriba.</li>
+        <li>Pide <b>permiso</b> para grabar a clientes antes de publicar.</li>
+        <li>Texto alternativo (alt text) en las fotos.</li>
+      </ul></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="kicker">11 · Plan de 30 días</p>
+    <h2 class="sec">De "look IA" a contenido de verdad</h2>
+    <div class="timeline">
+      <div class="week"><div class="mark">1</div><div class="body"><h3>Auditoría y limpieza</h3><ul>
+        <li>Pasa el feed por el escáner y archiva (no borres) los 6–10 posts más falsos.</li>
+        <li>Arregla el perfil: Google Business, enlace de WhatsApp en la bio, botón "Reservar".</li>
+        <li>Fija 3 posts reales arriba y aprende 3 ajustes del móvil (luz de ventana, AE/AF, 4:5).</li>
+      </ul></div></div>
+      <div class="week"><div class="mark">2</div><div class="body"><h3>Primer lote de contenido real</h3><ul>
+        <li>Turno de 1 h: fotografía/graba 4–6 platos junto a la ventana. Ráfaga de 10, te quedas con 1.</li>
+        <li>Crea tu banco de b-roll: clips propios de 5 s (chorreo, vapor, el corte, el café).</li>
+        <li>Pon a Manu 15 s a cámara sin guion. Edición mínima; nada de filtros "mejorar".</li>
+      </ul></div></div>
+      <div class="week"><div class="mark">3</div><div class="body"><h3>Voz y distribución local</h3><ul>
+        <li>Reescribe los pies con notas de voz transcritas: galego natural, plato, precio, "só hoxe".</li>
+        <li>Geoetiqueta, 3–5 hashtags locales y lanza 1 colaboración con una adega o la plaza.</li>
+        <li>Activa el UGC: QR en la mesa, repostea 2–3 stories, captura una reseña real.</li>
+      </ul></div></div>
+      <div class="week"><div class="mark">4</div><div class="body"><h3>Medir y sistematizar</h3><ul>
+        <li>Mira lo que importa (abajo), quédate con tus 2 piezas ganadoras e ignora los likes.</li>
+        <li>Repite el formato ganador con otro plato; responde a un comentario con un Reel.</li>
+        <li>Deja montado el ritmo: 1 grabación en lote semanal + programar en 20 min.</li>
+      </ul></div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="kicker">12 · Métricas</p>
+    <h2 class="sec">Mira esto, ignora los likes</h2>
+    <p class="sec-intro">Los seguidores y los likes ya no dicen si estás llenando mesas.</p>
+    <div class="metrics">
+      <div class="metric"><b>Alcance de NO-seguidores</b><span>Si es alto, Instagram te lleva a gente nueva de tu zona. La métrica de crecimiento.</span></div>
+      <div class="metric"><b>Compartidos / envíos por DM</b><span>Que alguien te mande a un amigo es casi una intención de reserva.</span></div>
+      <div class="metric"><b>Guardados</b><span>"Me lo guardo para cuando vaya" = intención de visita.</span></div>
+      <div class="metric"><b>Retención del Reel a 3 s</b><span>Si la gente se va en el segundo 3, el problema es el gancho, no el plato.</span></div>
+      <div class="metric"><b>Toques en "Cómo llegar"</b><span>El puente entre una vista y un comensal sentado.</span></div>
+      <div class="metric"><b>Clics al enlace de reserva</b><span>Lo más cerca de una mesa ocupada que mide Instagram.</span></div>
+    </div>
+    <p style="margin-top:1.1rem;font-size:0.88rem;color:var(--ink-faint)">Nota honesta: nadie de fuera puede garantizarte "el algoritmo premia X". Estas son señales que la evidencia apunta como útiles para un negocio local. Míralas en <b>tus</b> números y quédate con lo que a <b>ti</b> te funcione.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p class="kicker">Los archivos</p>
+    <h2 class="sec">Todo esto, para trabajar</h2>
+    <div class="files">
+      <div class="file"><code>README.md</code><span>Índice + tabla de verificación de datos.</span></div>
+      <div class="file"><code>PLAYBOOK.md</code><span>La guía completa, sección a sección.</span></div>
+      <div class="file"><code>captions.md</code><span>9 pies de foto: antes IA → después de verdad.</span></div>
+      <div class="file"><code>reels.md</code><span>9 ideas de Reels con lista de planos.</span></div>
+    </div>
+    <p class="note">Hecho con investigación real sobre La de Manu (reseñas, prensa local y webs públicas) y revisado para quitar todo lo que sonara a plantilla. Los datos marcados para verificar hay que confirmarlos antes de publicar: la honestidad es, literalmente, el punto de partida de esta guía.</p>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var els = document.querySelectorAll('section, .card, .pillar');
+    // lightweight reveal only for major sections
+    var secs = document.querySelectorAll('section');
+    secs.forEach(function (s) { s.classList.add('reveal'); });
+    if (!('IntersectionObserver' in window)) { secs.forEach(function(s){s.classList.add('in');}); return; }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
+    secs.forEach(function (s) { io.observe(s); });
+  })();
+</script>

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<!--
+  Cartel de evento SOBRE una foto real (España vs Bélgica en la Plaza de la Inmaculada, Tui).
+  La foto es la protagonista; el texto va mínimo y alineado abajo sobre un degradado.
+  Para exportar la imagen: abre este archivo en el navegador y haz captura a 1080x1350,
+  o renderiza con Chromium headless a --window-size=1080,1350.
+  Cambia el texto de abajo por el del evento que toque y sustituye plaza-tui.jpg por tu foto.
+-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1350px; overflow: hidden; }
+  :root { --amber: #F2AC53; --font: "Liberation Sans", "DejaVu Sans", Arial, sans-serif; }
+  .poster { position: relative; width: 1080px; height: 1350px; font-family: var(--font); color: #fff; }
+  .bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 46%; }
+  .scrim-b { position: absolute; left: 0; right: 0; bottom: 0; height: 62%;
+    background: linear-gradient(to top, rgba(9,11,13,.94) 0%, rgba(9,11,13,.82) 26%, rgba(9,11,13,.45) 55%, rgba(9,11,13,0) 100%); }
+  .scrim-t { position: absolute; left: 0; right: 0; top: 0; height: 20%;
+    background: linear-gradient(to bottom, rgba(9,11,13,.5), rgba(9,11,13,0)); }
+  .loc { position: absolute; top: 44px; left: 58px; font-size: 24px; font-weight: 700; letter-spacing: 4px;
+    text-transform: uppercase; color: rgba(255,255,255,.92); }
+  .loc .pin { color: var(--amber); }
+  .content { position: absolute; left: 58px; right: 58px; bottom: 92px; }
+  .kicker { font-size: 26px; font-weight: 700; letter-spacing: 5px; text-transform: uppercase; color: var(--amber); margin-bottom: 16px; }
+  .title { font-size: 98px; font-weight: 800; line-height: .98; letter-spacing: -2px; text-transform: uppercase;
+    text-shadow: 0 2px 18px rgba(0,0,0,.45); }
+  .title .vs { color: var(--amber); font-weight: 700; text-transform: lowercase; font-size: 78px; letter-spacing: 0; padding: 0 8px; }
+  .when { margin-top: 26px; font-size: 40px; font-weight: 700; letter-spacing: .3px; }
+  .sub { margin-top: 6px; font-size: 28px; font-weight: 400; color: rgba(255,255,255,.82); }
+  .brand { margin-top: 26px; padding-left: 22px; border-left: 5px solid var(--amber);
+    font-size: 30px; font-weight: 400; color: rgba(255,255,255,.95); line-height: 1.28; }
+  .brand b { font-weight: 800; color: var(--amber); }
+</style>
+</head>
+<body>
+  <div class="poster">
+    <img class="bg" src="plaza-tui.jpg" alt="Plaza de la Inmaculada de Tui llena de gente viendo el partido en pantalla gigante">
+    <div class="scrim-t"></div>
+    <div class="scrim-b"></div>
+    <div class="loc"><span class="pin">&#9673;</span>&nbsp; Plaza de la Inmaculada &middot; Tui</div>
+    <div class="content">
+      <div class="kicker">F&uacute;tbol en pantalla gigante</div>
+      <div class="title">Espa&ntilde;a<span class="vs">vs</span>B&eacute;lgica</div>
+      <div class="when">Viernes 10 de julio &middot; 21:00 h</div>
+      <div class="sub">DJ desde las 19:00 h &middot; Ambiente asegurado</div>
+      <div class="brand">La comida y la bebida las ponemos nosotros.<br><b>La de Manu</b></div>
+    </div>
+  </div>
+</body>
+</html>
