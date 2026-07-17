@@ -35,11 +35,11 @@ export default async ({ req, res, log, error }) => {
     const db = new Databases(client);
     const teams = new Teams(client);
 
-    const found = await db.listDocuments({
-      databaseId: DB_ID,
-      collectionId: INVITES_COL,
-      queries: [Query.equal("code", code), Query.limit(1)],
-    });
+    // Llamadas en estilo posicional: compatible con node-appwrite antiguos y nuevos.
+    const found = await db.listDocuments(DB_ID, INVITES_COL, [
+      Query.equal("code", code),
+      Query.limit(1),
+    ]);
     if (!found.documents.length) return res.json({ ok: false, error: "invalid" }, 404);
 
     const inv = found.documents[0];
@@ -49,7 +49,7 @@ export default async ({ req, res, log, error }) => {
 
     try {
       // Alta server-side por userId → membresía ya confirmada (sin email).
-      await teams.createMembership({ teamId: inv.hogarId, roles: ["member"], userId });
+      await teams.createMembership(inv.hogarId, ["member"], undefined, userId);
     } catch (e) {
       // 409 = ya es miembro → lo tratamos como éxito idempotente.
       const already = e?.code === 409 || String(e?.message || "").toLowerCase().includes("already");
