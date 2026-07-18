@@ -49,9 +49,9 @@ export default function Login() {
               className="rounded-card items-center justify-center mb-3"
               style={{ width: 64, height: 64, backgroundColor: t.accent }}
             >
-              <Text className="text-white text-3xl font-bold">H</Text>
+              <Text className="text-white text-3xl font-bold">C</Text>
             </View>
-            <Text className="text-[28px] font-bold text-label">Homie</Text>
+            <Text className="text-[28px] font-bold text-label">Clara</Text>
             <Text className="text-[14px] text-secondary mt-1">
               {mode === "login" ? "Inicia sesión en tu hogar" : "Crea tu cuenta"}
             </Text>
