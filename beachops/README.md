@@ -71,6 +71,10 @@ Sin `DATABASE_URL` la app usa **PGlite** (Postgres embebido, carpeta
 
 ## Despliegue en un VPS propio (Docker)
 
+> El despliegue concreto de Secret Point (VPS de Piensa Solutions, dominio
+> `booking.lademanu.es`, rutas del servidor y comando de redeploy) está en
+> [`docs/DESPLIEGUE.md`](docs/DESPLIEGUE.md).
+
 Si ya tienes un VPS (1 GB de RAM basta), todo va con `docker compose`:
 
 ```bash
