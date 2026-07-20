@@ -25,13 +25,18 @@ secretos**: solo nombres de variables, rutas y comandos. Los valores reales vive
 | `db`     | PostgreSQL 16 (volumen persistente `pgdata`) | interno |
 
 Delante, **Caddy** (`/etc/caddy/Caddyfile`) hace de proxy inverso con certificado
-HTTPS automático:
+HTTPS automático. **En este VPS la web se publica en el puerto `3002`** del host (el
+3000 estaba ocupado), fijado con `WEB_PORT=3002` en `/opt/beachops/beachops/.env`;
+el contenedor siempre escucha en 3000 por dentro. Caddy debe apuntar a ese puerto:
 
 ```
 booking.lademanu.es {
-    reverse_proxy 127.0.0.1:3000
+    reverse_proxy 127.0.0.1:3002
 }
 ```
+
+> El puerto se controla con la variable `WEB_PORT` del `.env` (por defecto 3000), no
+> editando `docker-compose.yml` — así no choca con los `git pull`.
 
 Tras tocar el Caddyfile: `sudo caddy validate --config /etc/caddy/Caddyfile` y
 `systemctl reload caddy`.
@@ -45,6 +50,7 @@ Solo los **nombres** (los valores están en el servidor):
 - `AUTH_SECRET` — secreto de sesión (`openssl rand -hex 32`)
 - `TOKEN_ENCRYPTION_KEY` — cifra los tokens OAuth, 64 hex (`openssl rand -hex 32`)
 - `APP_URL` = `https://booking.lademanu.es`
+- `WEB_PORT` = `3002` — puerto del host para la web (default 3000); Caddy apunta aquí
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` — OAuth de Gmail
 - `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` — notificaciones push
 - `SEED_OWNER_EMAIL`, `SEED_OWNER_PASSWORD` — primer usuario (solo `db:seed`)

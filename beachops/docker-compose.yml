@@ -27,7 +27,9 @@ services:
     image: beachops-app:latest
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3000:3000"
+      # El contenedor siempre escucha en 3000; WEB_PORT es el puerto del host al
+      # que apunta el reverse-proxy (este VPS usa 3002; ver .env). Default 3000.
+      - "127.0.0.1:${WEB_PORT:-3000}:3000"
     env_file: .env
     environment:
       DATABASE_URL: postgres://beachops:${POSTGRES_PASSWORD}@db:5432/beachops
