@@ -5,21 +5,27 @@ body {
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* Impresión: el cuadro debe salir como el PDF diario */
+/* Impresión: el cuadro debe salir como el PDF diario (A4, estándar fijo) */
 @media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
   .no-print {
     display: none !important;
   }
+  html,
   body {
-    background: white !important;
+    background: #f5f4f0 !important;
     color: black !important;
     font-size: 11px;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   .slot-card,
   .print-block {
     break-inside: avoid;
     box-shadow: none !important;
-    border: 1px solid #ddd !important;
   }
   a {
     text-decoration: none;

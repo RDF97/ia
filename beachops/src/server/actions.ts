@@ -8,6 +8,7 @@ import { verifyPassword } from "./crypto";
 import { getDb, schema } from "./db";
 import { syncAllAccounts } from "./gmail/sync";
 import { ensureDeparture, processRawEmail } from "./ingest/process";
+import { computeCashAmount } from "./board/rules";
 import { parsePhone } from "./parsers/phone";
 
 // ── Sesión ─────────────────────────────────────────────────────────────
@@ -134,9 +135,20 @@ export async function createManualBooking(formData: FormData) {
   const date = String(formData.get("date"));
   const timeSlotId = String(formData.get("timeSlotId"));
   const paymentKind = String(formData.get("paymentKind")) as "cash" | "pending" | "platform";
+  const channel = String(formData.get("channel") ?? "Directa");
+  const paxAdults = Number(formData.get("paxAdults") ?? 0);
+  const paxChildren = Number(formData.get("paxChildren") ?? 0);
   const cashAmountRaw = String(formData.get("cashAmount") ?? "").replace(",", ".").trim();
-  const cashAmount = cashAmountRaw ? cashAmountRaw : null;
   const { phone, country } = parsePhone(String(formData.get("customerPhone") ?? ""));
+
+  // Caja de cálculo automático: si es efectivo y no se indicó importe propio,
+  // se calcula por tarifa del canal (Directa/WhatsApp/Insta/Privada 40/20,
+  // Hotel 45/25). Las privadas con tarifa propia pasan el importe a mano.
+  let cashAmount: string | null = cashAmountRaw ? cashAmountRaw : null;
+  if (paymentKind === "cash" && !cashAmount) {
+    const auto = computeCashAmount(channel, paxAdults, paxChildren);
+    cashAmount = auto != null ? auto.toFixed(2) : null;
+  }
 
   const [slot] = await db
     .select()
@@ -153,14 +165,14 @@ export async function createManualBooking(formData: FormData) {
       orgId: session.orgId,
       departureId,
       source: "manual",
-      channel: String(formData.get("channel") ?? "Directa"),
+      channel,
       status: "confirmed",
       activityDate: date,
       activityTime: slot.startTime,
       productId: slot.productId,
       locationId: slot.locationId,
-      paxAdults: Number(formData.get("paxAdults") ?? 0),
-      paxChildren: Number(formData.get("paxChildren") ?? 0),
+      paxAdults,
+      paxChildren,
       customerName: String(formData.get("customerName") ?? "") || null,
       customerPhone: phone ?? null,
       customerCountry: country ?? null,

@@ -2,6 +2,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { getDb, schema } from "../db";
 import { RawEmail, TimeSlot } from "../db/schema";
 import { applyMappingRules, resolveTimeSlot } from "../mapping/engine";
+import { isSantanyi } from "../board/rules";
 import { detectParser, looksLikeBooking } from "../parsers/registry";
 import { ParseError, ParsedBooking } from "../parsers/types";
 import { sendPushToOrg } from "../push";
@@ -247,8 +248,15 @@ export async function upsertParsedBooking(
       db.select().from(schema.products).where(eq(schema.products.orgId, orgId)),
     ]);
     const activeLocations = locations.filter((l) => l.active);
-    if (activeLocations.length === 1) {
-      const loc = activeLocations[0];
+    // Playa por defecto (instructivo §3.1): todo sale de Mondragó salvo que una
+    // regla explícita mande a Cala Santanyí (Es Pontàs). Se elige la primera
+    // playa activa que NO sea Santanyí; si no hubiera, la primera activa.
+    const loc =
+      activeLocations
+        .filter((l) => !isSantanyi(l.name))
+        .sort((a, b) => a.sortOrder - b.sortOrder)[0] ??
+      activeLocations.sort((a, b) => a.sortOrder - b.sortOrder)[0];
+    if (loc) {
       const candidates = products.filter((p) => p.active && p.locationId === loc.id);
       const byName =
         candidates.find((p) =>

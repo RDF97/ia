@@ -48,6 +48,11 @@ export async function seed() {
     .insert(schema.locations)
     .values({ orgId: org.id, name: "Playa Barca / Mondragó", sortOrder: 1 })
     .returning();
+  // Cala Santanyí: solo el producto "Es Pontàs" (cupo 22, monitor aparte).
+  const [santanyi] = await db
+    .insert(schema.locations)
+    .values({ orgId: org.id, name: "Cala Santanyí", sortOrder: 2 })
+    .returning();
 
   const [kayak] = await db
     .insert(schema.products)
@@ -67,8 +72,12 @@ export async function seed() {
       sortOrder: 3,
     })
     .returning();
+  const [pontas] = await db
+    .insert(schema.products)
+    .values({ orgId: org.id, locationId: santanyi.id, name: "Es Pontàs", sortOrder: 4 })
+    .returning();
 
-  const slotValues = [
+  const mondragoSlots = [
     { startTime: "10:00", productId: kayak.id, defaultCapacity: 12 },
     { startTime: "10:00", productId: paddle.id, defaultCapacity: 4 },
     { startTime: "12:30", productId: kayak.id, defaultCapacity: 12 },
@@ -77,12 +86,29 @@ export async function seed() {
     { startTime: "17:30", productId: kayak.id, defaultCapacity: 12 },
     { startTime: "18:00", productId: privada.id, defaultCapacity: 12 },
   ];
-  await db.insert(schema.timeSlots).values(
-    slotValues.map((s) => ({ orgId: org.id, locationId: mondrago.id, ...s })),
-  );
+  await db.insert(schema.timeSlots).values([
+    ...mondragoSlots.map((s) => ({ orgId: org.id, locationId: mondrago.id, ...s })),
+    // Es Pontàs (Cala Santanyí): cupo 22.
+    {
+      orgId: org.id,
+      locationId: santanyi.id,
+      productId: pontas.id,
+      startTime: "10:30",
+      defaultCapacity: 22,
+    },
+  ]);
 
   // Reglas de mapeo para los productos que venden hoy en GYG y Viator.
   await db.insert(schema.mappingRules).values([
+    // Es Pontàs / Cala Santanyí (prioridad alta: es la excepción de playa).
+    {
+      orgId: org.id,
+      priority: 5,
+      matchType: "regex",
+      matchValue: "es pont[àa]s|pontas|santany",
+      targetProductId: pontas.id,
+      targetLocationId: santanyi.id,
+    },
     {
       orgId: org.id,
       priority: 10,

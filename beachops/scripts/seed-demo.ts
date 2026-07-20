@@ -190,6 +190,80 @@ async function main() {
     });
   }
 
+  // WhatsApp 12:30 Kayak — 2 ad efectivo (40/20 → 80 €)
+  const slot1230 = slotFor("12:30", "Kayak");
+  const dep1230 = await ensureDeparture(orgId, slot1230.id, DATE);
+  const [wa] = await db
+    .insert(schema.bookings)
+    .values({
+      orgId,
+      departureId: dep1230,
+      source: "manual",
+      channel: "WhatsApp",
+      externalRef: "WA-0710-1",
+      status: "confirmed",
+      activityDate: DATE,
+      activityTime: slot1230.startTime,
+      productId: slot1230.productId,
+      locationId: slot1230.locationId,
+      paxAdults: 2,
+      customerName: "Marco (WhatsApp)",
+      customerPhone: "+393401234567",
+      customerCountry: "IT",
+      paymentKind: "cash",
+      cashAmount: "80.00",
+      cashConfirmed: true,
+    })
+    .onConflictDoNothing()
+    .returning();
+  if (wa) {
+    await db.insert(schema.cashEntries).values({
+      orgId,
+      date: DATE,
+      bookingId: wa.id,
+      concept: "WhatsApp 12:30 — Marco (2 ad)",
+      amount: "80.00",
+      confirmed: true,
+    });
+  }
+
+  // Cala Santanyí (Es Pontàs) 10:30 — 6 pax, monitor aparte, directa efectivo
+  const slotPontas = slotFor("10:30", "Es Pontàs");
+  const depPontas = await ensureDeparture(orgId, slotPontas.id, DATE);
+  const [pontas] = await db
+    .insert(schema.bookings)
+    .values({
+      orgId,
+      departureId: depPontas,
+      source: "manual",
+      channel: "Instagram",
+      externalRef: "IG-PONTAS-0710",
+      status: "confirmed",
+      activityDate: DATE,
+      activityTime: slotPontas.startTime,
+      productId: slotPontas.productId,
+      locationId: slotPontas.locationId,
+      paxAdults: 6,
+      customerName: "Grupo Es Pontàs",
+      customerPhone: "+34600111222",
+      customerCountry: "ES",
+      paymentKind: "cash",
+      cashAmount: "240.00",
+      cashConfirmed: true,
+    })
+    .onConflictDoNothing()
+    .returning();
+  if (pontas) {
+    await db.insert(schema.cashEntries).values({
+      orgId,
+      date: DATE,
+      bookingId: pontas.id,
+      concept: "Instagram 10:30 Es Pontàs — Grupo (6 ad)",
+      amount: "240.00",
+      confirmed: true,
+    });
+  }
+
   const total = await db
     .select()
     .from(schema.bookings)

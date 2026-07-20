@@ -67,8 +67,10 @@ export default async function NuevaReservaPage({
           </label>
           <label className="block text-sm font-medium">
             Canal
-            <select name="channel" className={input}>
+            <select name="channel" className={input} defaultValue="Directa">
               <option>Directa</option>
+              <option>WhatsApp</option>
+              <option>Instagram</option>
               <option>Hotel</option>
               <option>Privada</option>
             </select>
@@ -88,10 +90,15 @@ export default async function NuevaReservaPage({
             </select>
           </label>
           <label className="block text-sm font-medium">
-            Importe €
-            <input name="cashAmount" placeholder="70" className={input} />
+            Importe € <span className="font-normal text-slate-400">(auto si vacío)</span>
+            <input name="cashAmount" placeholder="auto" className={input} />
           </label>
         </div>
+        <p className="text-xs text-slate-400">
+          Efectivo: se calcula solo por canal (Directa/WhatsApp/Instagram/Privada 40 €/20 €,
+          Hotel 45 €/25 €). Deja el importe vacío para autocalcular, o escríbelo para tarifas
+          propias (privadas). GYG/Viator/Freedome ya van cobrados y no entran en caja.
+        </p>
         <label className="block text-sm font-medium">
           Notas
           <textarea name="notes" rows={2} className={input} />
