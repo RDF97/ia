@@ -43,9 +43,9 @@ export function InviteModal({
   };
 
   const message = (inv: Invite) =>
-    `¡Únete a nuestro hogar "${hogarName}" en Clara! 🏠\n\n` +
+    `¡Únete a nuestro hogar "${hogarName}" en Homie! 🏠\n\n` +
     `Ábrelo aquí: ${inv.url}\n` +
-    `O abre la app Clara y mete este código: ${inv.code}`;
+    `O abre la app Homie y mete este código: ${inv.code}`;
 
   const share = async () => {
     if (!invite) return;

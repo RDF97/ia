@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Clara",
+    "name": "Homie",
     "slug": "clara",
-    "scheme": "clara",
+    "scheme": "homie",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
