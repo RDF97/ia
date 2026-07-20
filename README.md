@@ -11,6 +11,9 @@ calendario y precios de la luz con avisos para electrodomésticos.
   [`mobile/README.md`](mobile/README.md).
 - **`docs/PLAN.md`** — Plan de la app comercial: stack, arquitectura, modelo de
   datos y roadmap por fases.
+- **`tpv-evento/`** — App Android nativa (Kotlin + Compose): TPV simple para
+  vender comida/bebida en un evento, con calculadora de cambio. Ver
+  [`tpv-evento/README.md`](tpv-evento/README.md).
 
 ## Estado
 - ✅ Prototipo (HTML) con las 6 secciones y la sección Luz conectada a precios reales.
