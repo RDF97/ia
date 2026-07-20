@@ -1,32 +1,31 @@
-# OCR de tickets (OCR.space)
+# OCR / interpretación de tickets (Gemini)
 
-Flujo: en **Gastos → Escanear ticket** haces una foto; la app la encoge y la manda
-(base64) a una **función de Appwrite** (`scanReceipt`) que llama a **OCR.space** y
-devuelve el **texto** del ticket. La app lo parsea (comercio, fecha, total y líneas
-de producto) y muestra una pantalla de revisión donde confirmas el gasto y, si
-quieres, guardas los productos en la base de precios.
+Flujo: en **Gastos → Escanear ticket** eliges **Cámara / Galería / PDF**; la app manda
+la imagen o el PDF (base64) a una **función de Appwrite** (`scanReceipt`) que la
+**interpreta con Google Gemini** (un modelo con visión) y devuelve ya estructurado:
+**comercio, fecha, total, moneda y líneas de producto**. La app muestra la revisión,
+confirmas el gasto y, si quieres, guardas los productos en la base de precios.
 
-> El parseo del texto vive en la app (`lib/receipts.ts`, con tests), así se afina
-> sin re-desplegar la función. La función solo hace la llamada a OCR.space.
+> No es OCR + reglas: Gemini "ve" el ticket y lo interpreta, así que aguanta
+> pantallazos, fotos torcidas, facturas y formatos raros mucho mejor.
 
-## 1. API key gratis de OCR.space
-1. Regístrate en **https://ocr.space/ocrapi** → **Register for free API Key**.
-2. Recibirás la API key por email (plan gratis: ~25.000 peticiones/mes, imágenes ≤1 MB).
+## 1. API key gratis de Gemini
+1. Entra en **https://aistudio.google.com/app/apikey** (con tu cuenta de Google).
+2. **Create API key** → cópiala. El plan gratis es generoso y **no pide tarjeta**.
 
 ## 2. Función `scanReceipt` en Appwrite
 El código está en `appwrite/functions/scanReceipt/` (`src/main.js`; **sin dependencias**,
 usa el módulo `https` de Node).
 
-1. Consola → **Functions → Create function**:
-   - **Name / Function ID:** `scanReceipt`
-   - **Runtime:** Node.js (16, 18 o 20 — cualquiera vale, no usa librerías externas)
-   - **Execute access:** `Users`
-2. **Settings** de la función:
-   - **Variables** → añade `OCR_SPACE_API_KEY` = tu API key de OCR.space.
-   - **Timeout** → **30 s** (por si el OCR tarda).
-3. **Sube el código** (igual que `joinHogar`): `.tar.gz` de la carpeta y súbelo en el
-   formulario (Entrypoint `src/main.js`). No hace falta comando de build (sin deps),
-   pero si te lo pide, `npm install` no molesta.
+1. Consola → **Functions** → tu función `scanReceipt` (o créala: runtime Node, Execute **Users**).
+2. **Settings → Variables**:
+   - **`GEMINI_API_KEY`** = tu clave de AI Studio.
+   - *(opcional)* `GEMINI_MODEL` = `gemini-2.0-flash` (por defecto). Si algún día ese
+     modelo no está disponible, prueba `gemini-1.5-flash`.
+   - *(si aún tienes `OCR_SPACE_API_KEY` de antes, puedes borrarla — ya no se usa.)*
+3. **Timeout** → **30 s**.
+4. **Vuelve a subir el código** (tar.gz de `appwrite/functions/scanReceipt/`,
+   Entrypoint `src/main.js`) — la función cambió de OCR.space a Gemini.
    ```bash
    cd /home/manu/homie/appwrite/functions/scanReceipt
    tar -czf /tmp/scanReceipt.tar.gz .
@@ -34,19 +33,10 @@ usa el módulo `https` de Node).
 
 ## 3. App
 El ID ya está en `mobile/app.json → extra.appwriteScanFunctionId = "scanReceipt"`.
-Usa `expo-image-picker` (cámara/galería) y `expo-image-manipulator` (encoge la foto
-por debajo de 1 MB). Van en Expo Go; en el **APK** hay que **recompilar** (módulos
-nativos nuevos), se incluyen en el próximo `eas build`.
+Usa `expo-image-picker`, `expo-image-manipulator` y `expo-document-picker`. Van en
+Expo Go; en el **APK** hay que recompilar (módulos nativos), se incluyen en el próximo build.
 
 ## 4. Probar
-1. **Gastos → Escanear ticket** → **Cámara**, **Galería** o **PDF**.
-2. Revisa **comercio / total / fecha** (editables), elige **cuenta** y **categoría**,
-   marca los **productos** a guardar, y **Guardar**.
-
-> Admite **foto o PDF**. El parseo (comercio/total/productos) vive en la app
-> (`lib/receipts.ts`, con tests), así que se afina sin re-desplegar la función.
-> Consejo: foto **recta y nítida**, del ticket **solo** (evita pantallazos con la
-> barra de estado del móvil). Todo se puede editar antes de guardar.
-
-> Si añades soporte PDF y ya tenías la función desplegada, **vuelve a subir** el
-> `.tar.gz` de `scanReceipt` (ahora manda el `filetype` a OCR.space).
+**Gastos → Escanear ticket** → Cámara / Galería / PDF → revisa comercio/total/fecha
+(editables), cuenta y categoría, marca los productos y **Guardar**. Debería interpretar
+bien cualquier ticket o factura, aunque sea un pantallazo.

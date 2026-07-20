@@ -30,20 +30,25 @@ function errorText(code?: string): string {
   }
 }
 
-/** Envía la foto (base64) a la función; esta llama a OCR.space y devuelve el texto crudo. */
+/**
+ * Envía la foto/PDF (base64) a la función; esta la INTERPRETA con Gemini (visión)
+ * y devuelve los datos ya estructurados. Si por lo que sea llegara texto crudo,
+ * cae en el parser local (parseReceipt) como red de seguridad.
+ */
 export async function scanReceipt(base64: string, mime = "image/jpeg"): Promise<ReceiptData> {
   const exec = await functions.createExecution({
     functionId: SCAN_FUNCTION_ID,
     body: JSON.stringify({ image: base64, mime }),
   });
-  let out: { ok?: boolean; error?: string; text?: string } = {};
+  let out: { ok?: boolean; error?: string; data?: ReceiptData; text?: string } = {};
   try {
     out = JSON.parse(exec.responseBody || "{}");
   } catch {
     /* respuesta no-JSON */
   }
-  if (!out.ok || typeof out.text !== "string") throw new Error(errorText(out.error));
-  return parseReceipt(out.text);
+  if (out.ok && out.data) return out.data;
+  if (out.ok && typeof out.text === "string") return parseReceipt(out.text);
+  throw new Error(errorText(out.error));
 }
 
 // --- Parseo del texto del ticket (puro y testeable) ---
