@@ -41,6 +41,13 @@
           "icon": "./assets/adaptive.png",
           "color": "#1F4D52"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Homie usa tus fotos para escanear tickets de compra.",
+          "cameraPermission": "Homie usa la cámara para escanear tickets de compra."
+        }
       ]
     ],
     "experiments": {
@@ -58,7 +65,8 @@
       "appwritePricesCollectionId": "price_points",
       "appwriteCategoriesCollectionId": "categories",
       "appwriteInvitesCollectionId": "invites",
-      "appwriteJoinFunctionId": "joinHogar"
+      "appwriteJoinFunctionId": "joinHogar",
+      "appwriteScanFunctionId": "scanReceipt"
     }
   }
 }

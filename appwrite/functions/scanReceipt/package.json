@@ -1,0 +1,10 @@
+{
+  "name": "scan-receipt",
+  "version": "1.0.0",
+  "description": "OCR de tickets con Mindee: devuelve comercio, fecha, total y líneas.",
+  "type": "module",
+  "main": "src/main.js",
+  "dependencies": {
+    "mindee": "^4.20.0"
+  }
+}
