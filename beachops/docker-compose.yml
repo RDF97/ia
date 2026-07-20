@@ -20,7 +20,11 @@ services:
       retries: 10
 
   web:
+    # La imagen es la misma para web y worker: se construye UNA vez aquí y el
+    # worker la reutiliza (evita dos `next build` en paralelo, que agotan la RAM
+    # del VPS de 1 GB).
     build: .
+    image: beachops-app:latest
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:3000"
@@ -32,7 +36,7 @@ services:
         condition: service_healthy
 
   worker:
-    build: .
+    image: beachops-app:latest
     restart: unless-stopped
     command: ["npm", "run", "worker"]
     env_file: .env
@@ -41,6 +45,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      web:
+        condition: service_started
 
 volumes:
   pgdata:

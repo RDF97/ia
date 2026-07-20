@@ -84,6 +84,24 @@ docker compose exec web npx tsx scripts/upgrade-santanyi.ts
 
 (Alternativa: crearlos a mano desde `/config`, que es editable.)
 
+## Si el build se queda sin memoria
+
+El VPS tiene ~1 GB de RAM. Para que `docker compose up -d --build` quepa:
+
+- El build del contenedor **no** repite el chequeo de tipos ni el lint (se hacen en
+  el repo/CI antes de cada push), configurado en `next.config.ts`. Esa fase era la
+  que agotaba la memoria.
+- La imagen se construye **una sola vez** (la comparten `web` y `worker`), no dos en
+  paralelo.
+
+Si aun así fallara por memoria, añade 2 GB de swap en el VPS (una sola vez):
+
+```bash
+sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile
+sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
+
 ## Copia de seguridad
 
 ```bash
