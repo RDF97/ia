@@ -20,8 +20,10 @@ usa el módulo `https` de Node).
 1. Consola → **Functions** → tu función `scanReceipt` (o créala: runtime Node, Execute **Users**).
 2. **Settings → Variables**:
    - **`GEMINI_API_KEY`** = tu clave de AI Studio.
-   - *(opcional)* `GEMINI_MODEL` = `gemini-2.0-flash` (por defecto). Si algún día ese
-     modelo no está disponible, prueba `gemini-1.5-flash`.
+   - *(opcional)* `GEMINI_MODEL` = `gemini-2.5-flash` (por defecto). Si tu cuenta da
+     `429 · limit: 0` con un modelo (su free tier es 0), prueba otro: `gemini-2.5-flash-lite`
+     o `gemini-2.0-flash-lite` (los *lite* suelen tener más cuota gratis). No hace falta
+     re-subir código, solo cambiar esta variable.
    - *(si aún tienes `OCR_SPACE_API_KEY` de antes, puedes borrarla — ya no se usa.)*
 3. **Timeout** → **30 s**.
 4. **Vuelve a subir el código** (tar.gz de `appwrite/functions/scanReceipt/`,
