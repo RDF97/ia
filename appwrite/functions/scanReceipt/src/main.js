@@ -88,7 +88,7 @@ export default async ({ req, res, log, error }) => {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) return res.json({ ok: false, error: "no-key" }, 500);
-    const model = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+    const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
     const raw = await gemini(image, body.mime || "image/jpeg", apiKey, model);
     let parsed = {};
