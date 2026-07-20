@@ -1,9 +1,13 @@
 import { useState } from "react";
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
+import * as DocumentPicker from "expo-document-picker";
+import { File } from "expo-file-system";
 import { useTheme } from "@/theme/theme";
+import { hSelect } from "@/lib/haptics";
 import { scanReceipt, type ReceiptData } from "@/lib/receipts";
 import { addExpense, type Account } from "@/lib/expenses";
 import { recordPrice } from "@/lib/products";
@@ -12,6 +16,7 @@ import type { Category } from "@/lib/categories";
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 const eur = (v: number) => `${v.toFixed(2).replace(".", ",")} €`;
 type Step = "choose" | "scanning" | "review";
+type Source = "camera" | "library" | "pdf";
 
 export function ScanModal({
   visible,
@@ -54,29 +59,41 @@ export function ScanModal({
     onClose();
   };
 
-  const run = async (source: "camera" | "library") => {
+  const run = async (source: Source) => {
     try {
-      const perm =
-        source === "camera"
-          ? await ImagePicker.requestCameraPermissionsAsync()
-          : await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!perm.granted) {
-        Alert.alert("Permiso necesario", "Activa el permiso de cámara/fotos en los ajustes para escanear tickets.");
-        return;
-      }
-      const res =
-        source === "camera"
-          ? await ImagePicker.launchCameraAsync({ quality: 1 })
-          : await ImagePicker.launchImageLibraryAsync({ quality: 1, mediaTypes: ["images"] });
-      if (res.canceled) return;
+      let base64 = "";
+      let mime = "image/jpeg";
 
-      setStep("scanning");
-      const shrunk = await ImageManipulator.manipulateAsync(
-        res.assets[0].uri,
-        [{ resize: { width: 1400 } }],
-        { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG, base64: true },
-      );
-      const receipt = await scanReceipt(shrunk.base64 ?? "");
+      if (source === "pdf") {
+        const res = await DocumentPicker.getDocumentAsync({ type: "application/pdf", copyToCacheDirectory: true });
+        if (res.canceled) return;
+        setStep("scanning");
+        base64 = await new File(res.assets[0].uri).base64();
+        mime = "application/pdf";
+      } else {
+        const perm =
+          source === "camera"
+            ? await ImagePicker.requestCameraPermissionsAsync()
+            : await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!perm.granted) {
+          Alert.alert("Permiso necesario", "Activa el permiso de cámara/fotos en los ajustes para escanear tickets.");
+          return;
+        }
+        const res =
+          source === "camera"
+            ? await ImagePicker.launchCameraAsync({ quality: 1 })
+            : await ImagePicker.launchImageLibraryAsync({ quality: 1, mediaTypes: ["images"] });
+        if (res.canceled) return;
+        setStep("scanning");
+        const shrunk = await ImageManipulator.manipulateAsync(
+          res.assets[0].uri,
+          [{ resize: { width: 1400 } }],
+          { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+        );
+        base64 = shrunk.base64 ?? "";
+      }
+
+      const receipt = await scanReceipt(base64, mime);
       setData(receipt);
       setMerchant(receipt.merchant ?? "");
       setTotal(receipt.total != null ? String(receipt.total).replace(".", ",") : "");
@@ -93,6 +110,7 @@ export function ScanModal({
   };
 
   const toggleLine = (i: number) => {
+    hSelect();
     const next = new Set(picked);
     if (next.has(i)) next.delete(i);
     else next.add(i);
@@ -116,17 +134,19 @@ export function ScanModal({
         category: category ?? undefined,
         spentAt: data?.date ? new Date(data.date).toISOString() : undefined,
       });
+      let saved = 0;
       if (savePrices && data) {
         const store = merchant.trim() || "Súper";
         for (const i of picked) {
           const l = data.lines[i];
           if (l && l.total != null && l.description.trim()) {
             await recordPrice(hogarId, l.description.trim(), l.total, store);
+            saved++;
           }
         }
       }
       onDone();
-      Alert.alert("Guardado", "Gasto añadido" + (savePrices && picked.size ? ` y ${picked.size} precios registrados.` : "."));
+      Alert.alert("Guardado", "Gasto añadido" + (saved ? ` y ${saved} precios registrados.` : "."));
       close();
     } catch (e) {
       Alert.alert("No se pudo guardar", e instanceof Error ? e.message : "Inténtalo de nuevo.");
@@ -135,32 +155,57 @@ export function ScanModal({
     }
   };
 
+  const nLines = data?.lines.length ?? 0;
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={close}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={close} />
-      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0" style={{ height: step === "review" ? "88%" : undefined, backgroundColor: t.bg }}>
+      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0" style={{ height: step === "review" ? "90%" : undefined, backgroundColor: t.bg }}>
         <View className="flex-row items-center justify-between px-5 py-3" style={{ borderBottomWidth: 0.5, borderBottomColor: t.separator }}>
           <Pressable onPress={close} hitSlop={8}><Text className="text-base text-accent">Cerrar</Text></Pressable>
-          <Text className="text-[17px] font-semibold text-label">Escanear ticket</Text>
+          <Text className="text-[17px] font-semibold text-label">{step === "review" ? "Ticket detectado" : "Escanear ticket"}</Text>
           <View style={{ width: 52 }} />
         </View>
 
+        {/* --- Elegir origen (tarjeta con degradado, como el mockup) --- */}
         {step === "choose" && (
-          <View className="px-6 pt-7 pb-8 items-center">
-            <View className="rounded-full items-center justify-center mb-4" style={{ width: 64, height: 64, backgroundColor: t.accentSoft }}>
-              <Ionicons name="receipt-outline" size={30} color={t.accent} />
-            </View>
-            <Text className="text-[14px] text-secondary text-center mb-6">
-              Haz una foto al ticket (recto y bien iluminado) y crearé el gasto con el total; si quieres, guardo también los productos en la base de precios.
+          <View className="px-4 pt-5 pb-8">
+            <LinearGradient
+              colors={[t.accent, "#2A6E75"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ borderRadius: 18, padding: 16, shadowColor: t.accent, shadowOpacity: 0.25, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } }}
+            >
+              <View className="flex-row items-center mb-3" style={{ gap: 10 }}>
+                <View className="rounded-[10px] items-center justify-center" style={{ width: 32, height: 32, backgroundColor: "rgba(255,255,255,0.18)" }}>
+                  <Ionicons name="receipt-outline" size={18} color="#fff" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-white text-[15px] font-semibold">Subir ticket</Text>
+                  <Text className="text-[12px]" style={{ color: "rgba(255,255,255,0.85)" }}>OCR automático · gasto + precios</Text>
+                </View>
+              </View>
+              <View className="flex-row" style={{ gap: 6 }}>
+                {([
+                  { key: "camera", label: "Cámara", icon: "camera-outline" },
+                  { key: "library", label: "Galería", icon: "images-outline" },
+                  { key: "pdf", label: "PDF", icon: "document-text-outline" },
+                ] as const).map((o) => (
+                  <Pressable
+                    key={o.key}
+                    onPress={() => run(o.key)}
+                    className="flex-1 items-center justify-center rounded-[12px] py-3"
+                    style={{ backgroundColor: "rgba(255,255,255,0.16)", gap: 5 }}
+                  >
+                    <Ionicons name={o.icon as IoniconName} size={20} color="#fff" />
+                    <Text className="text-white text-[13px] font-semibold">{o.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </LinearGradient>
+            <Text className="text-[13px] text-secondary text-center mt-5 px-4">
+              Foto recta y bien iluminada, o un PDF del ticket. Detecto comercio, total y productos; luego lo revisas.
             </Text>
-            <Pressable onPress={() => run("camera")} className="rounded-[14px] py-3.5 items-center flex-row justify-center w-full mb-3" style={{ backgroundColor: t.accent, gap: 8 }}>
-              <Ionicons name="camera" size={18} color="#fff" />
-              <Text className="text-white text-base font-semibold">Hacer foto</Text>
-            </Pressable>
-            <Pressable onPress={() => run("library")} className="rounded-[14px] py-3.5 items-center flex-row justify-center w-full" style={{ gap: 8, borderWidth: 1, borderColor: t.separator }}>
-              <Ionicons name="images-outline" size={18} color={t.accent} />
-              <Text className="text-[15px] font-semibold text-accent">Elegir de la galería</Text>
-            </Pressable>
           </View>
         )}
 
@@ -171,55 +216,64 @@ export function ScanModal({
           </View>
         )}
 
+        {/* --- Revisión (estilo "ticket detectado" del mockup) --- */}
         {step === "review" && data && (
-          <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 32 }}>
-            <Text className="text-[12px] font-medium uppercase tracking-wide text-secondary mb-2">Comercio</Text>
-            <TextInput
-              className="bg-card rounded-lg2 px-4 py-3 mb-3 text-[16px] text-label"
-              placeholder="Súper"
-              placeholderTextColor={t.labelTertiary}
-              value={merchant}
-              onChangeText={setMerchant}
-            />
-            <View className="flex-row mb-3" style={{ gap: 8 }}>
-              <View className="flex-1">
-                <Text className="text-[12px] font-medium uppercase tracking-wide text-secondary mb-2">Total</Text>
-                <TextInput
-                  className="bg-card rounded-lg2 px-4 py-3 text-[16px] text-label"
-                  placeholder="0,00"
-                  placeholderTextColor={t.labelTertiary}
-                  value={total}
-                  onChangeText={setTotal}
-                  keyboardType="decimal-pad"
-                />
+          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+            <View className="bg-card rounded-card p-4 mb-3" style={{ shadowColor: "#000", shadowOpacity: t.dark ? 0 : 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }}>
+              <View className="flex-row items-center mb-3" style={{ gap: 8 }}>
+                <Ionicons name="checkmark-circle" size={18} color={t.green} />
+                <Text className="text-[13px] font-medium" style={{ color: t.green }}>
+                  Ticket leído · {nLines} {nLines === 1 ? "producto" : "productos"}
+                </Text>
               </View>
-              <View style={{ width: 130 }}>
-                <Text className="text-[12px] font-medium uppercase tracking-wide text-secondary mb-2">Fecha</Text>
-                <View className="bg-card rounded-lg2 px-4 py-3">
-                  <Text className="text-[15px] text-label">{data.date ?? "Hoy"}</Text>
-                </View>
-              </View>
-            </View>
 
-            <Text className="text-[12px] font-medium uppercase tracking-wide text-secondary mb-2">Cuenta</Text>
-            <View className="flex-row mb-3" style={{ gap: 8 }}>
-              {([
-                { key: "individual", label: "Individual", icon: "person" },
-                { key: "joint", label: "Conjunta", icon: "wallet" },
-              ] as const).map((o) => {
-                const on = account === o.key;
-                return (
-                  <Pressable key={o.key} onPress={() => setAccount(o.key)} className="flex-1 flex-row items-center justify-center rounded-lg2 py-2.5" style={{ gap: 6, backgroundColor: on ? t.accent : t.card, borderWidth: 1, borderColor: on ? t.accent : t.separator }}>
-                    <Ionicons name={o.icon} size={15} color={on ? "#fff" : t.labelSecondary} />
-                    <Text className="text-[14px] font-medium" style={{ color: on ? "#fff" : t.label }}>{o.label}</Text>
-                  </Pressable>
-                );
-              })}
+              <MetaRow label="Comercio">
+                <TextInput
+                  className="text-[15px] text-label text-right"
+                  style={{ minWidth: 120, flex: 1, marginLeft: 12 }}
+                  value={merchant}
+                  onChangeText={setMerchant}
+                  placeholder="Súper"
+                  placeholderTextColor={t.labelTertiary}
+                />
+              </MetaRow>
+              <MetaRow label="Fecha">
+                <Text className="text-[15px] text-label font-medium">{data.date ?? "Hoy"}</Text>
+              </MetaRow>
+              <MetaRow label="Total">
+                <View className="flex-row items-center" style={{ gap: 4 }}>
+                  <TextInput
+                    className="text-[17px] font-bold text-label text-right"
+                    style={{ minWidth: 70 }}
+                    value={total}
+                    onChangeText={setTotal}
+                    keyboardType="decimal-pad"
+                    placeholder="0,00"
+                    placeholderTextColor={t.labelTertiary}
+                  />
+                  <Text className="text-[15px] text-secondary">€</Text>
+                </View>
+              </MetaRow>
+              <MetaRow label="Cuenta" last>
+                <View className="flex-row" style={{ gap: 6 }}>
+                  {([
+                    { key: "individual", label: "Individual" },
+                    { key: "joint", label: "Conjunta" },
+                  ] as const).map((o) => {
+                    const on = account === o.key;
+                    return (
+                      <Pressable key={o.key} onPress={() => setAccount(o.key)} className="rounded-pill px-3 py-1.5" style={{ backgroundColor: on ? t.accent : t.fill }}>
+                        <Text className="text-[13px] font-medium" style={{ color: on ? "#fff" : t.label }}>{o.label}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </MetaRow>
             </View>
 
             {categories.length > 0 && (
               <>
-                <Text className="text-[12px] font-medium uppercase tracking-wide text-secondary mb-2">Categoría</Text>
+                <Text className="px-1 pb-2 text-[12px] font-medium uppercase tracking-wide text-secondary">Categoría</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3" contentContainerStyle={{ gap: 8, paddingRight: 8 }}>
                   {categories.map((c) => {
                     const on = category === c.name;
@@ -234,17 +288,17 @@ export function ScanModal({
               </>
             )}
 
-            {data.lines.length > 0 && (
+            {nLines > 0 && (
               <>
-                <View className="flex-row items-center justify-between mt-1 mb-2">
-                  <Text className="text-[12px] font-medium uppercase tracking-wide text-secondary">Productos ({data.lines.length})</Text>
+                <View className="flex-row items-center justify-between px-1 mb-2">
+                  <Text className="text-[12px] font-medium uppercase tracking-wide text-secondary">Productos detectados</Text>
                   <View className="flex-row items-center" style={{ gap: 8 }}>
                     <Text className="text-[12px] text-secondary">Guardar precios</Text>
                     <Switch value={savePrices} onValueChange={setSavePrices} trackColor={{ true: t.accent, false: t.separator }} />
                   </View>
                 </View>
                 {savePrices && (
-                  <View className="bg-card rounded-lg2 overflow-hidden">
+                  <View className="bg-card rounded-lg2 overflow-hidden mb-2">
                     {data.lines.map((l, i) => {
                       const on = picked.has(i);
                       const usable = l.total != null && !!l.description.trim();
@@ -253,11 +307,11 @@ export function ScanModal({
                           key={i}
                           disabled={!usable}
                           onPress={() => toggleLine(i)}
-                          className="flex-row items-center px-4 py-2.5"
-                          style={{ gap: 10, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator, opacity: usable ? 1 : 0.4 }}
+                          className="flex-row items-center px-4 py-3"
+                          style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator, opacity: usable ? 1 : 0.4 }}
                         >
-                          <View className="items-center justify-center rounded-md" style={{ width: 20, height: 20, borderWidth: 1.6, borderColor: on ? t.accent : t.separator, backgroundColor: on ? t.accent : "transparent" }}>
-                            {on && <Ionicons name="checkmark" size={12} color="#fff" />}
+                          <View className="items-center justify-center rounded-full" style={{ width: 22, height: 22, backgroundColor: on ? t.accent : "transparent", borderWidth: on ? 0 : 1.6, borderColor: t.separator }}>
+                            {on && <Ionicons name="checkmark" size={13} color="#fff" />}
                           </View>
                           <Text className="flex-1 text-[14px] text-label" numberOfLines={1}>{l.description.trim() || "—"}</Text>
                           <Text className="text-[14px] font-semibold text-label" style={{ fontVariant: ["tabular-nums"] }}>
@@ -271,12 +325,26 @@ export function ScanModal({
               </>
             )}
 
-            <Pressable onPress={save} disabled={busy} className="rounded-[14px] py-3.5 items-center mt-5" style={{ backgroundColor: t.accent, opacity: busy ? 0.6 : 1 }}>
+            <Pressable onPress={save} disabled={busy} className="rounded-[14px] py-3.5 items-center mt-3" style={{ backgroundColor: t.accent, opacity: busy ? 0.6 : 1 }}>
               {busy ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-base font-semibold">Guardar gasto{savePrices && picked.size ? ` + ${picked.size} precios` : ""}</Text>}
             </Pressable>
+            <Text className="text-center text-[12px] text-tertiary mt-3">Puedes editar el comercio y el total antes de guardar.</Text>
           </ScrollView>
         )}
       </View>
     </Modal>
+  );
+}
+
+function MetaRow({ label, children, last }: { label: string; children: React.ReactNode; last?: boolean }) {
+  const t = useTheme();
+  return (
+    <View
+      className="flex-row items-center justify-between"
+      style={{ paddingVertical: 9, borderBottomWidth: last ? 0 : 0.5, borderBottomColor: t.separator }}
+    >
+      <Text className="text-[13px] text-secondary">{label}</Text>
+      {children}
+    </View>
   );
 }

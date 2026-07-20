@@ -11,12 +11,14 @@ import https from "https";
 // Permiso de ejecución: Users. Recomendado timeout ≥ 30 s.
 
 function ocrSpace(base64, mime, apiKey) {
+  const isPdf = /pdf/i.test(mime || "");
   const form = new URLSearchParams();
   form.append("apikey", apiKey);
   form.append("OCREngine", "2"); // motor 2: mejor con recibos, sin idioma fijo
   form.append("isTable", "true");
   form.append("scale", "true");
-  form.append("base64Image", `data:${mime};base64,${base64}`);
+  form.append("filetype", isPdf ? "PDF" : "JPG");
+  form.append("base64Image", `data:${isPdf ? "application/pdf" : "image/jpeg"};base64,${base64}`);
   const body = form.toString();
 
   return new Promise((resolve, reject) => {
