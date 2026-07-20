@@ -50,3 +50,57 @@ describe("parseReceipt", () => {
     expect(r2.total).toBeCloseTo(2.5);
   });
 });
+
+// Ticket real de Lidl (con la barra de estado y cabecera del visor de fotos que
+// se colaron al escanear un pantallazo, y productos que acaban en letra de IVA).
+const LIDL = `23:09
+18 jul 2026
+LIDL SUPERMERCADOS S.A.U.
+Barrio de S. Martiño, s/n
+36711Areas-Tui
+NIF A60195278
+EUR
+LIMA PACK 4 1,19 A
+CAMPESINOS 0,89 A
+PAN BURGER BRIOCHE 0,79 B
+COSTILLAS SRIRACHA 6,99 B
+PALETA DE CERDO 4,49x 2 8,98 B
+------------
+TOTAL 18,84
+ENTREGA 18,84
+------------
+VENTA Visa Debit
+18/07/2026 20:49:26
+IVA% IVA + P N = PVP
+A 4% 0,08 2,00 2,08
+B 10% 1,52 15,24 16,76
+Suma 1,60 17,24 18,84
+GRACIAS POR SU VISITA`;
+
+describe("parseReceipt · ticket Lidl real", () => {
+  const r = parseReceipt(LIDL);
+
+  it("ignora la barra de estado y coge el comercio (LIDL, no la fecha del visor)", () => {
+    expect(r.merchant).toBe("LIDL SUPERMERCADOS S.A.U.");
+  });
+
+  it("coge el total 18,84 (no el subtotal ni la tabla de IVA)", () => {
+    expect(r.total).toBeCloseTo(18.84);
+  });
+
+  it("fecha del ticket", () => {
+    expect(r.date).toBe("2026-07-18");
+  });
+
+  it("extrae los 5 productos reales (con letra de IVA al final) y ninguna línea de IVA/pago", () => {
+    expect(r.lines.map((l) => l.description)).toEqual([
+      "LIMA PACK 4",
+      "CAMPESINOS",
+      "PAN BURGER BRIOCHE",
+      "COSTILLAS SRIRACHA",
+      "PALETA DE CERDO",
+    ]);
+    expect(r.lines.map((l) => l.total)).toEqual([1.19, 0.89, 0.79, 6.99, 8.98]);
+    expect(r.lines.some((l) => /suma|iva|total|entrega|10%/i.test(l.description))).toBe(false);
+  });
+});

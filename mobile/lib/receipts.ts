@@ -72,8 +72,15 @@ function amountsIn(line: string): number[] {
   return found.map(parseMoney).filter((n): n is number => n !== null);
 }
 
+const letterCount = (l: string): number => (l.match(/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/g) || []).length;
+// "23:09" (barra de estado)
+const isTimeLine = (l: string): boolean => /^\s*\d{1,2}:\d{2}\b/.test(l);
+// "18 jul 2026", "18/07/2026" (cabeceras del visor de fotos, fechas)
+const isDateLine = (l: string): boolean =>
+  /^\s*\d{1,2}[\s/\-.]+(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic|\d{1,2})[\s/\-.]+\d{2,4}/i.test(l);
+
 function findDate(text: string): string | null {
-  let m = text.match(/(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})/);
+  const m = text.match(/(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})/);
   if (m) {
     let y = parseInt(m[3], 10);
     if (y < 100) y += 2000;
@@ -86,8 +93,11 @@ function findDate(text: string): string | null {
   return null;
 }
 
-// Líneas que NO son productos (totales, impuestos, pagos…).
-const SKIP_LINE = /total|sub\s*total|iva|i\.v\.a|base imponible|cambio|efectivo|tarjeta|entrega|devoluc|redondeo|a pagar|cuota|importe|s\.a\.|c\.i\.f|n\.i\.f/i;
+// Líneas que NO son productos (totales, impuestos, pagos, cabeceras fiscales…).
+const SKIP_LINE =
+  /\b(sub\s*total|iva|i\.v\.a|base imponible|cambio|efectivo|tarjeta|visa|debit|entrega|devoluc|redondeo|a pagar|cuota|pvp|suma|nif|cif|www|tel|gracias|recibo|cliente|venta|importe|unidad|art[ií]culos)\b/i;
+// Filas de la tabla de IVA: "A 4% ...", "B 10% ..."
+const isTaxCodeRow = (l: string): boolean => /^[A-Z]\s+\d{1,2}\s*%/.test(l.trim());
 
 /** Convierte el texto OCR en datos estructurados (best-effort). */
 export function parseReceipt(text: string): ReceiptData {
@@ -96,38 +106,39 @@ export function parseReceipt(text: string): ReceiptData {
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
 
-  // Comercio: normalmente la primera línea con letras y sin importe (el nombre
-  // de la tienda va arriba; "S.A."/"S.L." forman parte del nombre, no se filtran).
+  // Comercio: primera línea "real" (con letras, que no sea hora/fecha ni importe).
   const merchant =
-    lines.find((l) => /[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]{3,}/.test(l) && amountsIn(l).length === 0) ?? null;
+    lines.find((l) => letterCount(l) >= 4 && !isDateLine(l) && !isTimeLine(l) && amountsIn(l).length === 0) ?? null;
 
   const date = findDate(text);
 
-  // Total: línea con "total" (no subtotal) → último importe; si no, el mayor del ticket.
+  // Línea de TOTAL (no subtotal): marca dónde acaban los productos.
+  const totalIdx = lines.findIndex((l) => /\btotal\b/i.test(l) && !/sub\s*total/i.test(l));
+
+  // Total: importe de la línea TOTAL; si no, el mayor importe del ticket.
   let total: number | null = null;
-  for (const l of lines) {
-    if (/total/i.test(l) && !/sub\s*total/i.test(l)) {
-      const a = amountsIn(l);
-      if (a.length) {
-        total = a[a.length - 1];
-        break;
-      }
-    }
+  if (totalIdx >= 0) {
+    const a = amountsIn(lines[totalIdx]);
+    if (a.length) total = a[a.length - 1];
   }
   if (total === null) {
     const all = lines.flatMap(amountsIn);
     total = all.length ? Math.max(...all) : null;
   }
 
-  // Productos: "descripción … precio" al final de la línea, descartando totales/pagos.
+  // Productos: solo por encima de la línea TOTAL (así no cuelan totales, IVA ni pagos).
+  const region = totalIdx >= 0 ? lines.slice(0, totalIdx) : lines;
   const items: ReceiptLine[] = [];
-  for (const l of lines) {
-    if (SKIP_LINE.test(l)) continue;
-    const m = l.match(/^(.*[A-Za-zÁÉÍÓÚÜÑáéíóúüñ].*?)\s+(\d{1,4}(?:[.,]\d{3})*[.,]\d{2})\s*€?$/);
-    if (m) {
-      const description = m[1].trim();
-      const price = parseMoney(m[2]);
-      if (description.length >= 2 && price !== null) items.push({ description, qty: null, total: price });
+  for (const l of region) {
+    if (SKIP_LINE.test(l) || isTaxCodeRow(l)) continue;
+    // "descripción … precio [letra de IVA]" → p. ej. "LIMA PACK 4   1,19 A"
+    const m = l.match(/^(.+?[A-Za-zÁÉÍÓÚÜÑáéíóúüñ].*?)\s+(\d{1,4}(?:[.,]\d{3})*[.,]\d{2})\s*[A-Z]?\.?\s*$/);
+    if (!m) continue;
+    // quita cantidades tipo "4,49x 2" al final de la descripción
+    const description = m[1].replace(/\s*\d[\d.,]*\s*x\s*\d+\s*$/i, "").trim();
+    const price = parseMoney(m[2]);
+    if (description.length >= 2 && letterCount(description) >= 2 && price !== null) {
+      items.push({ description, qty: null, total: price });
     }
   }
 

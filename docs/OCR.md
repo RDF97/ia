@@ -39,10 +39,14 @@ por debajo de 1 MB). Van en Expo Go; en el **APK** hay que **recompilar** (módu
 nativos nuevos), se incluyen en el próximo `eas build`.
 
 ## 4. Probar
-1. **Gastos → Escanear ticket → Hacer foto** (recto y bien iluminado).
+1. **Gastos → Escanear ticket** → **Cámara**, **Galería** o **PDF**.
 2. Revisa **comercio / total / fecha** (editables), elige **cuenta** y **categoría**,
    marca los **productos** a guardar, y **Guardar**.
 
-> OCR.space da el texto crudo; el **total** suele salir bien, y los **productos**
-> dependen de lo limpio que sea el ticket (fotos rectas y nítidas aciertan más).
-> Si algo no cuadra, se puede editar antes de guardar.
+> Admite **foto o PDF**. El parseo (comercio/total/productos) vive en la app
+> (`lib/receipts.ts`, con tests), así que se afina sin re-desplegar la función.
+> Consejo: foto **recta y nítida**, del ticket **solo** (evita pantallazos con la
+> barra de estado del móvil). Todo se puede editar antes de guardar.
+
+> Si añades soporte PDF y ya tenías la función desplegada, **vuelve a subir** el
+> `.tar.gz` de `scanReceipt` (ahora manda el `filetype` a OCR.space).
