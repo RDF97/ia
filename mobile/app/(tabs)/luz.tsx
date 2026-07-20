@@ -340,7 +340,7 @@ function AlertsCard({ today, tomorrow }: { today: number[]; tomorrow: number[] |
       20,
       30,
       "📊 Precios de mañana",
-      "Ya está publicado el PVPC de mañana. Abre Clara y mira las mejores horas.",
+      "Ya está publicado el PVPC de mañana. Abre Homie y mira las mejores horas.",
     );
     await saveGroupIds("summary", [id]);
   };

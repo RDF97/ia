@@ -7,7 +7,7 @@ import { useHogar } from "@/lib/hogar";
 import { redeemInvite } from "@/lib/invites";
 import { useTheme } from "@/theme/theme";
 
-// Pantalla a la que lleva el enlace de invitación (deep link clara://join?...).
+// Pantalla a la que lleva el enlace de invitación (deep link homie://join?...).
 export default function Join() {
   const t = useTheme();
   const params = useLocalSearchParams<{

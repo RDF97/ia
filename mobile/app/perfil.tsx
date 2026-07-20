@@ -140,7 +140,7 @@ export default function Perfil() {
         </View>
 
         <Text className="text-center text-[12px] text-tertiary mt-4">
-          Clara v{Constants.expoConfig?.version ?? "0.1.0"} · hecho con ♥
+          Homie v{Constants.expoConfig?.version ?? "0.1.0"} · hecho con ♥
         </Text>
       </ScrollView>
 
