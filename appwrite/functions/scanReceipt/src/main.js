@@ -6,9 +6,13 @@ import https from "https";
 //
 // Env vars:
 //   GEMINI_API_KEY  → clave gratuita de https://aistudio.google.com/app/apikey
-//   GEMINI_MODEL    → opcional, por defecto "gemini-2.0-flash"
+//   GEMINI_MODEL    → opcional; modelo(s) preferido(s), separados por comas.
+//                     Si no, prueba una lista de modelos hasta que uno funcione.
 //
 // Permiso de ejecución: Users. Recomendado timeout ≥ 30 s.
+
+// Se prueban en orden; si uno da 404 (retirado) o 429 (sin cuota), pasa al siguiente.
+const DEFAULT_MODELS = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.0-flash-lite", "gemini-2.0-flash"];
 
 const PROMPT = `Eres un experto en leer tickets de compra y facturas de España a partir de una imagen o PDF.
 Extrae los datos y devuélvelos SOLO en JSON según el esquema. Reglas:
@@ -30,16 +34,13 @@ const SCHEMA = {
       type: "array",
       items: {
         type: "object",
-        properties: {
-          description: { type: "string" },
-          total: { type: "number", nullable: true },
-        },
+        properties: { description: { type: "string" }, total: { type: "number", nullable: true } },
       },
     },
   },
 };
 
-function gemini(base64, mime, apiKey, model) {
+function callGemini(model, base64, mime, apiKey) {
   const payload = JSON.stringify({
     contents: [
       {
@@ -88,46 +89,57 @@ export default async ({ req, res, log, error }) => {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) return res.json({ ok: false, error: "no-key" }, 500);
-    const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
-    const raw = await gemini(image, body.mime || "image/jpeg", apiKey, model);
-    let parsed = {};
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      return res.json({ ok: false, error: "ocr" }, 502);
+    const mime = body.mime || "image/jpeg";
+    const preferred = (process.env.GEMINI_MODEL || "").split(",").map((s) => s.trim()).filter(Boolean);
+    const models = [...new Set([...preferred, ...DEFAULT_MODELS])];
+
+    let lastDetail = "sin respuesta";
+    for (const model of models) {
+      let parsed;
+      try {
+        parsed = JSON.parse(await callGemini(model, image, mime, apiKey));
+      } catch (e) {
+        lastDetail = `${model}: ${e?.message || "error red"}`;
+        continue;
+      }
+      if (parsed.error) {
+        lastDetail = `${model}: ${parsed.error.code || ""} ${parsed.error.status || parsed.error.message || ""}`.trim();
+        log(lastDetail);
+        continue; // 404 (retirado) o 429 (sin cuota) → probar siguiente
+      }
+      const textOut = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!textOut) {
+        lastDetail = `${model}: respuesta vacía`;
+        continue;
+      }
+      let data;
+      try {
+        data = JSON.parse(String(textOut).replace(/^```json\s*|\s*```$/g, ""));
+      } catch {
+        lastDetail = `${model}: JSON inválido`;
+        continue;
+      }
+      const lines = Array.isArray(data.lines)
+        ? data.lines
+            .filter((l) => l && (l.description || l.total != null))
+            .map((l) => ({ description: String(l.description ?? "").trim(), qty: null, total: typeof l.total === "number" ? l.total : null }))
+        : [];
+      log(`OK con modelo ${model}`);
+      return res.json({
+        ok: true,
+        data: {
+          merchant: data.merchant ?? null,
+          date: data.date ?? null,
+          total: typeof data.total === "number" ? data.total : null,
+          currency: data.currency ?? null,
+          lines,
+        },
+      });
     }
-    if (parsed.error) {
-      error(JSON.stringify(parsed.error));
-      return res.json({ ok: false, error: "ocr" }, 502);
-    }
 
-    const textOut = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!textOut) return res.json({ ok: false, error: "ocr" }, 502);
-
-    let data = {};
-    try {
-      data = JSON.parse(String(textOut).replace(/^```json\s*|\s*```$/g, ""));
-    } catch {
-      return res.json({ ok: false, error: "ocr" }, 502);
-    }
-
-    const lines = Array.isArray(data.lines)
-      ? data.lines
-          .filter((l) => l && (l.description || l.total != null))
-          .map((l) => ({ description: String(l.description ?? "").trim(), qty: null, total: typeof l.total === "number" ? l.total : null }))
-      : [];
-
-    return res.json({
-      ok: true,
-      data: {
-        merchant: data.merchant ?? null,
-        date: data.date ?? null,
-        total: typeof data.total === "number" ? data.total : null,
-        currency: data.currency ?? null,
-        lines,
-      },
-    });
+    error(`Ningún modelo funcionó. Último: ${lastDetail}`);
+    return res.json({ ok: false, error: "ocr", detail: lastDetail }, 502);
   } catch (e) {
     error(e?.message || String(e));
     return res.json({ ok: false, error: "ocr" }, 500);
