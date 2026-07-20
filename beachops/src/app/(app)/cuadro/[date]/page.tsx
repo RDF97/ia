@@ -83,7 +83,7 @@ export default async function CuadroPage({
   if (board.cashPending > 0)
     avisos.push(`${board.cashPending} importe(s) de caja pendientes`);
   if (board.stats.failedEmails > 0)
-    avisos.push(`${board.stats.failedEmails} email(s) sin procesar`);
+    avisos.push(`${board.stats.failedEmails} email(s) que no se pudieron leer (revísalos en Emails)`);
 
   const resumenItems = [
     { label: "Total pax", value: board.resumen.paxTotal },

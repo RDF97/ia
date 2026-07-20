@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSessionCookie, destroySession, requireSession } from "./auth";
@@ -268,6 +268,50 @@ export async function retryAllFailed() {
   for (const raw of [...failed, ...pending.map((p) => p.raw)]) {
     await processRawEmail(raw);
   }
+  revalidatePath("/emails");
+  revalidatePath("/");
+}
+
+/**
+ * Reprocesa TODAS las reservas (no solo las fallidas): re-aplica el mapeo actual a
+ * cada email de reserva ya parseado. Sirve para que las reglas nuevas (p. ej. enviar
+ * Es Pontàs a Cala Santanyí) muevan también las reservas que ya estaban en el cuadro.
+ * Antes se asegura de que la config de Cala Santanyí exista.
+ */
+export async function reprocessAllBookings() {
+  const session = await requireSession();
+  const db = await getDb();
+  const { ensureSantanyiConfig } = await import("./config/ensure-santanyi");
+  await ensureSantanyiConfig();
+  const emails = await db
+    .select()
+    .from(schema.rawEmails)
+    .where(
+      and(
+        eq(schema.rawEmails.orgId, session.orgId),
+        inArray(schema.rawEmails.parseStatus, ["parsed", "failed", "pending"]),
+      ),
+    );
+  for (const raw of emails) {
+    await processRawEmail(raw);
+  }
+  revalidatePath("/emails");
+  revalidatePath("/");
+}
+
+/** Marca como ignorados todos los emails fallidos de la org (limpia el aviso). */
+export async function ignoreAllFailed() {
+  const session = await requireSession();
+  const db = await getDb();
+  await db
+    .update(schema.rawEmails)
+    .set({ parseStatus: "ignored" })
+    .where(
+      and(
+        eq(schema.rawEmails.orgId, session.orgId),
+        eq(schema.rawEmails.parseStatus, "failed"),
+      ),
+    );
   revalidatePath("/emails");
   revalidatePath("/");
 }

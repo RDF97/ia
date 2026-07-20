@@ -6,7 +6,7 @@ process.env.TOKEN_ENCRYPTION_KEY = "0".repeat(64);
 
 import { getDb, schema } from "../src/server/db";
 import { runMigrations } from "../src/server/db/migrate";
-import { upgradeSantanyi } from "../scripts/upgrade-santanyi";
+import { ensureSantanyiConfig } from "../src/server/config/ensure-santanyi";
 
 let orgId: string;
 
@@ -24,9 +24,9 @@ beforeAll(async () => {
     .values({ orgId, name: "Playa Barca / Mondragó", sortOrder: 1 });
 });
 
-describe("upgrade-santanyi (parche idempotente)", () => {
+describe("ensureSantanyiConfig (idempotente)", () => {
   it("añade Cala Santanyí, Es Pontàs (cupo 22) y su regla a orgs existentes", async () => {
-    await upgradeSantanyi();
+    await ensureSantanyiConfig();
     const db = await getDb();
 
     const [loc] = await db
@@ -63,8 +63,8 @@ describe("upgrade-santanyi (parche idempotente)", () => {
   });
 
   it("reejecutar no duplica nada", async () => {
-    await upgradeSantanyi();
-    await upgradeSantanyi();
+    await ensureSantanyiConfig();
+    await ensureSantanyiConfig();
     const db = await getDb();
     const locs = await db
       .select()

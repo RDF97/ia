@@ -4,12 +4,20 @@
  * proceso aparte: `npm run worker`.
  */
 import { runMigrations } from "../src/server/db/migrate";
+import { ensureSantanyiConfig } from "../src/server/config/ensure-santanyi";
 import { syncAllAccounts } from "../src/server/gmail/sync";
 
 const INTERVAL = Number(process.env.SYNC_INTERVAL_MS ?? 60_000);
 
 async function main() {
   await runMigrations();
+  // Deja lista la config de Cala Santanyí / Es Pontàs en bases ya sembradas
+  // (idempotente). No debe bloquear el arranque si algo falla.
+  try {
+    await ensureSantanyiConfig();
+  } catch (err) {
+    console.error("ensureSantanyiConfig falló (se continúa):", err);
+  }
   console.log(`Worker de sincronización arrancado (cada ${INTERVAL / 1000}s)`);
   for (;;) {
     const started = Date.now();
