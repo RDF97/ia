@@ -66,6 +66,26 @@ describe("expenses · cálculos", () => {
     expect(balances(list, 2).find((r) => r.name === "A")!.net).toBeCloseTo(50, 5);
   });
 
+  test("una liquidación completa salda la deuda (ambos a 0)", () => {
+    const list = [
+      exp({ amount: 100, paidByName: "A", shared: true }),
+      exp({ amount: 40, paidByName: "B", shared: true }),
+    ];
+    // A +30, B -30 → B paga 30 a A → ambos saldados (no aparecen).
+    const res = balances(list, 2, [{ fromName: "B", toName: "A", amount: 30 }]);
+    expect(res).toEqual([]);
+  });
+
+  test("una liquidación parcial reduce la deuda", () => {
+    const list = [
+      exp({ amount: 100, paidByName: "A", shared: true }),
+      exp({ amount: 40, paidByName: "B", shared: true }),
+    ];
+    const res = balances(list, 2, [{ fromName: "B", toName: "A", amount: 10 }]);
+    expect(res.find((r) => r.name === "A")!.net).toBeCloseTo(20, 5);
+    expect(res.find((r) => r.name === "B")!.net).toBeCloseTo(-20, 5);
+  });
+
   test("accountTotals separa conjunta e individual del mes", () => {
     const now = new Date("2026-07-15T12:00:00.000Z");
     const thisMonth = "2026-07-10T09:00:00.000Z";

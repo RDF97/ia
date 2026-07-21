@@ -5,8 +5,9 @@ import DateTimePicker, { type DateTimePickerEvent } from "@react-native-communit
 import { useQueryClient } from "@tanstack/react-query";
 import { Screen } from "@/components/Screen";
 import { Card, PhaseCard, cardShadow } from "@/components/Card";
-import { Avatar, Fab, IconTile, Money, SectionTitle } from "@/components/ui";
+import { Fab, IconTile, Money, SectionTitle } from "@/components/ui";
 import { Segmented } from "@/components/Segmented";
+import { DebtCard } from "@/components/DebtCard";
 import { BudgetModal } from "@/components/gastos/BudgetModal";
 import { CsvModal } from "@/components/gastos/CsvModal";
 import { ScanModal } from "@/components/gastos/ScanModal";
@@ -15,6 +16,7 @@ import { useAuth } from "@/lib/auth";
 import { appwriteConfigured } from "@/lib/appwrite";
 import { useExpenses } from "@/lib/useExpenses";
 import { useCategories } from "@/lib/useCategories";
+import { useSettlements } from "@/lib/useSettlements";
 import { accountTotals, addExpense, balances, deleteExpense, effectiveAccount, monthlyTotal, type Account } from "@/lib/expenses";
 import {
   budgetStatus,
@@ -52,6 +54,7 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
   const qc = useQueryClient();
   const { data: expenses, isLoading, isError } = useExpenses(hogarId);
   const { data: categories } = useCategories(hogarId);
+  const { data: settlements } = useSettlements(hogarId);
   const [open, setOpen] = useState(false);
   const [budgetOpen, setBudgetOpen] = useState(false);
   const [budgetOn, setBudgetOn] = useState(false);
@@ -69,10 +72,15 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
   };
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["expenses", hogarId] });
+  const refreshBal = () =>
+    Promise.all([
+      qc.invalidateQueries({ queryKey: ["expenses", hogarId] }),
+      qc.invalidateQueries({ queryKey: ["settlements", hogarId] }),
+    ]);
   const list = expenses ?? [];
   const cats = categories ?? [];
   const total = monthlyTotal(list);
-  const bal = balances(list, members);
+  const bal = balances(list, members, settlements ?? []);
   const accTotals = accountTotals(list);
   const movements = filter === "all" ? list : list.filter((e) => effectiveAccount(e) === filter);
 
@@ -155,20 +163,12 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
 
       {bal.length > 0 && (
         <>
-          <SectionTitle>Reparto · gastos compartidos</SectionTitle>
-          <View className="rounded-card mx-4 mb-3 px-4 py-3" style={{ backgroundColor: t.accentSoft }}>
-            {bal.map((b, i) => (
-              <View key={b.name} className="flex-row items-center py-2" style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}>
-                <Avatar name={b.name} size={32} />
-                <View className="flex-1">
-                  <Text className="text-[12px] text-secondary">{b.name}</Text>
-                  <Money size={18} weight="700" color={b.net >= 0 ? t.accent : t.red}>
-                    {b.net >= 0 ? `le deben ${eur(b.net)}` : `debe ${eur(-b.net)}`}
-                  </Money>
-                </View>
-              </View>
+          <SectionTitle>Quién debe a quién</SectionTitle>
+          {bal
+            .filter((b) => b.name !== userName)
+            .map((b) => (
+              <DebtCard key={b.name} hogarId={hogarId} userName={userName} name={b.name} net={b.net} onDone={refreshBal} />
             ))}
-          </View>
         </>
       )}
 

@@ -107,16 +107,33 @@ export function accountTotals(
   return { joint, individual };
 }
 
+/** Liquidación mínima que necesita `balances` (pago de `fromName` a `toName`). */
+export type SettlementLike = { fromName: string; toName: string; amount: number };
+
 /**
  * Balance simple del hogar: solo generan deuda los gastos pagados por una persona
  * de su bolsillo (cuenta individual) y marcados como compartidos; lo pagado desde
  * la cuenta conjunta es dinero común y no reparte. net > 0 → le deben; net < 0 → debe.
+ *
+ * Las liquidaciones saldan deuda sin ser gasto: quien paga (`fromName`) sube su
+ * balance hacia 0 y quien cobra (`toName`) baja el suyo, por el mismo importe.
  */
-export function balances(expenses: Expense[], members: number): { name: string; net: number }[] {
+export function balances(
+  expenses: Expense[],
+  members: number,
+  settlements: SettlementLike[] = [],
+): { name: string; net: number }[] {
   const shared = expenses.filter((e) => e.shared && effectiveAccount(e) === "individual");
   const totalShared = shared.reduce((s, e) => s + e.amount, 0);
   const share = members > 0 ? totalShared / members : 0;
   const paid: Record<string, number> = {};
   for (const e of shared) paid[e.paidByName] = (paid[e.paidByName] ?? 0) + e.amount;
-  return Object.entries(paid).map(([name, p]) => ({ name, net: p - share }));
+  for (const s of settlements) {
+    paid[s.fromName] = (paid[s.fromName] ?? 0) + s.amount;
+    paid[s.toName] = (paid[s.toName] ?? 0) - s.amount;
+  }
+  // Descarta balances ya saldados (redondeo a céntimo).
+  return Object.entries(paid)
+    .map(([name, p]) => ({ name, net: p - share }))
+    .filter((b) => Math.abs(b.net) >= 0.005);
 }
