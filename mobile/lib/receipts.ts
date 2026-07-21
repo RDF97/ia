@@ -4,7 +4,8 @@ import { SCAN_FUNCTION_ID } from "./db";
 export interface ReceiptLine {
   description: string;
   qty: number | null;
-  total: number | null; // importe de la línea
+  unitPrice: number | null; // precio por unidad (para la base de precios)
+  total: number | null; // importe de la línea (unit × qty)
 }
 
 export interface ReceiptData {
@@ -143,7 +144,7 @@ export function parseReceipt(text: string): ReceiptData {
     const description = m[1].replace(/\s*\d[\d.,]*\s*x\s*\d+\s*$/i, "").trim();
     const price = parseMoney(m[2]);
     if (description.length >= 2 && letterCount(description) >= 2 && price !== null) {
-      items.push({ description, qty: null, total: price });
+      items.push({ description, qty: null, unitPrice: null, total: price });
     }
   }
 

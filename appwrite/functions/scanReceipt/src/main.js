@@ -20,7 +20,12 @@ Extrae los datos y devuélvelos SOLO en JSON según el esquema. Reglas:
 - "date": fecha de la compra en formato YYYY-MM-DD.
 - "total": importe TOTAL pagado, como número.
 - "currency": moneda (p. ej. "EUR").
-- "lines": SOLO las líneas de productos comprados. Cada una con "description" (nombre del producto, sin códigos ni cantidades sueltas) y "total" (precio de esa línea, número). NO incluyas líneas de IVA, subtotales, formas de pago, "entrega", "cambio" ni el total.
+- "lines": SOLO las líneas de productos comprados. Cada una con:
+  · "description": nombre del producto, sin códigos ni cantidades sueltas.
+  · "qty": unidades compradas de ese producto (número). Si no se indica, usa 1.
+  · "unit_price": precio de UNA unidad (número). Ej.: "2 x 4,49  8,98" → unit_price = 4.49.
+  · "total": importe de esa línea = qty × unit_price (número). En el ejemplo, 8.98.
+  NO incluyas líneas de IVA, subtotales, formas de pago, "entrega", "cambio" ni el total.
 Si un dato no aparece, usa null (o lista vacía para lines).`;
 
 const SCHEMA = {
@@ -34,7 +39,12 @@ const SCHEMA = {
       type: "array",
       items: {
         type: "object",
-        properties: { description: { type: "string" }, total: { type: "number", nullable: true } },
+        properties: {
+          description: { type: "string" },
+          qty: { type: "number", nullable: true },
+          unit_price: { type: "number", nullable: true },
+          total: { type: "number", nullable: true },
+        },
       },
     },
   },
@@ -120,10 +130,18 @@ export default async ({ req, res, log, error }) => {
         lastDetail = `${model}: JSON inválido`;
         continue;
       }
+      const num = (v) => (typeof v === "number" && isFinite(v) ? v : null);
       const lines = Array.isArray(data.lines)
         ? data.lines
-            .filter((l) => l && (l.description || l.total != null))
-            .map((l) => ({ description: String(l.description ?? "").trim(), qty: null, total: typeof l.total === "number" ? l.total : null }))
+            .filter((l) => l && (l.description || l.total != null || l.unit_price != null))
+            .map((l) => {
+              const qty = num(l.qty);
+              const unitPrice = num(l.unit_price);
+              let total = num(l.total);
+              // Rellena huecos: total = qty × unit; o unit = total / qty.
+              if (total == null && unitPrice != null) total = qty != null ? unitPrice * qty : unitPrice;
+              return { description: String(l.description ?? "").trim(), qty, unitPrice, total };
+            })
         : [];
       log(`OK con modelo ${model}`);
       return res.json({

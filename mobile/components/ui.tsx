@@ -121,6 +121,36 @@ export function CheckCircle({ done, onPress }: { done: boolean; onPress: () => v
   );
 }
 
+/** Botón flotante (FAB) redondeado — como el .fab del mockup. Va dentro de `Screen floating`. */
+export function Fab({ onPress, icon = "add" }: { onPress: () => void; icon?: IoniconName }) {
+  const t = useTheme();
+  return (
+    <Pressable
+      onPress={() => {
+        hSelect();
+        onPress();
+      }}
+      className="absolute items-center justify-center"
+      style={({ pressed }) => ({
+        bottom: 20,
+        right: 20,
+        width: 56,
+        height: 56,
+        borderRadius: 18,
+        backgroundColor: t.accent,
+        transform: [{ scale: pressed ? 0.94 : 1 }],
+        shadowColor: t.accent,
+        shadowOpacity: 0.35,
+        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 8 },
+        elevation: 8,
+      })}
+    >
+      <Ionicons name={icon} size={26} color={t.onAccent} />
+    </Pressable>
+  );
+}
+
 /** Número tabular (precios/importes alineados). */
 export function Money({ children, size = 15, color, weight = "600" }: { children: ReactNode; size?: number; color?: string; weight?: "400" | "500" | "600" | "700" }) {
   const t = useTheme();

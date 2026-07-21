@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -23,6 +23,7 @@ export function ScanModal({
   hogarId,
   userName,
   categories,
+  initialSource,
   onClose,
   onDone,
 }: {
@@ -30,6 +31,8 @@ export function ScanModal({
   hogarId: string;
   userName: string;
   categories: Category[];
+  /** Si se indica, al abrir arranca directamente ese origen (cámara/galería/pdf). */
+  initialSource?: Source | null;
   onClose: () => void;
   onDone: () => void;
 }) {
@@ -99,7 +102,7 @@ export function ScanModal({
       setTotal(receipt.total != null ? String(receipt.total).replace(".", ",") : "");
       const pre = new Set<number>();
       receipt.lines.forEach((l, i) => {
-        if (l.total != null && l.description.trim()) pre.add(i);
+        if ((l.total != null || l.unitPrice != null) && l.description.trim()) pre.add(i);
       });
       setPicked(pre);
       setStep("review");
@@ -108,6 +111,17 @@ export function ScanModal({
       Alert.alert("No se pudo leer el ticket", e instanceof Error ? e.message : "Inténtalo de nuevo.");
     }
   };
+
+  // Auto-arranca el origen elegido en la tarjeta "Subir ticket" al abrir el modal.
+  const startedRef = useRef(false);
+  useEffect(() => {
+    if (visible && initialSource && !startedRef.current) {
+      startedRef.current = true;
+      run(initialSource);
+    }
+    if (!visible) startedRef.current = false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, initialSource]);
 
   const toggleLine = (i: number) => {
     hSelect();
@@ -134,19 +148,31 @@ export function ScanModal({
         category: category ?? undefined,
         spentAt: data?.date ? new Date(data.date).toISOString() : undefined,
       });
+      // Los precios son "best-effort": el gasto ya está guardado, así que si falla
+      // registrar un precio NO abortamos (evita que reintentar duplique el gasto).
       let saved = 0;
+      let failed = 0;
       if (savePrices && data) {
         const store = merchant.trim() || "Súper";
         for (const i of picked) {
           const l = data.lines[i];
-          if (l && l.total != null && l.description.trim()) {
-            await recordPrice(hogarId, l.description.trim(), l.total, store);
-            saved++;
+          // Para la base de precios interesa el precio por UNIDAD, no el importe de la
+          // línea (p. ej. "2 × 4,49 = 8,98" → guardamos 4,49).
+          const unit = l?.unitPrice ?? l?.total;
+          if (l && unit != null && l.description.trim()) {
+            try {
+              await recordPrice(hogarId, l.description.trim(), unit, store);
+              saved++;
+            } catch {
+              failed++;
+            }
           }
         }
       }
       onDone();
-      Alert.alert("Guardado", "Gasto añadido" + (saved ? ` y ${saved} precios registrados.` : "."));
+      const priceMsg = saved ? ` y ${saved} precios registrados` : "";
+      const failMsg = failed ? ` (${failed} precios no se pudieron guardar)` : "";
+      Alert.alert("Guardado", `Gasto añadido${priceMsg}.${failMsg}`);
       close();
     } catch (e) {
       Alert.alert("No se pudo guardar", e instanceof Error ? e.message : "Inténtalo de nuevo.");
@@ -301,7 +327,7 @@ export function ScanModal({
                   <View className="bg-card rounded-lg2 overflow-hidden mb-2">
                     {data.lines.map((l, i) => {
                       const on = picked.has(i);
-                      const usable = l.total != null && !!l.description.trim();
+                      const usable = (l.total != null || l.unitPrice != null) && !!l.description.trim();
                       return (
                         <Pressable
                           key={i}
@@ -313,9 +339,14 @@ export function ScanModal({
                           <View className="items-center justify-center rounded-full" style={{ width: 22, height: 22, backgroundColor: on ? t.accent : "transparent", borderWidth: on ? 0 : 1.6, borderColor: t.separator }}>
                             {on && <Ionicons name="checkmark" size={13} color="#fff" />}
                           </View>
-                          <Text className="flex-1 text-[14px] text-label" numberOfLines={1}>{l.description.trim() || "—"}</Text>
+                          <View className="flex-1">
+                            <Text className="text-[14px] text-label" numberOfLines={1}>{l.description.trim() || "—"}</Text>
+                            {l.qty != null && l.qty > 1 && l.unitPrice != null && (
+                              <Text className="text-[12px] text-secondary">{l.qty} × {eur(l.unitPrice)}</Text>
+                            )}
+                          </View>
                           <Text className="text-[14px] font-semibold text-label" style={{ fontVariant: ["tabular-nums"] }}>
-                            {l.total != null ? eur(l.total) : "—"}
+                            {l.total != null ? eur(l.total) : l.unitPrice != null ? eur(l.unitPrice) : "—"}
                           </Text>
                         </Pressable>
                       );
