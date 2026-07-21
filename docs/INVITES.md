@@ -68,14 +68,34 @@ appwrite functions create-deployment \
 Los IDs ya están en `mobile/app.json → extra`:
 - `appwriteInvitesCollectionId: "invites"`
 - `appwriteJoinFunctionId: "joinHogar"`
+- `homieApkUrl` = enlace de descarga del APK que se mete en el mensaje de invitación
+  (por defecto `https://github.com/RDF97/ia/releases/latest/download/homie.apk`).
 
 Si nombraste la función distinto, cambia `appwriteJoinFunctionId` por su ID.
 
-## 5. Probar
-1. Anfitrión: **Invitar → Crear enlace → Compartir** (WhatsApp).
-2. Invitado: instala el APK, **regístrate**, y en la pantalla de "Crea tu hogar" pega el
-   **código** (o abre el enlace `homie://join?code=...`).
+## 5. Enlace de descarga del APK (para el mensaje de invitación)
+El mensaje de WhatsApp lleva **primero un enlace de descarga** (https válido) y luego el
+código. Ese enlace sale de `extra.homieApkUrl`. Como el repo es **público**, lo más simple
+es un **GitHub Release** con una URL estable:
+
+`https://github.com/RDF97/ia/releases/latest/download/homie.apk`
+
+Esta URL sirve siempre el **último** APK que subas con el nombre `homie.apk`. Para publicarlo:
+1. Compila el APK: `eas build --profile preview --platform android` y **descarga** el `.apk`
+   desde la página del build de EAS.
+2. En GitHub → repo `ia` → **Releases** → **Draft a new release** → crea un tag (p. ej. `app`),
+   marca **"Set as the latest release"**, y **arrastra el `.apk`** renombrándolo a `homie.apk`.
+3. A partir de ahí, ese enlace descarga siempre la última versión. Para actualizar, publica
+   una nueva release con el APK nuevo (mismo nombre de asset `homie.apk`).
+
+> Alternativa: subir el APK a un **bucket público de Appwrite Storage** y poner esa URL de
+> descarga en `homieApkUrl`. Con GitHub Releases no hace falta tocar el servidor.
+
+## 6. Probar
+1. Anfitrión: **Invitar → Crear código → Compartir** (WhatsApp).
+2. Invitado: abre el **enlace de descarga**, instala el APK, **regístrate**, y en la pantalla
+   de "Crea tu hogar" pega el **código**.
 3. Debe entrar al hogar y ver los mismos datos.
 
-> Los enlaces `homie://` no siempre son "clicables" en WhatsApp; por eso el mensaje
-> incluye también el **código** para pegarlo a mano, que es el camino más fiable.
+> El mensaje ya no usa el deep link `homie://` (WhatsApp no lo reconoce y no sirve si la
+> persona no tiene la app): lleva el enlace de descarga + el código, que es lo fiable.

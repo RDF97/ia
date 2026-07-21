@@ -1,10 +1,32 @@
 import { ID, Permission, Role } from "react-native-appwrite";
 import * as Linking from "expo-linking";
+import Constants from "expo-constants";
 import { functions } from "./appwrite";
 import { DB_ID, INVITES_COL, JOIN_FUNCTION_ID, databases } from "./db";
 
 // Alfabeto sin caracteres ambiguos (0/O, 1/I) para códigos fáciles de dictar.
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+// URL de descarga del APK (configurable en app.json → extra.homieApkUrl).
+export const APK_URL: string =
+  ((Constants.expoConfig?.extra ?? {}) as { homieApkUrl?: string }).homieApkUrl ?? "";
+
+/**
+ * Mensaje de invitación para compartir (WhatsApp, etc.). Lleva primero el enlace
+ * de DESCARGA del APK (un https válido que cualquiera puede abrir) y luego el
+ * código para meter en la app. El deep link `homie://` no vale aquí porque
+ * WhatsApp no lo reconoce y no sirve si la otra persona no tiene la app.
+ */
+export function inviteMessage(hogarName: string, code: string, apkUrl: string = APK_URL): string {
+  const lines = [`¡Únete a nuestro hogar "${hogarName}" en Homie! 🏠`, ""];
+  if (apkUrl) {
+    lines.push(`1️⃣ Descarga la app (Android): ${apkUrl}`);
+    lines.push(`2️⃣ Ábrela, regístrate y mete este código: ${code}`);
+  } else {
+    lines.push(`Abre la app Homie y mete este código: ${code}`);
+  }
+  return lines.join("\n");
+}
 
 export function generateCode(len = 8): string {
   let s = "";
