@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -23,6 +23,7 @@ export function ScanModal({
   hogarId,
   userName,
   categories,
+  initialSource,
   onClose,
   onDone,
 }: {
@@ -30,6 +31,8 @@ export function ScanModal({
   hogarId: string;
   userName: string;
   categories: Category[];
+  /** Si se indica, al abrir arranca directamente ese origen (cámara/galería/pdf). */
+  initialSource?: Source | null;
   onClose: () => void;
   onDone: () => void;
 }) {
@@ -108,6 +111,17 @@ export function ScanModal({
       Alert.alert("No se pudo leer el ticket", e instanceof Error ? e.message : "Inténtalo de nuevo.");
     }
   };
+
+  // Auto-arranca el origen elegido en la tarjeta "Subir ticket" al abrir el modal.
+  const startedRef = useRef(false);
+  useEffect(() => {
+    if (visible && initialSource && !startedRef.current) {
+      startedRef.current = true;
+      run(initialSource);
+    }
+    if (!visible) startedRef.current = false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, initialSource]);
 
   const toggleLine = (i: number) => {
     hSelect();

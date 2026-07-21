@@ -5,7 +5,7 @@ import DateTimePicker, { type DateTimePickerEvent } from "@react-native-communit
 import { useQueryClient } from "@tanstack/react-query";
 import { Screen } from "@/components/Screen";
 import { Card, PhaseCard, cardShadow } from "@/components/Card";
-import { Avatar, IconTile, Money, SectionTitle } from "@/components/ui";
+import { Avatar, Fab, IconTile, Money, SectionTitle } from "@/components/ui";
 import { Segmented } from "@/components/Segmented";
 import { BudgetModal } from "@/components/gastos/BudgetModal";
 import { CsvModal } from "@/components/gastos/CsvModal";
@@ -103,6 +103,7 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
       title="Gastos"
       subtitle="Este mes"
       onRefresh={refresh}
+      contentBottom={150}
       right={
         <Pressable
           onPress={() => setBudgetOpen(true)}
@@ -112,6 +113,7 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
           <Ionicons name="pie-chart-outline" size={17} color={t.accent} />
         </Pressable>
       }
+      floating={<Fab onPress={() => setOpen(true)} />}
     >
       {isError && (
         <Text className="text-center text-[13px] mb-2" style={{ color: t.red }}>
@@ -220,16 +222,7 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
       )}
       <Text className="text-center text-[12px] text-tertiary mb-2">Mantén pulsado un gasto para borrarlo</Text>
 
-      <Pressable
-        onPress={() => setOpen(true)}
-        className="rounded-[14px] mx-4 py-3.5 items-center flex-row justify-center"
-        style={{ backgroundColor: t.accent, gap: 8 }}
-      >
-        <Ionicons name="add" size={20} color="#fff" />
-        <Text className="text-white text-base font-semibold">Añadir gasto</Text>
-      </Pressable>
-
-      <View className="flex-row justify-center mx-4 mt-3" style={{ gap: 20 }}>
+      <View className="flex-row justify-center mx-4 mt-1" style={{ gap: 20 }}>
         <Pressable onPress={() => setScanOpen(true)} className="flex-row items-center" style={{ gap: 6 }}>
           <Ionicons name="scan-outline" size={16} color={t.accent} />
           <Text className="text-[14px] font-semibold text-accent">Escanear ticket</Text>

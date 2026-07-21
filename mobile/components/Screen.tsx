@@ -9,12 +9,18 @@ export function Screen({
   right,
   onRefresh,
   children,
+  floating,
+  contentBottom = 96,
 }: {
   title: string;
   subtitle?: string;
   right?: ReactNode;
   onRefresh?: () => Promise<unknown>;
   children?: ReactNode;
+  /** Capa flotante (pill de "añadir", FAB…) anclada sobre la barra de pestañas. */
+  floating?: ReactNode;
+  /** Espacio inferior del scroll (súbelo si hay una pill flotante). */
+  contentBottom?: number;
 }) {
   const t = useTheme();
   const [refreshing, setRefreshing] = useState(false);
@@ -32,7 +38,7 @@ export function Screen({
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: t.bg }} edges={["top"]}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 96 }}
+        contentContainerStyle={{ paddingBottom: contentBottom }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           onRefresh ? (
@@ -53,6 +59,11 @@ export function Screen({
         </View>
         {children}
       </ScrollView>
+      {floating ? (
+        <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: 0, top: 0 }}>
+          {floating}
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }

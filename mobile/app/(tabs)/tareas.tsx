@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { Screen } from "@/components/Screen";
 import { PhaseCard, cardShadow } from "@/components/Card";
-import { Avatar, CheckCircle, SectionTitle } from "@/components/ui";
+import { Avatar, CheckCircle, Fab, SectionTitle } from "@/components/ui";
 import { TaskEditor } from "@/components/tareas/TaskEditor";
 import { useHogar } from "@/lib/hogar";
 import { useAuth } from "@/lib/auth";
@@ -89,15 +89,8 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
       title="Tareas"
       subtitle={`${pending.length} pendientes`}
       onRefresh={refresh}
-      right={
-        <Pressable
-          onPress={() => setEditing("new")}
-          className="rounded-pill items-center justify-center"
-          style={{ width: 36, height: 36, backgroundColor: t.fill, marginBottom: 4 }}
-        >
-          <Ionicons name="add" size={20} color={t.accent} />
-        </Pressable>
-      }
+      contentBottom={120}
+      floating={<Fab onPress={() => setEditing("new")} />}
     >
       {isError && (
         <Text className="text-center text-[13px] mb-2" style={{ color: t.red }}>
