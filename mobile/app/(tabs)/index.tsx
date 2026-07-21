@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Screen } from "@/components/Screen";
 import { Card, PhaseCard, cardShadow } from "@/components/Card";
-import { Avatar, IconTile, Money, SectionTitle } from "@/components/ui";
+import { Avatar, IconTile, SectionTitle } from "@/components/ui";
 import { InviteModal } from "@/components/InviteModal";
+import { DebtCard } from "@/components/DebtCard";
 import { useAuth } from "@/lib/auth";
 import { useHogar } from "@/lib/hogar";
 import { appwriteConfigured } from "@/lib/appwrite";
@@ -15,6 +16,7 @@ import { useTasks } from "@/lib/useTasks";
 import { useShopping } from "@/lib/useShopping";
 import { useEvents } from "@/lib/useEvents";
 import { useLuzPrices } from "@/lib/useLuzPrices";
+import { useSettlements } from "@/lib/useSettlements";
 import { balances, monthlyTotal, previousMonthTotal } from "@/lib/expenses";
 import { eventsOfDay, hhmm } from "@/lib/events";
 import { fmtKwh, tierOf } from "@/lib/luz";
@@ -119,6 +121,7 @@ function Dashboard({
   const tasks = useTasks(hogarId).data ?? [];
   const shopping = useShopping(hogarId).data ?? [];
   const events = useEvents(hogarId).data ?? [];
+  const settlements = useSettlements(hogarId).data ?? [];
   const luz = useLuzPrices().data;
 
   const refreshAll = () =>
@@ -127,6 +130,7 @@ function Dashboard({
       qc.invalidateQueries({ queryKey: ["tasks", hogarId] }),
       qc.invalidateQueries({ queryKey: ["shopping", hogarId] }),
       qc.invalidateQueries({ queryKey: ["events", hogarId] }),
+      qc.invalidateQueries({ queryKey: ["settlements", hogarId] }),
       qc.invalidateQueries({ queryKey: ["luz-prices"] }),
     ]);
 
@@ -141,19 +145,11 @@ function Dashboard({
   const pendingShop = shopping.filter((s) => !s.done).length;
   const shopPreview = shopping.filter((s) => !s.done).slice(0, 3).map((s) => s.name).join(" · ");
   const shopStore = shopping.filter((s) => !s.done).find((s) => s.store)?.store ?? null;
-  const bal = balances(expenses, members).filter((b) => b.name !== userName && Math.abs(b.net) >= 0.01);
+  const bal = balances(expenses, members, settlements).filter((b) => b.name !== userName);
   const now = new Date();
   const todayLabel = `${WEEKDAYS[now.getDay()]} ${now.getDate()}`;
   const todayEvents = eventsOfDay(events, now);
 
-  const settleDebt = (name: string, amount: string, owesYou: boolean) =>
-    Alert.alert(
-      "Liquidar",
-      owesYou
-        ? `${name} te debe ${amount}. Cuando te lo pague, apúntalo en Gastos. (El registro automático de liquidaciones llegará pronto.)`
-        : `Debes ${amount} a ${name}. Al pagarle, apúntalo en Gastos. (El registro automático de liquidaciones llegará pronto.)`,
-      [{ text: "Entendido" }],
-    );
 
   let luzValue = "—";
   let luzColor: string = t.label;
@@ -265,29 +261,9 @@ function Dashboard({
       {bal.length > 0 && (
         <>
           <SectionTitle>Quién debe a quién</SectionTitle>
-          {bal.map((b) => {
-            const owesYou = b.net < 0; // net<0 → esa persona debe al bote (te debe)
-            const amount = eur(Math.abs(b.net));
-            return (
-              <View key={b.name} className="rounded-card mx-4 mb-3 px-4 py-3.5 flex-row items-center" style={{ backgroundColor: t.accentSoft, gap: 12 }}>
-                <Avatar name={b.name} size={38} />
-                <View className="flex-1">
-                  <Text className="text-[15px] text-label">
-                    {owesYou ? `${b.name} te debe ` : `Debes a ${b.name} `}
-                    <Money size={15} weight="700" color={owesYou ? t.accent : t.red}>{amount}</Money>
-                  </Text>
-                  <Text className="text-[12px] text-secondary mt-0.5">Gastos compartidos</Text>
-                </View>
-                <Pressable
-                  onPress={() => settleDebt(b.name, amount, owesYou)}
-                  className="rounded-pill px-4 py-2"
-                  style={{ backgroundColor: t.accent }}
-                >
-                  <Text className="text-white text-[14px] font-semibold">Liquidar</Text>
-                </Pressable>
-              </View>
-            );
-          })}
+          {bal.map((b) => (
+            <DebtCard key={b.name} hogarId={hogarId} userName={userName} name={b.name} net={b.net} onDone={refreshAll} />
+          ))}
         </>
       )}
     </Screen>

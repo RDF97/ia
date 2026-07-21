@@ -181,6 +181,36 @@ curl -sS -X POST "$EP/databases/$DB/collections/categories/indexes" "${H[@]}" \
 > (team prefs de Appwrite), así que se comparte entre los miembros del hogar sin
 > necesidad de otra colección.
 
+### Colección `settlements` (liquidaciones · "quién debe a quién")
+**Collection ID = `settlements`**, **Document Security: ON**, permiso **Create** para **Users**.
+
+Registra los pagos que saldan la deuda de gastos compartidos (efectivo/transferencia
+entre dos personas). No es un gasto: no infla el total del mes ni el presupuesto,
+solo ajusta el balance de "quién debe a quién". El botón **Liquidar** de Inicio/Gastos
+crea uno de estos.
+
+| Atributo | Tipo | Tamaño/Config | Requerido |
+|---|---|---|---|
+| `fromName` | String | 255 | sí |
+| `toName` | String | 255 | sí |
+| `amount` | Double | — | sí |
+| `hogarId` | String | 50 | sí |
+| `at` | Datetime | — | sí |
+
+```bash
+curl -sS -X POST "$EP/databases/$DB/collections" "${H[@]}" \
+ -d '{"collectionId":"settlements","name":"settlements","documentSecurity":true,"permissions":["create(\"users\")"]}'; echo
+sleep 1
+curl -sS -X POST "$EP/databases/$DB/collections/settlements/attributes/string"   "${H[@]}" -d '{"key":"fromName","size":255,"required":true}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/settlements/attributes/string"   "${H[@]}" -d '{"key":"toName","size":255,"required":true}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/settlements/attributes/float"    "${H[@]}" -d '{"key":"amount","required":true}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/settlements/attributes/string"   "${H[@]}" -d '{"key":"hogarId","size":50,"required":true}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/settlements/attributes/datetime" "${H[@]}" -d '{"key":"at","required":true}'; echo
+sleep 3
+curl -sS -X POST "$EP/databases/$DB/collections/settlements/indexes" "${H[@]}" \
+ -d '{"key":"hogarId_idx","type":"key","attributes":["hogarId"],"orders":["ASC"]}'; echo
+```
+
 ### Nuevos atributos de `tasks` (fechas, asignación, recurrencia y avisos)
 Añádelos a la colección `tasks` que ya existe. Si `assignedToName` ya estaba
 creado, ese comando dará error de "ya existe": es normal, ignóralo.

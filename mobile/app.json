@@ -64,6 +64,7 @@
       "appwriteProductsCollectionId": "products",
       "appwritePricesCollectionId": "price_points",
       "appwriteCategoriesCollectionId": "categories",
+      "appwriteSettlementsCollectionId": "settlements",
       "appwriteInvitesCollectionId": "invites",
       "appwriteJoinFunctionId": "joinHogar",
       "appwriteScanFunctionId": "scanReceipt"
