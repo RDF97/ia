@@ -112,3 +112,63 @@ export function sortPending<T extends { dueAt?: string | null; $createdAt: strin
     return new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime();
   });
 }
+
+// --- Agrupación por día (para la vista con segmentado Hoy / Semana / Todas) ---
+
+export type TaskFilter = "today" | "week" | "all";
+
+export interface TaskGroup<T> {
+  key: string;
+  title: string;
+  tasks: T[];
+}
+
+const DAY_MS = 86_400_000;
+const startOfDay = (d: Date): number => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+
+/**
+ * Agrupa las tareas por día (Atrasadas, Hoy, Mañana, Esta semana, Más adelante,
+ * Sin fecha) según el filtro elegido. Las completadas van a "Completadas" (solo
+ * en "Todas"). Las pendientes van ordenadas por fecha.
+ */
+export function groupTasks<T extends { done: boolean; dueAt?: string | null; $createdAt: string }>(
+  tasks: T[],
+  filter: TaskFilter,
+  now: Date = new Date(),
+): TaskGroup<T>[] {
+  const today0 = startOfDay(now);
+  const pending = sortPending(tasks.filter((t) => !t.done));
+  const done = tasks.filter((t) => t.done);
+
+  const buckets: Record<string, T[]> = { overdue: [], today: [], tomorrow: [], week: [], later: [], noDate: [] };
+  for (const t of pending) {
+    if (!t.dueAt) {
+      buckets.noDate.push(t);
+      continue;
+    }
+    const diff = Math.round((startOfDay(new Date(t.dueAt)) - today0) / DAY_MS);
+    if (diff < 0) buckets.overdue.push(t);
+    else if (diff === 0) buckets.today.push(t);
+    else if (diff === 1) buckets.tomorrow.push(t);
+    else if (diff <= 7) buckets.week.push(t);
+    else buckets.later.push(t);
+  }
+
+  const order: { key: string; title: string; in: TaskFilter[] }[] = [
+    { key: "overdue", title: "Atrasadas", in: ["today", "week", "all"] },
+    { key: "today", title: "Hoy", in: ["today", "week", "all"] },
+    { key: "tomorrow", title: "Mañana", in: ["week", "all"] },
+    { key: "week", title: "Esta semana", in: ["week", "all"] },
+    { key: "later", title: "Más adelante", in: ["all"] },
+    { key: "noDate", title: "Sin fecha", in: ["all"] },
+  ];
+
+  const groups: TaskGroup<T>[] = [];
+  for (const o of order) {
+    if (o.in.includes(filter) && buckets[o.key].length) {
+      groups.push({ key: o.key, title: o.title, tasks: buckets[o.key] });
+    }
+  }
+  if (filter === "all" && done.length) groups.push({ key: "done", title: "Completadas", tasks: done });
+  return groups;
+}

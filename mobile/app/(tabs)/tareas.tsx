@@ -5,13 +5,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Screen } from "@/components/Screen";
 import { PhaseCard, cardShadow } from "@/components/Card";
 import { Avatar, CheckCircle, Fab, SectionTitle } from "@/components/ui";
+import { Segmented } from "@/components/Segmented";
 import { TaskEditor } from "@/components/tareas/TaskEditor";
 import { useHogar } from "@/lib/hogar";
 import { useAuth } from "@/lib/auth";
 import { appwriteConfigured } from "@/lib/appwrite";
 import { useTasks } from "@/lib/useTasks";
 import { completeTask, createTask, listMemberNames, setTaskDone, type Task } from "@/lib/tasks";
-import { dueInfo, repeatLabel, sortPending } from "@/lib/taskLogic";
+import { dueInfo, groupTasks, repeatLabel, type TaskFilter } from "@/lib/taskLogic";
 import { syncTaskReminders } from "@/lib/taskReminders";
 import { useTheme } from "@/theme/theme";
 
@@ -43,6 +44,7 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<Task | "new" | null>(null);
   const [members, setMembers] = useState<string[]>([]);
+  const [filter, setFilter] = useState<TaskFilter>("today");
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["tasks", hogarId] });
 
@@ -81,8 +83,8 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
   };
 
   const all = tasks ?? [];
-  const pending = sortPending(all.filter((x) => !x.done));
-  const done = all.filter((x) => x.done);
+  const pending = all.filter((x) => !x.done);
+  const groups = groupTasks(all, filter);
 
   return (
     <Screen
@@ -98,7 +100,7 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
         </Text>
       )}
       <View
-        className="flex-row items-center bg-card rounded-pill mx-4 mb-4 px-4 py-2"
+        className="flex-row items-center bg-card rounded-pill mx-4 mb-3 px-4 py-2"
         style={{ gap: 8, borderWidth: 0.5, borderColor: t.separator, ...cardShadow(t.dark) }}
       >
         <Ionicons name="add" size={22} color={t.accent} />
@@ -114,16 +116,24 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
         {adding && <ActivityIndicator color={t.accent} />}
       </View>
 
+      <Segmented
+        value={filter}
+        onChange={setFilter}
+        options={[
+          { key: "today", label: "Hoy" },
+          { key: "week", label: "Semana" },
+          { key: "all", label: "Todas" },
+        ]}
+      />
+
       {isLoading ? (
         <ActivityIndicator color={t.accent} style={{ marginTop: 24 }} />
+      ) : groups.length === 0 ? (
+        <Text className="text-center text-tertiary mt-8">
+          {pending.length === 0 ? "No hay tareas todavía. ¡Añade la primera!" : "Nada en este periodo. Cambia de pestaña."}
+        </Text>
       ) : (
-        <>
-          <Section title="Pendientes" tasks={pending} onToggle={toggle} onEdit={setEditing} />
-          {done.length > 0 && <Section title="Completadas" tasks={done} onToggle={toggle} onEdit={setEditing} />}
-          {pending.length === 0 && done.length === 0 && (
-            <Text className="text-center text-tertiary mt-8">No hay tareas todavía. ¡Añade la primera!</Text>
-          )}
-        </>
+        groups.map((g) => <Section key={g.key} title={g.title} tasks={g.tasks} onToggle={toggle} onEdit={setEditing} />)
       )}
 
       <TaskEditor

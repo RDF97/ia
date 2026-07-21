@@ -274,37 +274,62 @@ function BudgetSection({
     );
   }
 
+  const totalPct = totals.budget > 0 ? totals.spent / totals.budget : 0;
+  const totalCol = totals.spent > totals.budget ? t.red : totalPct >= 0.85 ? t.orange : t.accent;
+  const remaining = totals.budget - totals.spent;
+
   return (
     <>
-      <View className="flex-row items-baseline justify-between px-5 pt-3 pb-2">
-        <Text className="text-[13px] font-medium uppercase tracking-wide text-secondary">Presupuesto · {monthLabel}</Text>
-        <Text className="text-[13px] font-semibold" style={{ color: totals.spent > totals.budget ? t.red : t.labelSecondary, fontVariant: ["tabular-nums"] }}>
-          {eur(totals.spent)} / {eur(totals.budget)}
-        </Text>
+      {/* Tarjeta grande "presupuesto mensual" (como el mockup) */}
+      <View className="bg-card rounded-card mx-4 mb-3 p-4" style={cardShadow(t.dark)}>
+        <View className="flex-row items-end justify-between mb-3.5">
+          <View>
+            <Text className="text-[12px] text-secondary mb-1" style={{ textTransform: "uppercase", letterSpacing: 0.4 }}>Presupuesto · {monthLabel}</Text>
+            <Text className="text-[34px] font-bold text-label" style={{ lineHeight: 36, letterSpacing: -1, fontVariant: ["tabular-nums"] }}>{eur(totals.spent)}</Text>
+          </View>
+          <Text className="text-[14px] text-secondary mb-1">de {eur(totals.budget)}</Text>
+        </View>
+        <ProgressBar pct={totalPct} color={totalCol} />
+        <View className="flex-row justify-between mt-2">
+          <Text className="text-[12px] text-secondary">{Math.round(totalPct * 100)}% usado</Text>
+          <Text className="text-[12px]" style={{ color: remaining < 0 ? t.red : t.labelSecondary }}>
+            {remaining >= 0 ? `${eur(remaining)} restantes` : `${eur(-remaining)} de más`}
+          </Text>
+        </View>
       </View>
-      <View className="bg-card rounded-lg2 mx-4 mb-3 overflow-hidden" style={cardShadow(t.dark)}>
-        {rows.map((r, i) => {
+
+      <SectionTitle action="Editar presupuesto" onAction={onManage}>Por categoría</SectionTitle>
+      <View className="flex-row flex-wrap mx-4 mb-2" style={{ gap: 8 }}>
+        {rows.map((r) => {
           const col = stateColor(r.state);
-          const w = `${Math.min(100, Math.round(r.pct * 100))}%` as const;
           return (
-            <View key={r.$id} className="px-4 py-3" style={{ borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}>
-              <View className="flex-row items-center mb-2" style={{ gap: 10 }}>
-                <View className="rounded-lg items-center justify-center" style={{ width: 26, height: 26, backgroundColor: r.color }}>
-                  <Ionicons name={r.icon as IoniconName} size={14} color="#fff" />
+            <View key={r.$id} className="bg-card rounded-lg2 p-3" style={{ flexGrow: 1, flexBasis: "46%", ...cardShadow(t.dark) }}>
+              <View className="flex-row items-center mb-2" style={{ gap: 8 }}>
+                <View className="rounded-md items-center justify-center" style={{ width: 24, height: 24, backgroundColor: r.color }}>
+                  <Ionicons name={r.icon as IoniconName} size={13} color="#fff" />
                 </View>
-                <Text className="flex-1 text-[15px] text-label">{r.name}</Text>
-                <Text className="text-[13px] font-semibold" style={{ color: col, fontVariant: ["tabular-nums"] }}>
-                  {eur(r.spent)} <Text className="text-secondary font-normal">/ {eur(r.budget)}</Text>
-                </Text>
+                <Text className="text-[13px] font-medium text-label" numberOfLines={1} style={{ flex: 1 }}>{r.name}</Text>
               </View>
-              <View style={{ height: 7, borderRadius: 4, backgroundColor: t.fill, overflow: "hidden" }}>
-                <View style={{ width: w, height: "100%", borderRadius: 4, backgroundColor: col }} />
-              </View>
+              <Text className="text-[15px] font-semibold text-label mb-1.5" style={{ fontVariant: ["tabular-nums"], letterSpacing: -0.2 }}>
+                {eur(r.spent)} <Text className="text-[12px] text-secondary font-normal">/ {eur(r.budget)}</Text>
+              </Text>
+              <ProgressBar pct={r.pct} color={col} />
             </View>
           );
         })}
       </View>
     </>
+  );
+}
+
+/** Barra de progreso 6px con relleno de color (como .progress del mockup). */
+function ProgressBar({ pct, color }: { pct: number; color: string }) {
+  const t = useTheme();
+  const w = `${Math.max(0, Math.min(100, Math.round(pct * 100)))}%` as `${number}%`;
+  return (
+    <View style={{ height: 6, borderRadius: 3, backgroundColor: t.fill, overflow: "hidden" }}>
+      <View style={{ width: w, height: "100%", borderRadius: 3, backgroundColor: color }} />
+    </View>
   );
 }
 

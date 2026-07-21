@@ -80,6 +80,17 @@ export function monthlyTotal(expenses: Expense[]): number {
   return expenses.filter((e) => isThisMonth(expenseDate(e))).reduce((s, e) => s + e.amount, 0);
 }
 
+/** Total del mes anterior (para la tendencia "X% vs mes pasado"). */
+export function previousMonthTotal(expenses: Expense[], now: Date = new Date()): number {
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  return expenses
+    .filter((e) => {
+      const d = new Date(expenseDate(e));
+      return d.getFullYear() === prev.getFullYear() && d.getMonth() === prev.getMonth();
+    })
+    .reduce((s, e) => s + e.amount, 0);
+}
+
 /** Reparto del gasto del mes entre cuenta conjunta e individual. */
 export function accountTotals(
   expenses: Pick<Expense, "amount" | "account" | "spentAt" | "$createdAt">[],

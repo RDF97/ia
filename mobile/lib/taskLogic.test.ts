@@ -1,4 +1,4 @@
-import { dueInfo, nextDue, nextDueAfter, sortPending, taskReminderPlan } from "./taskLogic";
+import { dueInfo, groupTasks, nextDue, nextDueAfter, sortPending, taskReminderPlan } from "./taskLogic";
 
 describe("nextDue", () => {
   it("avanza según la periodicidad", () => {
@@ -71,5 +71,41 @@ describe("sortPending", () => {
       { $id: "sinfecha2", $createdAt: "2026-07-12T00:00:00.000Z" },
     ];
     expect(sortPending(tasks).map((x) => x.$id)).toEqual(["proxima", "lejana", "sinfecha2", "sinfecha1"]);
+  });
+});
+
+describe("groupTasks", () => {
+  const now = new Date("2026-07-14T12:00:00.000Z"); // martes 14
+  const T = (over: Partial<{ $id: string; done: boolean; dueAt: string | null }>) => ({
+    $id: over.$id ?? "x",
+    done: over.done ?? false,
+    dueAt: over.dueAt ?? null,
+    $createdAt: "2026-07-01T00:00:00.000Z",
+  });
+  const tasks = [
+    T({ $id: "atras", dueAt: "2026-07-12T09:00:00.000Z" }),
+    T({ $id: "hoy", dueAt: "2026-07-14T20:00:00.000Z" }),
+    T({ $id: "manana", dueAt: "2026-07-15T09:00:00.000Z" }),
+    T({ $id: "semana", dueAt: "2026-07-18T09:00:00.000Z" }),
+    T({ $id: "lejos", dueAt: "2026-08-30T09:00:00.000Z" }),
+    T({ $id: "sinfecha" }),
+    T({ $id: "hecha", done: true, dueAt: "2026-07-13T09:00:00.000Z" }),
+  ];
+
+  it("filtro 'today' → solo atrasadas y hoy", () => {
+    const g = groupTasks(tasks, "today", now);
+    expect(g.map((x) => x.key)).toEqual(["overdue", "today"]);
+    expect(g[1].tasks.map((t) => t.$id)).toEqual(["hoy"]);
+  });
+
+  it("filtro 'week' → hasta esta semana, sin 'más adelante' ni completadas", () => {
+    const g = groupTasks(tasks, "week", now);
+    expect(g.map((x) => x.key)).toEqual(["overdue", "today", "tomorrow", "week"]);
+  });
+
+  it("filtro 'all' → todos los grupos + Completadas al final", () => {
+    const g = groupTasks(tasks, "all", now);
+    expect(g.map((x) => x.key)).toEqual(["overdue", "today", "tomorrow", "week", "later", "noDate", "done"]);
+    expect(g[g.length - 1].tasks.map((t) => t.$id)).toEqual(["hecha"]);
   });
 });
