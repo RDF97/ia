@@ -14,9 +14,15 @@ const SANTANYI = "Cala Santanyí";
 const PONTAS = "Es Pontàs";
 const PONTAS_MATCH = "es pont[àa]s|pontas|santany";
 
-export async function ensureSantanyiConfig(): Promise<void> {
+/**
+ * @returns `true` si en ESTA ejecución se creó por primera vez la playa Cala
+ * Santanyí en alguna org (señal de que hay que reprocesar las reservas para
+ * repartirlas a su playa).
+ */
+export async function ensureSantanyiConfig(): Promise<boolean> {
   const db = await getDb();
   const orgs = await db.select().from(schema.orgs);
+  let createdLocation = false;
 
   for (const org of orgs) {
     // 1) Playa Cala Santanyí
@@ -29,6 +35,7 @@ export async function ensureSantanyiConfig(): Promise<void> {
         .insert(schema.locations)
         .values({ orgId: org.id, name: SANTANYI, sortOrder: 2 })
         .returning();
+      createdLocation = true;
       console.log(`[${org.slug}] + playa ${SANTANYI}`);
     }
 
@@ -82,4 +89,6 @@ export async function ensureSantanyiConfig(): Promise<void> {
       console.log(`[${org.slug}] + regla de mapeo Es Pontàs`);
     }
   }
+
+  return createdLocation;
 }

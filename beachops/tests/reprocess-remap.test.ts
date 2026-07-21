@@ -7,6 +7,7 @@ process.env.TOKEN_ENCRYPTION_KEY = "0".repeat(64);
 import { getDb, schema } from "../src/server/db";
 import { runMigrations } from "../src/server/db/migrate";
 import { processRawEmail } from "../src/server/ingest/process";
+import { reprocessBookingEmails } from "../src/server/ingest/reprocess";
 import { ensureSantanyiConfig } from "../src/server/config/ensure-santanyi";
 
 let orgId: string;
@@ -81,14 +82,12 @@ describe("reprocesar mueve Es Pontàs a Cala Santanyí", () => {
   });
 
   it("tras ensureSantanyiConfig + reprocesar, se mueve a Cala Santanyí / Es Pontàs", async () => {
-    await ensureSantanyiConfig();
+    // Primera vez que se crea la playa → señal de reprocesar (como en el worker).
+    const created = await ensureSantanyiConfig();
+    expect(created).toBe(true);
+    // Reprocesar todas las reservas (como el botón / el worker al arrancar).
+    await reprocessBookingEmails(orgId);
     const db = await getDb();
-    // Reprocesar el mismo email (como hace el botón "Reprocesar reservas").
-    const [raw] = await db
-      .select()
-      .from(schema.rawEmails)
-      .where(eq(schema.rawEmails.gmailMessageId, "msg-espontas-1"));
-    await processRawEmail(raw);
 
     const [b] = await db
       .select()

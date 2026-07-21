@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSessionCookie, destroySession, requireSession } from "./auth";
@@ -280,21 +280,10 @@ export async function retryAllFailed() {
  */
 export async function reprocessAllBookings() {
   const session = await requireSession();
-  const db = await getDb();
   const { ensureSantanyiConfig } = await import("./config/ensure-santanyi");
+  const { reprocessBookingEmails } = await import("./ingest/reprocess");
   await ensureSantanyiConfig();
-  const emails = await db
-    .select()
-    .from(schema.rawEmails)
-    .where(
-      and(
-        eq(schema.rawEmails.orgId, session.orgId),
-        inArray(schema.rawEmails.parseStatus, ["parsed", "failed", "pending"]),
-      ),
-    );
-  for (const raw of emails) {
-    await processRawEmail(raw);
-  }
+  await reprocessBookingEmails(session.orgId);
   revalidatePath("/emails");
   revalidatePath("/");
 }

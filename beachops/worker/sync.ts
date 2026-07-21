@@ -5,6 +5,7 @@
  */
 import { runMigrations } from "../src/server/db/migrate";
 import { ensureSantanyiConfig } from "../src/server/config/ensure-santanyi";
+import { reprocessBookingEmails } from "../src/server/ingest/reprocess";
 import { syncAllAccounts } from "../src/server/gmail/sync";
 
 const INTERVAL = Number(process.env.SYNC_INTERVAL_MS ?? 60_000);
@@ -12,11 +13,17 @@ const INTERVAL = Number(process.env.SYNC_INTERVAL_MS ?? 60_000);
 async function main() {
   await runMigrations();
   // Deja lista la config de Cala Santanyí / Es Pontàs en bases ya sembradas
-  // (idempotente). No debe bloquear el arranque si algo falla.
+  // (idempotente). Si es la PRIMERA vez que se crea la playa, reprocesa las
+  // reservas existentes para repartirlas a su playa (separa el cuadro sin que el
+  // usuario tenga que pulsar nada). No debe bloquear el arranque si algo falla.
   try {
-    await ensureSantanyiConfig();
+    const created = await ensureSantanyiConfig();
+    if (created) {
+      const n = await reprocessBookingEmails();
+      console.log(`Cala Santanyí creada: reprocesadas ${n} reservas para separarlas por playa.`);
+    }
   } catch (err) {
-    console.error("ensureSantanyiConfig falló (se continúa):", err);
+    console.error("ensureSantanyiConfig/reprocess falló (se continúa):", err);
   }
   console.log(`Worker de sincronización arrancado (cada ${INTERVAL / 1000}s)`);
   for (;;) {
