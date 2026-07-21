@@ -124,20 +124,25 @@ export function CheckCircle({ done, onPress }: { done: boolean; onPress: () => v
 /** Botón flotante (FAB) redondeado — como el .fab del mockup. Va dentro de `Screen floating`. */
 export function Fab({ onPress, icon = "add" }: { onPress: () => void; icon?: IoniconName }) {
   const t = useTheme();
+  // OJO: `position: "absolute"` va en el estilo en línea (no en className): al
+  // combinar className con una función de estilo en un Pressable, NativeWind no
+  // aplicaba la posición absoluta y el FAB quedaba sin colocar (invisible).
   return (
     <Pressable
       onPress={() => {
         hSelect();
         onPress();
       }}
-      className="absolute items-center justify-center"
       style={({ pressed }) => ({
+        position: "absolute",
         bottom: 20,
         right: 20,
         width: 56,
         height: 56,
         borderRadius: 18,
         backgroundColor: t.accent,
+        alignItems: "center",
+        justifyContent: "center",
         transform: [{ scale: pressed ? 0.94 : 1 }],
         shadowColor: t.accent,
         shadowOpacity: 0.35,

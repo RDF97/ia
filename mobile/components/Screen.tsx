@@ -1,7 +1,11 @@
 import { useState, type ReactNode } from "react";
 import { RefreshControl, ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/theme/theme";
+
+// Alto de la barra de pestañas (absoluta): 56 + inset inferior (mín. 10).
+// Debe coincidir con app/(tabs)/_layout.tsx para anclar la capa flotante encima.
+const TAB_BAR_BASE = 56;
 
 export function Screen({
   title,
@@ -23,6 +27,8 @@ export function Screen({
   contentBottom?: number;
 }) {
   const t = useTheme();
+  const insets = useSafeAreaInsets();
+  const tabBarH = TAB_BAR_BASE + (insets.bottom > 0 ? insets.bottom : 10);
   const [refreshing, setRefreshing] = useState(false);
 
   const refresh = async () => {
@@ -60,7 +66,8 @@ export function Screen({
         {children}
       </ScrollView>
       {floating ? (
-        <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: 0, top: 0 }}>
+        // Anclada por encima de la barra de pestañas (que es absoluta y taparía el FAB).
+        <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: tabBarH, top: 0 }}>
           {floating}
         </View>
       ) : null}
