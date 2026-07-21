@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, Modal, Pressable, Share, Text, View } from "r
 import { Ionicons } from "@expo/vector-icons";
 import { useHogar } from "@/lib/hogar";
 import { useAuth } from "@/lib/auth";
-import { createInvite, type Invite } from "@/lib/invites";
+import { createInvite, inviteMessage, type Invite } from "@/lib/invites";
 import { useTheme } from "@/theme/theme";
 import { hSelect } from "@/lib/haptics";
 
@@ -42,16 +42,11 @@ export function InviteModal({
     }
   };
 
-  const message = (inv: Invite) =>
-    `¡Únete a nuestro hogar "${hogarName}" en Homie! 🏠\n\n` +
-    `Ábrelo aquí: ${inv.url}\n` +
-    `O abre la app Homie y mete este código: ${inv.code}`;
-
   const share = async () => {
     if (!invite) return;
     hSelect();
     try {
-      await Share.share({ message: message(invite) });
+      await Share.share({ message: inviteMessage(hogarName, invite.code) });
     } catch {
       /* el usuario canceló */
     }
@@ -63,7 +58,8 @@ export function InviteModal({
       <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32, backgroundColor: t.bg }}>
         <Text className="text-[17px] font-semibold mb-1 text-label">Invitar al hogar</Text>
         <Text className="text-[13px] text-secondary mb-4">
-          Crea un enlace y compártelo por WhatsApp. Quien lo abra (con la app instalada) entra en “{hogarName}”.
+          Crea un código y compártelo por WhatsApp. El mensaje incluye el enlace para descargar
+          la app y el código para entrar en “{hogarName}”.
         </Text>
 
         {!invite ? (
