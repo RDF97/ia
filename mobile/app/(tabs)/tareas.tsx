@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { Screen } from "@/components/Screen";
@@ -11,7 +11,7 @@ import { useHogar } from "@/lib/hogar";
 import { useAuth } from "@/lib/auth";
 import { appwriteConfigured } from "@/lib/appwrite";
 import { useTasks } from "@/lib/useTasks";
-import { completeTask, createTask, listMemberNames, setTaskDone, type Task } from "@/lib/tasks";
+import { completeTask, listMemberNames, setTaskDone, type Task } from "@/lib/tasks";
 import { dueInfo, groupTasks, repeatLabel, type TaskFilter } from "@/lib/taskLogic";
 import { syncTaskReminders } from "@/lib/taskReminders";
 import { useTheme } from "@/theme/theme";
@@ -40,8 +40,6 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
   const t = useTheme();
   const qc = useQueryClient();
   const { data: tasks, isLoading, isError } = useTasks(hogarId);
-  const [title, setTitle] = useState("");
-  const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<Task | "new" | null>(null);
   const [members, setMembers] = useState<string[]>([]);
   const [filter, setFilter] = useState<TaskFilter>("today");
@@ -56,21 +54,6 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
   useEffect(() => {
     if (tasks) syncTaskReminders(tasks, userName).catch(() => undefined);
   }, [tasks, userName]);
-
-  const add = async () => {
-    const val = title.trim();
-    if (!val) return;
-    setAdding(true);
-    setTitle("");
-    try {
-      await createTask(hogarId, { title: val, createdByName: userName });
-      refresh();
-    } catch (e) {
-      oops(e);
-    } finally {
-      setAdding(false);
-    }
-  };
 
   const toggle = async (task: Task) => {
     try {
@@ -99,22 +82,6 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
           No se pudieron cargar las tareas. Desliza hacia abajo para reintentar.
         </Text>
       )}
-      <View
-        className="flex-row items-center bg-card rounded-pill mx-4 mb-3 px-4 py-2"
-        style={{ gap: 8, borderWidth: 0.5, borderColor: t.separator, ...cardShadow(t.dark) }}
-      >
-        <Ionicons name="add" size={22} color={t.accent} />
-        <TextInput
-          className="flex-1 text-[16px] text-label"
-          placeholder="Añadir tarea rápida…"
-          placeholderTextColor={t.labelTertiary}
-          value={title}
-          onChangeText={setTitle}
-          onSubmitEditing={add}
-          returnKeyType="done"
-        />
-        {adding && <ActivityIndicator color={t.accent} />}
-      </View>
 
       <Segmented
         value={filter}
