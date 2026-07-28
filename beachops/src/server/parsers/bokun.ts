@@ -1,6 +1,6 @@
 import { parseBokunDate } from "./dates";
+import { extractCustomer } from "./customer";
 import { bestBody, extractLabeledFields, fullText } from "./html";
-import { parsePhone } from "./phone";
 import { EmailInput, EmailKind, EmailParser, ParseError, ParsedBooking } from "./types";
 
 const SUBJECT_RE =
@@ -57,13 +57,16 @@ export const bokunParser: EmailParser = {
     const adults = pax.match(/(\d+)\s*Adult/i)?.[1];
     const children = pax.match(/(\d+)\s*(Child|Kid|Infant)/i)?.[1];
 
-    // "Doe, Jane" → "Jane Doe"
+    // "Doe, Jane" → "Jane Doe". Si la etiqueta no está, el extractor lo busca
+    // en el resto del email (nombre, teléfono y país nunca deben faltar).
+    const text = fullText(html);
+    const customer = extractCustomer(fields, text, {
+      preferredPhone: fields.get("customer phone"),
+    });
     const customerRaw = fields.get("customer") ?? "";
     const customerName = customerRaw.includes(",")
       ? customerRaw.split(",").reverse().map((s) => s.trim()).join(" ")
-      : customerRaw || undefined;
-
-    const { phone, country } = parsePhone(fields.get("customer phone"));
+      : customerRaw || customer.name;
 
     const notes = fields.get("notes");
     const amount = notes?.match(/(?:Viator|Total)\s+amount:?\s*([A-Z]{3})\s*([\d.,]+)/i);
@@ -83,10 +86,10 @@ export const bokunParser: EmailParser = {
       paxAdults: adults ? Number(adults) : 0,
       paxChildren: children ? Number(children) : 0,
       customerName,
-      customerEmail: fields.get("customer email")?.match(/\S+@\S+\.\w+/)?.[0],
-      customerPhone: phone,
-      customerCountry: country,
-      customerLanguage: guided,
+      customerEmail: fields.get("customer email")?.match(/\S+@\S+\.\w+/)?.[0] ?? customer.email,
+      customerPhone: customer.phone,
+      customerCountry: customer.country,
+      customerLanguage: guided ?? customer.language,
       priceAmount: amount?.[2]?.replace(",", ""),
       priceCurrency: amount?.[1]?.toUpperCase() ?? "EUR",
       notes,

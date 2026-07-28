@@ -1,6 +1,6 @@
 import { parseGygDate } from "./dates";
+import { extractCustomer } from "./customer";
 import { bestBody, extractLabeledFields, fullText, productHeading } from "./html";
-import { parsePhone } from "./phone";
 import { EmailInput, EmailKind, EmailParser, ParseError, ParsedBooking } from "./types";
 
 const REF_RE = /\bGYG[A-Z0-9]{6,}\b/;
@@ -76,15 +76,15 @@ export const gygParser: EmailParser = {
       participants.match(/(\d+)\s*[x×]\s*(Participant|Person|Traveler)/i)?.[1];
     const children = participants.match(/(\d+)\s*[x×]?\s*(Child|Kid|Infant)/i)?.[1];
 
+    // Datos del cliente: el bloque etiquetado si existe y, si la plantilla
+    // cambia, se rebusca en todo el texto (nombre, teléfono y país nunca deben
+    // faltar en el cuadro).
     const customerBlock = fields.get("main customer") ?? "";
-    const customerLines = customerBlock.split("\n").map((l) => l.trim()).filter(Boolean);
-    const customerName = customerLines.find((l) => !l.includes("@") && !/^(Phone|Language):/i.test(l));
-    const customerEmail =
-      customerBlock.match(/\S+@reply\.getyourguide\.com/)?.[0] ??
-      customerBlock.match(/\S+@\S+\.\w+/)?.[0];
     const phoneRaw = customerBlock.match(/Phone:\s*([+\d][\d\s-]*)/i)?.[1];
-    const language = customerBlock.match(/Language:\s*(\w+)/i)?.[1];
-    const { phone, country } = parsePhone(phoneRaw);
+    const customer = extractCustomer(fields, text, {
+      block: customerBlock || undefined,
+      preferredPhone: phoneRaw,
+    });
 
     const price = (fields.get("price") ?? text).match(/€\s*([\d.,]+)/)?.[1];
 
@@ -100,11 +100,11 @@ export const gygParser: EmailParser = {
       rawProductName,
       paxAdults: adults ? Number(adults) : 0,
       paxChildren: children ? Number(children) : 0,
-      customerName,
-      customerEmail,
-      customerPhone: phone,
-      customerCountry: country,
-      customerLanguage: language,
+      customerName: customer.name,
+      customerEmail: customer.email,
+      customerPhone: customer.phone,
+      customerCountry: customer.country,
+      customerLanguage: customer.language,
       priceAmount: price?.replace(",", ""),
       priceCurrency: "EUR",
     };
