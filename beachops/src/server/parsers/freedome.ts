@@ -1,3 +1,4 @@
+import { extractCustomer } from "./customer";
 import { bestBody, fullText } from "./html";
 import { parsePhone } from "./phone";
 import { EmailInput, EmailKind, EmailParser, ParseError, ParsedBooking } from "./types";
@@ -61,6 +62,8 @@ export const freedomeParser: EmailParser = {
     // El primer teléfono/correo es el del cliente (el de soporte sale después)
     const phoneRaw = text.match(/Teléfono:\s*(\+?[\d][\d\s.-]{6,})/i)?.[1];
     const customerEmail = text.match(/Correo electrónico:\s*([^\s@]+@[^\s]+)/i)?.[1];
+    // Respaldo por si Freedome cambia las etiquetas del email.
+    const customer = extractCustomer(new Map(), text, { preferredPhone: phoneRaw });
     const { phone, country } = parsePhone(phoneRaw);
 
     return {
@@ -73,10 +76,10 @@ export const freedomeParser: EmailParser = {
       rawProductName,
       paxAdults: pax ? Number(pax) : 0,
       paxChildren: 0,
-      customerName,
-      customerEmail,
-      customerPhone: phone,
-      customerCountry: country,
+      customerName: customerName ?? customer.name,
+      customerEmail: customerEmail ?? customer.email,
+      customerPhone: phone ?? customer.phone,
+      customerCountry: country ?? customer.country,
       customerLanguage: "Spanish",
       priceAmount: total?.replace(/\./g, "").replace(",", "."),
       priceCurrency: "EUR",

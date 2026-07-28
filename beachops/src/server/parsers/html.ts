@@ -54,6 +54,10 @@ export function bestBody(bodyHtml: string | null, bodyText?: string | null): str
 /** Todo el texto plano del email, con espacios normalizados. */
 export function fullText(html: string): string {
   const $ = cheerio.load(html);
+  // Sin esto, el texto de bloques contiguos se pega ("Imke Mevissen"+"Contacto"
+  // → "Imke MevissenContacto") y arruina la extracción de nombres y campos.
+  $("br").replaceWith(" ");
+  $("p, div, tr, td, th, li, h1, h2, h3, h4, h5, h6, table, span").append(" ");
   return normalize($.root().text());
 }
 
