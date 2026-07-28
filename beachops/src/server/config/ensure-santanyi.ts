@@ -44,25 +44,37 @@ export async function ensureSantanyiConfig(): Promise<boolean> {
       console.log(`[${org.slug}] "${LEGACY_COMBINED}" → "${PLAYA_BARCA}"`);
     }
 
-    const [mondragoExisting] = await db
+    let [mondrago] = await db
       .select()
       .from(schema.locations)
       .where(and(eq(schema.locations.orgId, org.id), eq(schema.locations.name, MONDRAGO)));
-    if (!mondragoExisting) {
-      const [mondrago] = await db
+    if (!mondrago) {
+      [mondrago] = await db
         .insert(schema.locations)
         .values({ orgId: org.id, name: MONDRAGO, sortOrder: 2 })
         .returning();
       console.log(`[${org.slug}] + playa ${MONDRAGO}`);
-      // Mondragó necesita sus propios productos y franjas para poder recibir
-      // reservas; se replican los de Playa Barca (editable luego en /config).
-      const barcaProducts = combined
+    }
+
+    // Mondragó necesita sus PROPIOS productos y franjas (son por playa) para
+    // poder recibir reservas. Si no los tiene, se replican los de Playa Barca
+    // (luego se editan en /config). Se comprueba siempre, no solo al crearla.
+    const mondragoProducts = await db
+      .select()
+      .from(schema.products)
+      .where(and(eq(schema.products.orgId, org.id), eq(schema.products.locationId, mondrago.id)));
+    if (mondragoProducts.length === 0) {
+      const [barca] = await db
+        .select()
+        .from(schema.locations)
+        .where(and(eq(schema.locations.orgId, org.id), eq(schema.locations.name, PLAYA_BARCA)));
+      const barcaProducts = barca
         ? await db
             .select()
             .from(schema.products)
-            .where(and(eq(schema.products.orgId, org.id), eq(schema.products.locationId, combined.id)))
+            .where(and(eq(schema.products.orgId, org.id), eq(schema.products.locationId, barca.id)))
         : [];
-      for (const p of barcaProducts.filter((p) => p.kind === "tour")) {
+      for (const p of barcaProducts.filter((p) => p.kind === "tour" && p.active)) {
         const [copy] = await db
           .insert(schema.products)
           .values({
@@ -86,6 +98,7 @@ export async function ensureSantanyiConfig(): Promise<boolean> {
             defaultCapacity: s.defaultCapacity,
           });
         }
+        console.log(`[${org.slug}] + ${p.name} y sus franjas en ${MONDRAGO}`);
       }
     }
 
