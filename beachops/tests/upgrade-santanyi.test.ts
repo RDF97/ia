@@ -24,6 +24,52 @@ beforeAll(async () => {
     .values({ orgId, name: "Playa Barca / Mondragó", sortOrder: 1 });
 });
 
+describe("las tres playas (Playa Barca, Mondragó, Cala Santanyí)", () => {
+  it("separa la playa combinada antigua en Playa Barca + Mondragó", async () => {
+    const db = await getDb();
+    // Reserva existente en la playa combinada: no debe perderse al dividir.
+    const [combinedBefore] = await db
+      .select()
+      .from(schema.locations)
+      .where(
+        and(eq(schema.locations.orgId, orgId), eq(schema.locations.name, "Playa Barca / Mondragó")),
+      );
+    const [booking] = await db
+      .insert(schema.bookings)
+      .values({
+        orgId,
+        source: "manual",
+        externalRef: "PREVIA-1",
+        activityDate: "2026-07-25",
+        locationId: combinedBefore.id,
+        paxAdults: 2,
+        customerName: "Reserva previa",
+      })
+      .returning();
+
+    await ensureSantanyiConfig();
+
+    const locs = await db
+      .select()
+      .from(schema.locations)
+      .where(eq(schema.locations.orgId, orgId));
+    const names = locs.map((l) => l.name).sort();
+    expect(names).toEqual(["Cala Santanyí", "Mondragó", "Playa Barca"]);
+    // La combinada ya no existe con el nombre viejo…
+    expect(names).not.toContain("Playa Barca / Mondragó");
+    // …y la reserva sigue viva, ahora en Playa Barca.
+    const [after] = await db
+      .select()
+      .from(schema.bookings)
+      .where(eq(schema.bookings.id, booking.id));
+    const [loc] = await db
+      .select()
+      .from(schema.locations)
+      .where(eq(schema.locations.id, after.locationId!));
+    expect(loc.name).toBe("Playa Barca");
+  });
+});
+
 describe("ensureSantanyiConfig (idempotente)", () => {
   it("añade Cala Santanyí, Es Pontàs (cupo 22) y su regla a orgs existentes", async () => {
     await ensureSantanyiConfig();

@@ -1,9 +1,9 @@
 /**
- * Asegura, de forma idempotente, que cada org tiene la playa "Cala Santanyí"
- * con el producto "Es Pontàs" (cupo 22, monitor aparte), su franja y la regla de
- * mapeo. `seed()` se salta las orgs ya existentes, así que esta función es la que
- * lleva la novedad a bases de datos ya sembradas (producción). Se llama al
- * arrancar el worker (cada redeploy) y desde el botón "Reprocesar reservas".
+ * Asegura, de forma idempotente, la configuración de playas de Secret Point:
+ * las TRES playas reales (Playa Barca, Mondragó y Cala Santanyí) con sus
+ * productos y franjas. `seed()` se salta las orgs ya existentes, así que esta
+ * función es la que lleva los cambios a bases ya sembradas (producción). Se
+ * llama al arrancar el worker (cada redeploy) y desde "Reprocesar reservas".
  *
  * Reejecutarla no duplica nada (comprueba antes de insertar).
  */
@@ -13,6 +13,10 @@ import { getDb, schema } from "../db";
 const SANTANYI = "Cala Santanyí";
 const PONTAS = "Es Pontàs";
 const PONTAS_MATCH = "es pont[àa]s|pontas|santany";
+/** Nombre antiguo: unía dos playas distintas en una sola. */
+const LEGACY_COMBINED = "Playa Barca / Mondragó";
+const PLAYA_BARCA = "Playa Barca";
+const MONDRAGO = "Mondragó";
 
 /**
  * @returns `true` si en ESTA ejecución se creó por primera vez la playa Cala
@@ -25,6 +29,66 @@ export async function ensureSantanyiConfig(): Promise<boolean> {
   let createdLocation = false;
 
   for (const org of orgs) {
+    // 0) Playa Barca y Mondragó son DOS playas distintas. Las bases antiguas
+    // las tenían unidas en "Playa Barca / Mondragó": se renombra a "Playa Barca"
+    // (conservando sus reservas, productos y franjas) y se crea Mondragó aparte.
+    const [combined] = await db
+      .select()
+      .from(schema.locations)
+      .where(and(eq(schema.locations.orgId, org.id), eq(schema.locations.name, LEGACY_COMBINED)));
+    if (combined) {
+      await db
+        .update(schema.locations)
+        .set({ name: PLAYA_BARCA, sortOrder: 1 })
+        .where(eq(schema.locations.id, combined.id));
+      console.log(`[${org.slug}] "${LEGACY_COMBINED}" → "${PLAYA_BARCA}"`);
+    }
+
+    const [mondragoExisting] = await db
+      .select()
+      .from(schema.locations)
+      .where(and(eq(schema.locations.orgId, org.id), eq(schema.locations.name, MONDRAGO)));
+    if (!mondragoExisting) {
+      const [mondrago] = await db
+        .insert(schema.locations)
+        .values({ orgId: org.id, name: MONDRAGO, sortOrder: 2 })
+        .returning();
+      console.log(`[${org.slug}] + playa ${MONDRAGO}`);
+      // Mondragó necesita sus propios productos y franjas para poder recibir
+      // reservas; se replican los de Playa Barca (editable luego en /config).
+      const barcaProducts = combined
+        ? await db
+            .select()
+            .from(schema.products)
+            .where(and(eq(schema.products.orgId, org.id), eq(schema.products.locationId, combined.id)))
+        : [];
+      for (const p of barcaProducts.filter((p) => p.kind === "tour")) {
+        const [copy] = await db
+          .insert(schema.products)
+          .values({
+            orgId: org.id,
+            locationId: mondrago.id,
+            name: p.name,
+            kind: p.kind,
+            sortOrder: p.sortOrder,
+          })
+          .returning();
+        const slots = await db
+          .select()
+          .from(schema.timeSlots)
+          .where(and(eq(schema.timeSlots.orgId, org.id), eq(schema.timeSlots.productId, p.id)));
+        for (const s of slots) {
+          await db.insert(schema.timeSlots).values({
+            orgId: org.id,
+            locationId: mondrago.id,
+            productId: copy.id,
+            startTime: s.startTime,
+            defaultCapacity: s.defaultCapacity,
+          });
+        }
+      }
+    }
+
     // 1) Playa Cala Santanyí
     let [santanyi] = await db
       .select()
@@ -33,7 +97,7 @@ export async function ensureSantanyiConfig(): Promise<boolean> {
     if (!santanyi) {
       [santanyi] = await db
         .insert(schema.locations)
-        .values({ orgId: org.id, name: SANTANYI, sortOrder: 2 })
+        .values({ orgId: org.id, name: SANTANYI, sortOrder: 3 })
         .returning();
       createdLocation = true;
       console.log(`[${org.slug}] + playa ${SANTANYI}`);
