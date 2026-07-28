@@ -2,7 +2,9 @@ import { and, eq, isNull } from "drizzle-orm";
 import { getDb, schema } from "../db";
 import { RawEmail, TimeSlot } from "../db/schema";
 import { applyMappingRules, resolveTimeSlot } from "../mapping/engine";
+import { detectLocation, productInLocation } from "../mapping/location";
 import { isSantanyi } from "../board/rules";
+import { bestBody, fullText } from "../parsers/html";
 import { detectParser, looksLikeBooking } from "../parsers/registry";
 import { ParseError, ParsedBooking } from "../parsers/types";
 import { sendPushToOrg } from "../push";
@@ -142,7 +144,13 @@ export async function processRawEmail(raw: RawEmail): Promise<void> {
     return;
   }
 
-  const result = await upsertParsedBooking(raw.orgId, parsed, raw.id, raw.subject);
+  const result = await upsertParsedBooking(
+    raw.orgId,
+    parsed,
+    raw.id,
+    raw.subject,
+    fullText(bestBody(raw.bodyHtml, raw.bodyText)),
+  );
   const bookingId = result.bookingId;
 
   if (isRecent(raw.receivedAt)) {
@@ -204,6 +212,8 @@ export async function upsertParsedBooking(
   parsed: ParsedBooking,
   sourceEmailId: string | null,
   subject: string | null,
+  /** Texto plano del email: de aquí se lee la playa (punto de encuentro). */
+  emailText?: string | null,
 ): Promise<UpsertResult> {
   const db = await getDb();
 
@@ -242,11 +252,11 @@ export async function upsertParsedBooking(
   // (producto más parecido por nombre, o el primero), se aprende la regla y
   // se avisa. La reserva nunca se queda fuera del cuadro por falta de regla.
   let effectiveTarget = target;
+  const [locations, products] = await Promise.all([
+    db.select().from(schema.locations).where(eq(schema.locations.orgId, orgId)),
+    db.select().from(schema.products).where(eq(schema.products.orgId, orgId)),
+  ]);
   if (!effectiveTarget && parsed.kind === "new") {
-    const [locations, products] = await Promise.all([
-      db.select().from(schema.locations).where(eq(schema.locations.orgId, orgId)),
-      db.select().from(schema.products).where(eq(schema.products.orgId, orgId)),
-    ]);
     const activeLocations = locations.filter((l) => l.active);
     // Playa por defecto (instructivo §3.1): todo sale de Mondragó salvo que una
     // regla explícita mande a Cala Santanyí (Es Pontàs). Se elige la primera
@@ -280,6 +290,27 @@ export async function upsertParsedBooking(
             targetLocationId: loc.id,
           });
         }
+      }
+    }
+  }
+
+  // La playa la dice el email: si nombra una (punto de encuentro, producto o
+  // cuerpo), esa manda sobre la playa por defecto de la regla. Al cambiar de
+  // playa hay que coger SU producto equivalente, porque los productos y las
+  // franjas son por playa.
+  if (effectiveTarget) {
+    const searchText = [parsed.rawProductName, subject ?? "", emailText ?? ""].join("\n");
+    const detected = detectLocation(locations, searchText);
+    if (detected && detected.id !== effectiveTarget.locationId) {
+      const currentName = products.find((p) => p.id === effectiveTarget!.productId)?.name;
+      const product = productInLocation(products, detected.id, currentName);
+      if (product) {
+        effectiveTarget = {
+          productId: product.id,
+          locationId: detected.id,
+          // La franja fijada por la regla es de la otra playa: se recalcula.
+          timeSlotId: undefined,
+        };
       }
     }
   }
