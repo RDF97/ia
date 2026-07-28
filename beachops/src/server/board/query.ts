@@ -78,6 +78,13 @@ export type Board = {
     channels: string[];
     countries: string[];
   };
+  /** Salud de la ingesta de correo (para avisar si deja de entrar nada). */
+  sync: {
+    lastSyncedAt: Date | null;
+    /** Minutos desde la última sincronización correcta (null si nunca). */
+    staleMinutes: number | null;
+    error: string | null;
+  };
 };
 
 function hhmm(t: string): string {
@@ -121,6 +128,16 @@ export async function getBoard(orgId: string, date: string): Promise<Board> {
           and(eq(schema.rawEmails.orgId, orgId), eq(schema.rawEmails.parseStatus, "failed")),
         ),
     ]);
+
+  const accounts = await db
+    .select()
+    .from(schema.emailAccounts)
+    .where(eq(schema.emailAccounts.orgId, orgId));
+  const lastSyncedAt = accounts
+    .map((a) => a.lastSyncedAt)
+    .filter((d): d is Date => d != null)
+    .sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
+  const syncError = accounts.find((a) => a.syncStatus !== "active")?.lastError ?? null;
 
   const productById = new Map(products.map((p) => [p.id, p]));
   const active = dayBookings.filter((b) => b.status !== "cancelled");
@@ -312,6 +329,16 @@ export async function getBoard(orgId: string, date: string): Promise<Board> {
       failedEmails: failedCount.length,
       channels: [...new Set(active.map((b) => b.channel).filter(Boolean))] as string[],
       countries,
+    },
+    sync: {
+      lastSyncedAt,
+      staleMinutes:
+        accounts.length === 0
+          ? null
+          : lastSyncedAt
+            ? Math.floor((Date.now() - lastSyncedAt.getTime()) / 60_000)
+            : null,
+      error: syncError,
     },
   };
 }

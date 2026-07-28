@@ -1,5 +1,5 @@
 import { gmail_v1 } from "googleapis";
-import { eq } from "drizzle-orm";
+import { eq, ne } from "drizzle-orm";
 import { getDb, schema } from "../db";
 import { EmailAccount } from "../db/schema";
 import { processRawEmail } from "../ingest/process";
@@ -160,13 +160,20 @@ function isHttpStatus(err: unknown, status: number): boolean {
   );
 }
 
-/** Sincroniza todas las cuentas activas (lo llama el worker y el botón manual). */
+/**
+ * Sincroniza todas las cuentas (lo llama el worker y el botón manual).
+ *
+ * Incluye a propósito las que quedaron en estado "error": un fallo puntual (corte
+ * de red, 500 de Gmail, timeout del IMAP) NO debe dejar el buzón muerto para
+ * siempre. Se reintenta en cada ciclo y, al primer éxito, vuelve a "active".
+ * Solo se excluyen las "revoked", que necesitan reconexión manual del usuario.
+ */
 export async function syncAllAccounts(): Promise<void> {
   const db = await getDb();
   const accounts = await db
     .select()
     .from(schema.emailAccounts)
-    .where(eq(schema.emailAccounts.syncStatus, "active"));
+    .where(ne(schema.emailAccounts.syncStatus, "revoked"));
   for (const account of accounts) {
     try {
       if (account.provider === "imap") {

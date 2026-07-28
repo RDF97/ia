@@ -84,6 +84,16 @@ export default async function CuadroPage({
     avisos.push(`${board.cashPending} importe(s) de caja pendientes`);
   if (board.stats.failedEmails > 0)
     avisos.push(`${board.stats.failedEmails} email(s) que no se pudieron leer (revísalos en Emails)`);
+  // Si el correo deja de entrar, el cuadro se queda "congelado" sin que se note:
+  // avisarlo aquí es lo que evita días sin reservas nuevas.
+  if (board.sync.staleMinutes != null && board.sync.staleMinutes > 120) {
+    const horas = Math.floor(board.sync.staleMinutes / 60);
+    avisos.push(
+      `⛔ El correo no se sincroniza desde hace ${horas >= 24 ? `${Math.floor(horas / 24)} día(s)` : `${horas} h`}` +
+        (board.sync.error ? ` — ${board.sync.error.slice(0, 120)}` : "") +
+        " · revisa Configuración",
+    );
+  }
 
   const resumenItems = [
     { label: "Total pax", value: board.resumen.paxTotal },
