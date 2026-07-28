@@ -261,7 +261,9 @@ export default async function CuadroPage({
 
       {/* Cuadro por playa (Santanyí primero) */}
       {board.locations
-        .filter((loc) => !loc.isSantanyi || loc.paxTotal > 0)
+        // Cada playa con reservas sale en su propia sección; la principal
+        // siempre, aunque esté vacía.
+        .filter((loc) => loc.paxTotal > 0 || loc.isDefault)
         .map((loc) => (
           <section key={loc.locationId} className="space-y-3">
             <h2 className="text-xs font-bold tracking-widest text-slate-400 uppercase">

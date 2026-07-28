@@ -43,6 +43,9 @@ export type BoardLocation = {
   groups: BoardSlotGroup[];
   paxTotal: number;
   isSantanyi: boolean;
+  sortOrder: number;
+  /** Playa principal: se muestra aunque no tenga reservas ese día. */
+  isDefault: boolean;
 };
 
 export type ChartBar = { hora: string; pax: number; hex: string };
@@ -236,10 +239,17 @@ export async function getBoard(orgId: string, date: string): Promise<Board> {
         groups: allGroups,
         paxTotal: allGroups.reduce((n, g) => n + g.paxTotal, 0),
         isSantanyi: isSantanyiRule(loc.name),
+        sortOrder: loc.sortOrder,
+        isDefault: false, // se calcula abajo
       };
     })
-    // Cala Santanyí primero (instructivo §4), luego el resto por sortOrder.
-    .sort((a, b) => Number(b.isSantanyi) - Number(a.isSantanyi));
+    // Cala Santanyí primero (instructivo §4); el resto por su orden configurado.
+    .sort((a, b) => Number(b.isSantanyi) - Number(a.isSantanyi) || a.sortOrder - b.sortOrder);
+
+  // Playa principal (la primera que no es Santanyí): se muestra siempre, aunque
+  // no tenga reservas, para que el cuadro nunca salga vacío.
+  const mainLocation = boardLocations.filter((l) => !l.isSantanyi)[0];
+  if (mainLocation) mainLocation.isDefault = true;
 
   const assignedIds = new Set(
     boardLocations.flatMap((l) => l.groups.flatMap((g) => g.bookings.map((b) => b.id))),
