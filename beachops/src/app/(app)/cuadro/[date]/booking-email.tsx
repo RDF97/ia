@@ -80,13 +80,20 @@ function EmailDialog({ bookingId, onClose }: { bookingId: string; onClose: () =>
 
   return (
     <div
-      className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      // En móvil, hoja que sube desde abajo (patrón iOS); centrada en escritorio.
+      className="no-print fixed inset-0 z-50 flex items-end justify-center bg-black/40 md:items-center md:p-4"
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
     >
       <div
-        className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl bg-white shadow-xl"
+        className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl safe-bottom md:max-h-[85vh] md:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Asa: indica que la hoja se puede cerrar */}
+        <div className="flex justify-center pt-2 md:hidden">
+          <span className="h-1 w-9 rounded-full bg-slate-300" />
+        </div>
         <header className="flex items-start gap-3 border-b border-slate-200 p-3">
           <div className="min-w-0">
             <h2 className="truncate font-bold">
@@ -103,14 +110,15 @@ function EmailDialog({ bookingId, onClose }: { bookingId: string; onClose: () =>
           </div>
           <button
             onClick={onClose}
-            className="ml-auto rounded px-2 py-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            aria-label="Cerrar"
+            className="ml-auto inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-slate-400 active:bg-slate-100 active:text-slate-700"
             title="Cerrar (Esc)"
           >
             ✕
           </button>
         </header>
 
-        <div className="min-h-40 flex-1 overflow-auto bg-slate-50">
+        <div className="momentum min-h-40 flex-1 overflow-auto bg-slate-50">
           {error && <p className="p-4 text-sm text-red-600">{error}</p>}
           {!data && !error && (
             <p className="flex items-center gap-2 p-4 text-sm text-slate-500">
