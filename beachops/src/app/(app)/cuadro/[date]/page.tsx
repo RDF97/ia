@@ -13,7 +13,7 @@ import { Badge, BOARD_BG, CHILD_COLOR, MONITOR_BADGE } from "@/server/board/rule
 import { getDb, schema } from "@/server/db";
 import { Booking } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
-import { flagEmoji, formatDateEs, formatEuro, shiftDate } from "@/lib/format";
+import { flagEmoji, formatDateEs, formatDateShortEs, formatEuro, shiftDate } from "@/lib/format";
 import { getDayWeather, orgCoords, HourWeather } from "@/server/weather";
 import { SubmitButton } from "@/components/submit-button";
 import { AutoRefresh } from "./auto-refresh";
@@ -108,43 +108,76 @@ export default async function CuadroPage({
   ];
 
   return (
-    <div className="space-y-4 -m-4 p-4" style={{ background: BOARD_BG, fontFamily: "system-ui" }}>
+    // board-flow: en el móvil las reservas suben justo debajo de los avisos
+    // (es lo que se consulta en la playa); caja, gráfico y resumen bajan. En
+    // escritorio e impresión se respeta el orden del instructivo.
+    <div
+      className="board-flow -m-3 flex flex-col gap-3 p-3 md:-m-4 md:gap-4 md:p-4"
+      style={{ background: BOARD_BG }}
+    >
       <AutoRefresh seconds={30} />
 
-      {/* Cabecera */}
-      <header className="flex flex-wrap items-center gap-3">
-        <div>
-          <p className="text-sm font-bold tracking-wide text-slate-500">Secret Point Mallorca</p>
-          <h1 className="text-xl font-bold capitalize leading-tight">{formatDateEs(date)}</h1>
-        </div>
-        <div className="no-print flex items-center gap-1 text-sm">
-          <Link href={`/cuadro/${shiftDate(date, -1)}`} className="px-2 py-1 rounded bg-white border border-slate-300 hover:bg-slate-100">←</Link>
-          <Link href="/" className="px-2 py-1 rounded bg-white border border-slate-300 hover:bg-slate-100">hoy</Link>
-          <Link href={`/cuadro/${shiftDate(date, 1)}`} className="px-2 py-1 rounded bg-white border border-slate-300 hover:bg-slate-100">→</Link>
-        </div>
-        <div className="ml-auto no-print flex gap-2">
+      {/* Cabecera: título grande y navegación de fecha al alcance del pulgar */}
+      <header className="order-1 space-y-2.5 md:order-none">
+        <div className="flex items-center gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Secret Point Mallorca
+            </p>
+            {/* Fecha corta en el móvil (cabe entera) y completa en escritorio */}
+            <h1 className="text-2xl font-bold leading-tight md:text-xl">
+              <span className="md:hidden">{formatDateShortEs(date)}</span>
+              <span className="hidden md:inline">{formatDateEs(date)}</span>
+            </h1>
+          </div>
           <Link
             href={`/reservas/nueva?date=${date}`}
-            className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700"
+            className="tap no-print ml-auto inline-flex shrink-0 items-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm active:bg-blue-700"
           >
             + Reserva
           </Link>
-          <PdfButton date={date} />
-          <PrintButton />
+        </div>
+        <div className="no-print flex items-center gap-2">
+          <Link
+            href={`/cuadro/${shiftDate(date, -1)}`}
+            aria-label="Día anterior"
+            className="tap inline-flex flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white py-2.5 text-lg active:bg-slate-100 md:flex-none md:px-4"
+          >
+            ←
+          </Link>
+          <Link
+            href="/"
+            className="tap inline-flex flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white py-2.5 text-sm font-semibold active:bg-slate-100 md:flex-none md:px-4"
+          >
+            Hoy
+          </Link>
+          <Link
+            href={`/cuadro/${shiftDate(date, 1)}`}
+            aria-label="Día siguiente"
+            className="tap inline-flex flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white py-2.5 text-lg active:bg-slate-100 md:flex-none md:px-4"
+          >
+            →
+          </Link>
+          <div className="ml-auto flex gap-2">
+            <PdfButton date={date} />
+            <span className="hidden md:inline-flex">
+              <PrintButton />
+            </span>
+          </div>
         </div>
       </header>
 
       {/* Stats (instructivo §4) */}
-      <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat label="Total pax" value={String(board.stats.paxTotal)} sub={`${board.stats.paxAdults} adultos + ${board.stats.paxChildren} niños`} />
-        <Stat label="Caja efectivo" value={board.cashPending > 0 ? `${formatEuro(board.cashTotal)}+` : formatEuro(board.cashTotal)} sub={board.cashPending > 0 ? `${board.cashPending} pdte. confirmar` : "confirmada"} accent={board.cashPending > 0 ? "amber" : undefined} />
-        <Stat label="Franjas llenas" value={String(board.stats.fullSlots)} sub={board.stats.splitSlots > 0 ? `${board.stats.splitSlots} a dividir` : "sin desbordes"} accent={board.stats.splitSlots > 0 ? "red" : undefined} />
-        <Stat label="Excursiones" value={String(board.stats.excursions)} sub={board.stats.channels.join(" · ") || "—"} />
+      <section className="order-2 grid grid-cols-4 gap-2 md:order-none md:gap-3">
+        <Stat label="Total pax" short="Pax" value={String(board.stats.paxTotal)} sub={`${board.stats.paxAdults} adultos + ${board.stats.paxChildren} niños`} />
+        <Stat label="Caja efectivo" short="Caja" value={board.cashPending > 0 ? `${formatEuro(board.cashTotal)}+` : formatEuro(board.cashTotal)} sub={board.cashPending > 0 ? `${board.cashPending} pdte. confirmar` : "confirmada"} accent={board.cashPending > 0 ? "amber" : undefined} />
+        <Stat label="Franjas llenas" short="Llenas" value={String(board.stats.fullSlots)} sub={board.stats.splitSlots > 0 ? `${board.stats.splitSlots} a dividir` : "sin desbordes"} accent={board.stats.splitSlots > 0 ? "red" : undefined} />
+        <Stat label="Excursiones" short="Salidas" value={String(board.stats.excursions)} sub={board.stats.channels.join(" · ") || "—"} />
       </section>
 
       {/* Aviso operativo */}
       {avisos.length > 0 && (
-        <section className="print-block rounded-xl border-l-4 border-amber-500 bg-amber-50 px-4 py-3">
+        <section className="order-3 print-block rounded-xl border-l-4 border-amber-500 bg-amber-50 px-4 py-3 md:order-none">
           <h2 className="text-sm font-bold text-amber-800 mb-1">⚠ Aviso operativo</h2>
           <ul className="text-sm text-amber-900 space-y-0.5 list-disc pl-5">
             {avisos.map((a, i) => (
@@ -156,16 +189,19 @@ export default async function CuadroPage({
 
       {/* Meteo */}
       {weather && weather.some((w) => w.tempC != null || w.windKmh != null) && (
-        <section className="print-block bg-sky-50 border border-sky-200 rounded-xl px-3 py-2 flex flex-wrap gap-x-5 gap-y-1 text-sm">
-          <span className="font-semibold text-sky-800">🌤 Meteo</span>
-          {weather.map((w) => (
-            <WeatherChip key={w.hour} w={w} />
-          ))}
+        // Meteo en una tira que se desliza: informa sin comerse la pantalla
+        <section className="order-7 print-block rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm md:order-none">
+          <div className="momentum flex gap-4 overflow-x-auto md:flex-wrap md:gap-x-5">
+            <span className="shrink-0 font-semibold text-sky-800">🌤 Meteo</span>
+            {weather.map((w) => (
+              <WeatherChip key={w.hour} w={w} />
+            ))}
+          </div>
         </section>
       )}
 
       {/* Caja del día */}
-      <section className="print-block bg-white rounded-xl shadow-sm border border-slate-200 p-3 space-y-2">
+      <section className="order-8 print-block bg-white rounded-xl shadow-sm border border-slate-200 p-3 space-y-2 md:order-none">
         <h2 className="font-bold">💶 CAJA DEL DÍA — Efectivo</h2>
         {board.cashEntries.length === 0 ? (
           <p className="text-sm text-slate-400">Sin movimientos de efectivo (GYG/Viator/Freedome ya cobrados)</p>
@@ -221,7 +257,7 @@ export default async function CuadroPage({
 
       {/* Sin asignar (con hora) */}
       {board.unassigned.length > 0 && (
-        <section className="print-block bg-amber-50 border border-amber-300 rounded-xl p-3 space-y-2">
+        <section className="order-4 print-block bg-amber-50 border border-amber-300 rounded-xl p-3 space-y-2 md:order-none">
           <h2 className="font-semibold text-amber-800 text-sm">
             ⚠ Reservas sin asignar a franja — elige salida
           </h2>
@@ -241,7 +277,7 @@ export default async function CuadroPage({
 
       {/* Pendiente de franja (sin hora) */}
       {board.pendingNoTime.length > 0 && (
-        <section className="print-block bg-orange-50 border border-orange-300 rounded-xl p-3 space-y-2">
+        <section className="order-5 print-block bg-orange-50 border border-orange-300 rounded-xl p-3 space-y-2 md:order-none">
           <h2 className="font-semibold text-orange-800 text-sm">
             ⏳ Pendiente de franja — sin hora en el email
           </h2>
@@ -265,7 +301,7 @@ export default async function CuadroPage({
         // siempre, aunque esté vacía.
         .filter((loc) => loc.paxTotal > 0 || loc.isDefault)
         .map((loc) => (
-          <section key={loc.locationId} className="space-y-3">
+          <section key={loc.locationId} className="order-6 space-y-3 md:order-none">
             <h2 className="text-xs font-bold tracking-widest text-slate-400 uppercase">
               📍 {loc.name} · {loc.paxTotal} pax{loc.isSantanyi ? " · monitor aparte" : ""}
             </h2>
@@ -277,14 +313,14 @@ export default async function CuadroPage({
 
       {/* Gráfico de barras */}
       {board.chart.length > 0 && (
-        <section className="print-block bg-white rounded-xl shadow-sm border border-slate-200 p-3">
+        <section className="order-9 print-block bg-white rounded-xl shadow-sm border border-slate-200 p-3 md:order-none">
           <h2 className="font-bold mb-2">Personas por franja</h2>
           <BoardChart bars={board.chart} />
         </section>
       )}
 
       {/* Resumen visual */}
-      <section className="print-block bg-white rounded-xl shadow-sm border border-slate-200 p-3 space-y-3">
+      <section className="order-10 print-block bg-white rounded-xl shadow-sm border border-slate-200 p-3 space-y-3 md:order-none">
         <h2 className="font-bold">Resumen del día</h2>
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
           {resumenItems.map((r) => (
@@ -328,7 +364,7 @@ export default async function CuadroPage({
 
       {/* Canceladas */}
       {board.cancelled.length > 0 && (
-        <section className="no-print text-xs text-slate-400">
+        <section className="order-11 no-print text-xs text-slate-400 md:order-none">
           <h3 className="font-semibold mb-1">Canceladas hoy</h3>
           {board.cancelled.map((b) => (
             <p key={b.id} className="line-through">
@@ -345,33 +381,37 @@ export default async function CuadroPage({
 
 function SlotCard({ g, date }: { g: BoardSlotGroup; date: string }) {
   return (
-    <div className="slot-card bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-      <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-b border-slate-100">
-        <span className="font-bold text-lg">{g.startTime}</span>
-        <BadgeChip badge={{ label: g.productName, bg: "#EEF1F4", fg: "#334155" }} />
-        {g.channelBadges.map((b) => (
-          <BadgeChip key={b.label} badge={b} />
-        ))}
-        {g.needsMonitor && <BadgeChip badge={MONITOR_BADGE} />}
-        {g.isAdHoc && (
-          <span className="text-xs font-bold text-sky-600" title="Salida creada automáticamente">EXTRA</span>
-        )}
-        {g.isDouble && <span className="text-xs font-bold text-red-600">DOBLE SALIDA</span>}
-        <div className="ml-auto flex items-center gap-2">
-          <span className="font-bold tabular-nums" style={{ color: g.overbookedBy > 0 ? g.colorHex : "#334155" }}>
-            {g.paxTotal}/{g.capacity}
-            {g.overbookedBy > 0 && ` · +${g.overbookedBy}`}
-          </span>
+    <div className="slot-card overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 px-3 py-2.5 border-b border-slate-100">
+        {/* La hora es lo que más se busca de un vistazo: tamaño grande */}
+        <span className="text-2xl font-bold leading-none tabular-nums">{g.startTime}</span>
+        <span
+          className="ml-auto text-xl font-bold tabular-nums"
+          style={{ color: g.overbookedBy > 0 ? g.colorHex : "#334155" }}
+        >
+          {g.paxTotal}/{g.capacity}
+          {g.overbookedBy > 0 && <span className="text-sm"> +{g.overbookedBy}</span>}
+        </span>
+        <div className="flex w-full flex-wrap items-center gap-1.5">
+          <BadgeChip badge={{ label: g.productName, bg: "#EEF1F4", fg: "#334155" }} />
+          {g.channelBadges.map((b) => (
+            <BadgeChip key={b.label} badge={b} />
+          ))}
+          {g.needsMonitor && <BadgeChip badge={MONITOR_BADGE} />}
+          {g.isAdHoc && (
+            <BadgeChip badge={{ label: "EXTRA", bg: "#E0F2FE", fg: "#0369A1" }} />
+          )}
+          {g.isDouble && <BadgeChip badge={{ label: "DOBLE SALIDA", bg: "#FEE2E2", fg: "#B91C1C" }} />}
           <form
             action={
               g.timeSlotId
                 ? toggleDoubleDeparture.bind(null, g.timeSlotId, date)
                 : toggleDoubleAdHoc.bind(null, g.departureId!, date)
             }
-            className="no-print"
+            className="no-print ml-auto"
           >
             <SubmitButton
-              className="text-xs px-2 py-1 rounded border border-slate-300 text-slate-500 hover:bg-slate-100"
+              className="tap-sm rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs text-slate-600 active:bg-slate-100"
               pendingLabel="…"
               doneLabel="✓"
               title="Duplicar cupo (doble salida)"
@@ -384,18 +424,16 @@ function SlotCard({ g, date }: { g: BoardSlotGroup; date: string }) {
       {/* Barra de cupo coloreada (umbral por nº de personas) */}
       {g.paxTotal > 0 && <CapacityBar g={g} />}
       {g.bookings.length === 0 ? (
-        <p className="px-3 py-2 text-sm text-slate-400">Sin reservas</p>
+        <p className="px-3 py-3 text-sm text-slate-400">Sin reservas</p>
       ) : (
-        <table className="w-full text-sm">
-          <tbody>
-            {g.bookings.map((b) => (
-              <BookingRow key={b.id} b={b} date={date} />
-            ))}
-          </tbody>
-        </table>
+        <ul className="divide-y divide-slate-100">
+          {g.bookings.map((b) => (
+            <BookingRow key={b.id} b={b} date={date} />
+          ))}
+        </ul>
       )}
       {g.bookings.length > 0 && (
-        <div className="px-3 py-1.5 text-xs bg-slate-50 flex justify-between">
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 bg-slate-50 px-3 py-2 text-xs">
           <span className="text-slate-500">
             Total: {g.paxAdults} adultos{g.paxChildren > 0 ? ` + ${g.paxChildren} niños` : ""}
             {g.needsSplit && <strong style={{ color: g.colorHex }}> · dividir en varias salidas</strong>}
@@ -420,35 +458,63 @@ function CapacityBar({ g }: { g: BoardSlotGroup }) {
   );
 }
 
+/**
+ * Fila de reserva pensada para el pulgar: pax grande a la izquierda, nombre
+ * tocable (abre su email) y, debajo, teléfono como botón de llamada. En
+ * pantallas anchas todo se reparte en una sola línea.
+ */
 function BookingRow({ b, date }: { b: Booking; date: string }) {
+  const pax = b.paxAdults + b.paxChildren;
   return (
-    <tr className="border-b border-slate-50 last:border-0">
-      <td className="px-3 py-1.5 font-bold w-10 tabular-nums">{b.paxAdults + b.paxChildren}</td>
-      <td className="px-2 py-1.5">
-        <BookingEmailLink bookingId={b.id} label={b.customerName ?? "(sin nombre)"} />
-        {b.paxChildren > 0 && (
-          <span className="text-xs font-semibold" style={{ color: CHILD_COLOR }}>
-            {" "}· {b.paxChildren} niño{b.paxChildren > 1 ? "s" : ""}
+    <li className="flex items-start gap-3 px-3 py-2.5">
+      <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-base font-bold tabular-nums">
+        {pax}
+      </span>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <span className="text-[15px] font-semibold leading-tight">
+            <BookingEmailLink bookingId={b.id} label={b.customerName ?? "(sin nombre)"} />
           </span>
-        )}
-        {b.pickupHotel && <span className="text-xs text-slate-500"> · Hotel {b.pickupHotel}</span>}
-      </td>
-      <td className="px-2 py-1.5">{flagEmoji(b.customerCountry)}</td>
-      <td className="px-2 py-1.5 whitespace-nowrap">
-        {b.customerPhone && (
-          <a href={`tel:${b.customerPhone}`} className="text-blue-600">{b.customerPhone}</a>
-        )}
-      </td>
-      <td className="px-2 py-1.5 text-xs text-slate-400 font-mono">{b.externalRef ?? b.channel}</td>
-      <td className="px-2 py-1.5 text-right whitespace-nowrap">
-        <PaymentBadge b={b} />
-      </td>
-      <td className="px-2 py-1.5 no-print w-8 text-right">
-        <form action={cancelBooking.bind(null, b.id, date)}>
-          <button className="text-slate-300 hover:text-red-600" title="Cancelar reserva">✕</button>
+          {b.customerCountry && (
+            <span title={b.customerCountry}>{flagEmoji(b.customerCountry)}</span>
+          )}
+          {b.paxChildren > 0 && (
+            <span className="text-xs font-semibold" style={{ color: CHILD_COLOR }}>
+              {b.paxChildren} niño{b.paxChildren > 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-500">
+          {b.customerPhone && (
+            <a
+              href={`tel:${b.customerPhone}`}
+              className="tap-sm inline-flex items-center gap-1 font-medium text-blue-600 active:text-blue-800"
+            >
+              📞 {b.customerPhone}
+            </a>
+          )}
+          {b.pickupHotel && <span>Hotel {b.pickupHotel}</span>}
+          <span className="font-mono text-[11px] text-slate-400">{b.externalRef ?? b.channel}</span>
+        </div>
+      </div>
+
+      <div className="flex shrink-0 items-center gap-1">
+        <span className="whitespace-nowrap text-right text-sm">
+          <PaymentBadge b={b} />
+        </span>
+        <form action={cancelBooking.bind(null, b.id, date)} className="no-print">
+          <SubmitButton
+            className="tap-sm w-9 justify-center rounded-lg text-slate-300 active:bg-red-50 active:text-red-600"
+            pendingLabel="…"
+            doneLabel="✓"
+            title="Cancelar reserva"
+          >
+            ✕
+          </SubmitButton>
         </form>
-      </td>
-    </tr>
+      </div>
+    </li>
   );
 }
 
@@ -467,7 +533,7 @@ function WeatherChip({ w }: { w: HourWeather }) {
   const gustAlert = w.gustKmh != null && w.gustKmh >= 35;
   const waveAlert = w.waveM != null && w.waveM >= 1;
   return (
-    <span className="whitespace-nowrap">
+    <span className="shrink-0 whitespace-nowrap">
       <strong>{w.hour}</strong>{" "}
       {w.tempC != null && <span>{Math.round(w.tempC)}º</span>}{" "}
       {w.windKmh != null && (
@@ -484,13 +550,30 @@ function WeatherChip({ w }: { w: HourWeather }) {
   );
 }
 
-function Stat({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: "red" | "amber" }) {
+function Stat({
+  label,
+  short,
+  value,
+  sub,
+  accent,
+}: {
+  label: string;
+  /** Etiqueta corta para el móvil, donde no cabe la larga */
+  short?: string;
+  value: string;
+  sub?: string;
+  accent?: "red" | "amber";
+}) {
   const color = accent === "red" ? "text-red-600" : accent === "amber" ? "text-amber-600" : "text-slate-900";
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-3">
-      <p className="text-xs text-slate-400">{label}</p>
-      <p className={`text-2xl font-bold ${color}`}>{value}</p>
-      {sub && <p className="text-xs text-slate-500">{sub}</p>}
+    <div className="rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm md:p-3">
+      <p className="truncate text-[11px] leading-tight text-slate-400 md:text-xs">
+        <span className="md:hidden">{short ?? label}</span>
+        <span className="hidden md:inline">{label}</span>
+      </p>
+      <p className={`text-xl font-bold leading-tight md:text-2xl ${color}`}>{value}</p>
+      {/* En el móvil el detalle sobra: las alertas ya salen en el aviso operativo */}
+      {sub && <p className="hidden text-xs leading-tight text-slate-500 md:block">{sub}</p>}
     </div>
   );
 }
