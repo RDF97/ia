@@ -3,6 +3,7 @@ import { createManualBooking } from "@/server/actions";
 import { requireSession } from "@/server/auth";
 import { getDb, schema } from "@/server/db";
 import { todayInTz } from "@/server/board/query";
+import { SubmitButton } from "@/components/submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -103,9 +104,12 @@ export default async function NuevaReservaPage({
           Notas
           <textarea name="notes" rows={2} className={input} />
         </label>
-        <button className="w-full rounded-lg bg-blue-600 text-white font-semibold py-2.5 hover:bg-blue-700">
+        <SubmitButton
+          className="w-full justify-center rounded-lg bg-blue-600 text-white font-semibold py-2.5 hover:bg-blue-700"
+          pendingLabel="Creando reserva…"
+        >
           Crear reserva
-        </button>
+        </SubmitButton>
       </form>
     </div>
   );

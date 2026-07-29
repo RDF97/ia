@@ -18,10 +18,18 @@ function pdfFilename(date: string): string {
   return `cuadro_${Number(d)}${mes}_${y}.pdf`;
 }
 
+/** Rutas habituales del Chromium del sistema (Alpine, Debian, sandbox). */
+const CHROMIUM_PATHS = [
+  "/usr/bin/chromium-browser", // Alpine (paquete `chromium`)
+  "/usr/bin/chromium", // Debian/Ubuntu
+  "/usr/bin/google-chrome",
+  "/opt/pw-browsers/chromium",
+];
+
 function chromiumExecutablePath(): string | undefined {
-  if (process.env.PLAYWRIGHT_CHROMIUM_PATH) return process.env.PLAYWRIGHT_CHROMIUM_PATH;
-  if (existsSync("/opt/pw-browsers/chromium")) return "/opt/pw-browsers/chromium";
-  return undefined; // deja que playwright-core resuelva su propia instalación
+  const fromEnv = process.env.PLAYWRIGHT_CHROMIUM_PATH;
+  if (fromEnv && existsSync(fromEnv)) return fromEnv;
+  return CHROMIUM_PATHS.find((p) => existsSync(p));
 }
 
 /**
@@ -31,7 +39,7 @@ function chromiumExecutablePath(): string | undefined {
  * cuadro_DDmes_2026.pdf para descargar.
  */
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ date: string }> },
 ) {
   const { date } = await params;
@@ -41,15 +49,29 @@ export async function GET(
   const session = await getSession();
   if (!session) return new Response("No autenticado", { status: 401 });
 
-  const origin = new URL(request.url).origin;
+  // Se navega al propio servidor por dentro (127.0.0.1), no por el dominio
+  // público: así el PDF no depende del proxy, del DNS ni del certificado.
+  const origin = `http://127.0.0.1:${process.env.PORT ?? 3000}`;
   const store = await cookies();
   const sessionCookie = store.get("beachops_session")?.value;
 
+  const executablePath = chromiumExecutablePath();
   const { chromium } = await import("playwright-core");
-  const browser = await chromium.launch({
-    executablePath: chromiumExecutablePath(),
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
+  let browser;
+  try {
+    browser = await chromium.launch({
+      executablePath,
+      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+    });
+  } catch (err) {
+    console.error("No se pudo arrancar Chromium para el PDF:", err);
+    return new Response(
+      "No se pudo generar el PDF: falta el navegador en el servidor. " +
+        "Reconstruye la imagen (docker compose up -d --build) para instalar Chromium. " +
+        "Mientras tanto puedes usar el botón Imprimir → Guardar como PDF.",
+      { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } },
+    );
+  }
   try {
     const context = await browser.newContext({ ignoreHTTPSErrors: true });
     if (sessionCookie) {
@@ -75,6 +97,12 @@ export async function GET(
         "Cache-Control": "no-store",
       },
     });
+  } catch (err) {
+    console.error("Falló la generación del PDF:", err);
+    return new Response(
+      `No se pudo generar el PDF: ${err instanceof Error ? err.message : String(err)}`,
+      { status: 500, headers: { "Content-Type": "text/plain; charset=utf-8" } },
+    );
   } finally {
     await browser.close();
   }
