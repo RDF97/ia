@@ -42,7 +42,7 @@ export default async function ConfigPage({
   const coords = orgCoords(orgRows[0]?.settings);
   const productName = (id: string) => products.find((p) => p.id === id)?.name ?? "?";
   const locationName = (id: string) => locations.find((l) => l.id === id)?.name ?? "?";
-  const input = "rounded-lg border border-slate-300 px-2 py-1.5 text-sm";
+  const input = "rounded-lg border border-slate-300 px-2.5 py-2 text-sm";
 
   return (
     <div className="space-y-6">
@@ -71,7 +71,7 @@ export default async function ConfigPage({
         ) : (
           <ul className="text-sm space-y-1">
             {accounts.map((a) => (
-              <li key={a.id} className="flex items-center gap-2">
+              <li key={a.id} className="flex flex-wrap items-center gap-2">
                 <span className={a.syncStatus === "active" ? "text-emerald-600" : "text-red-600"}>●</span>
                 {a.emailAddress}
                 <span className="text-xs px-1.5 rounded-full bg-slate-100 text-slate-500 uppercase">{a.provider}</span>
@@ -95,16 +95,16 @@ export default async function ConfigPage({
             ))}
           </ul>
         )}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <a
             href="/api/gmail/connect"
-            className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700"
+            className="tap inline-flex items-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white active:bg-blue-700"
           >
             {accounts.some((a) => a.provider === "gmail") ? "Reconectar Gmail" : "Conectar Gmail"}
           </a>
           {accounts.length > 0 && (
             <form action={syncNow}>
-              <button className="px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-sm hover:bg-slate-100">
+              <button className="tap inline-flex items-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm active:bg-slate-100">
                 ↻ Sincronizar ahora
               </button>
             </form>
@@ -130,13 +130,13 @@ export default async function ConfigPage({
 
         {locations.map((l) => (
           <div key={l.id} className={`border border-slate-200 rounded-lg p-3 space-y-2 ${!l.active ? "opacity-50" : ""}`}>
-            <div className="flex items-center gap-2">
-              <form action={updateLocation.bind(null, l.id)} className="flex items-center gap-1">
-                <input name="name" defaultValue={l.name} className={`${input} font-semibold w-64`} />
-                <button className="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-100">renombrar</button>
+            <div className="flex flex-wrap items-center gap-2">
+              <form action={updateLocation.bind(null, l.id)} className="flex flex-wrap items-center gap-1">
+                <input name="name" defaultValue={l.name} className={`${input} font-semibold w-full md:w-64`} />
+                <button className="tap-sm text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 active:bg-slate-100">renombrar</button>
               </form>
               <form action={toggleLocation.bind(null, l.id)} className="ml-auto">
-                <button className="text-xs px-2 py-1 rounded border border-slate-300 text-slate-500 hover:bg-slate-100">
+                <button className="tap-sm text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 text-slate-500 active:bg-slate-100">
                   {l.active ? "desactivar playa" : "activar playa"}
                 </button>
               </form>
@@ -148,8 +148,8 @@ export default async function ConfigPage({
                 .filter((p) => p.locationId === l.id)
                 .map((p) => (
                   <span key={p.id} className={`flex items-center gap-1 text-xs border border-slate-200 rounded-full pl-2 pr-1 py-0.5 ${!p.active ? "opacity-50" : ""}`}>
-                    <form action={updateProduct.bind(null, p.id)} className="flex items-center gap-1">
-                      <input name="name" defaultValue={p.name} className="w-24 border-0 bg-transparent focus:outline-none" />
+                    <form action={updateProduct.bind(null, p.id)} className="flex flex-wrap items-center gap-1">
+                      <input name="name" defaultValue={p.name} className="tap-sm w-24 border-0 bg-transparent py-2 focus:outline-none" />
                       <button className="text-slate-400 hover:text-blue-600" title="Guardar nombre">✎</button>
                     </form>
                     <form action={toggleProduct.bind(null, p.id)}>
@@ -159,14 +159,14 @@ export default async function ConfigPage({
                     </form>
                   </span>
                 ))}
-              <form action={createProduct} className="flex items-center gap-1 text-xs">
+              <form action={createProduct} className="flex flex-wrap items-center gap-1 text-xs">
                 <input type="hidden" name="locationId" value={l.id} />
-                <input name="name" placeholder="nuevo producto…" className={`${input} w-32`} />
+                <input name="name" placeholder="nuevo producto…" className={`${input} w-full md:w-32`} />
                 <select name="kind" className={input}>
                   <option value="tour">tour</option>
                   <option value="private">privada</option>
                 </select>
-                <button className="px-2 py-1 rounded bg-blue-600 text-white">añadir</button>
+                <button className="tap-sm px-3 py-1.5 rounded-lg bg-blue-600 text-white">añadir</button>
               </form>
             </div>
 
@@ -179,17 +179,17 @@ export default async function ConfigPage({
                   .map((s) => (
                     <tr key={s.id} className={`border-t border-slate-100 ${!s.active ? "opacity-50" : ""}`}>
                       <td className="py-1" colSpan={2}>
-                        <form action={updateTimeSlot.bind(null, s.id)} className="flex items-center gap-2">
+                        <form action={updateTimeSlot.bind(null, s.id)} className="flex flex-wrap items-center gap-2">
                           <input name="startTime" defaultValue={s.startTime.slice(0, 5)} className={`${input} w-20 font-mono`} />
                           <span className="text-slate-500">{s.productId ? productName(s.productId) : "todos"}</span>
                           <span className="text-xs text-slate-400">cupo</span>
                           <input name="defaultCapacity" type="number" min={1} defaultValue={s.defaultCapacity} className={`${input} w-16`} />
-                          <button className="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-100">guardar</button>
+                          <button className="tap-sm text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 active:bg-slate-100">guardar</button>
                         </form>
                       </td>
                       <td className="py-1 text-right">
                         <form action={toggleTimeSlot.bind(null, s.id)}>
-                          <button className="text-xs px-2 py-1 rounded border border-slate-300 text-slate-500 hover:bg-slate-100">
+                          <button className="tap-sm text-xs px-2.5 py-1.5 rounded-lg border border-slate-300 text-slate-500 active:bg-slate-100">
                             {s.active ? "desactivar" : "activar"}
                           </button>
                         </form>
@@ -198,7 +198,7 @@ export default async function ConfigPage({
                   ))}
                 <tr className="border-t border-slate-100">
                   <td className="py-1.5" colSpan={3}>
-                    <form action={createTimeSlot} className="flex items-center gap-2 text-sm">
+                    <form action={createTimeSlot} className="flex flex-wrap items-center gap-2 text-sm">
                       <input name="startTime" placeholder="09:00" className={`${input} w-20 font-mono`} required />
                       <select name="productId" className={input} required>
                         {products
@@ -209,7 +209,7 @@ export default async function ConfigPage({
                       </select>
                       <span className="text-xs text-slate-400">cupo</span>
                       <input name="defaultCapacity" type="number" min={1} defaultValue={12} className={`${input} w-16`} />
-                      <button className="px-2 py-1 rounded bg-blue-600 text-white text-xs font-semibold">+ añadir salida</button>
+                      <button className="tap-sm px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold">+ añadir salida</button>
                     </form>
                   </td>
                 </tr>
@@ -218,9 +218,9 @@ export default async function ConfigPage({
           </div>
         ))}
 
-        <form action={createLocation} className="flex items-center gap-2">
+        <form action={createLocation} className="flex flex-wrap items-center gap-2">
           <input name="name" placeholder="Nueva playa…" className={`${input} w-64`} required />
-          <button className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
+          <button className="tap inline-flex items-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white active:bg-blue-700">
             + Añadir playa
           </button>
         </form>
@@ -242,7 +242,7 @@ export default async function ConfigPage({
             Longitud
             <input name="lng" defaultValue={coords?.lng ?? ""} placeholder="3.189" required className={`${input} block w-28`} />
           </label>
-          <button className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
+          <button className="tap inline-flex items-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white active:bg-blue-700">
             Guardar
           </button>
           {coords && <span className="text-xs text-emerald-600">✓ configurado</span>}
@@ -311,7 +311,7 @@ export default async function ConfigPage({
             </select>
           </label>
           <input type="hidden" name="matchType" value="contains" />
-          <button className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
+          <button className="tap inline-flex items-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white active:bg-blue-700">
             Añadir regla
           </button>
         </form>

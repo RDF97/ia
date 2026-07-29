@@ -23,24 +23,24 @@ export default async function SemanaPage({
   return (
     <div className="space-y-4">
       <header className="flex flex-wrap items-center gap-3">
-        <h1 className="text-xl font-bold">
+        <h1 className="text-2xl font-bold md:text-xl">
           Semana del {monday.slice(8, 10)}/{monday.slice(5, 7)} al {week.days[6].slice(8, 10)}/{week.days[6].slice(5, 7)}
         </h1>
-        <div className="no-print flex items-center gap-1 text-sm">
-          <Link href={`/semana/${shiftDate(monday, -7)}`} className="px-2 py-1 rounded bg-white border border-slate-300 hover:bg-slate-100">← anterior</Link>
-          <Link href={`/semana/${today}`} className="px-2 py-1 rounded bg-white border border-slate-300 hover:bg-slate-100">esta semana</Link>
-          <Link href={`/semana/${shiftDate(monday, 7)}`} className="px-2 py-1 rounded bg-white border border-slate-300 hover:bg-slate-100">siguiente →</Link>
+        <div className="no-print flex w-full items-center gap-2 text-sm md:w-auto">
+          <Link href={`/semana/${shiftDate(monday, -7)}`} className="tap inline-flex flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2.5 active:bg-slate-100 md:flex-none">← anterior</Link>
+          <Link href={`/semana/${today}`} className="tap inline-flex flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2.5 active:bg-slate-100 md:flex-none">esta semana</Link>
+          <Link href={`/semana/${shiftDate(monday, 7)}`} className="tap inline-flex flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2.5 active:bg-slate-100 md:flex-none">siguiente →</Link>
         </div>
       </header>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto print-block">
-        <table className="w-full text-sm">
+      <div className="momentum print-block overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+        <table className="w-full min-w-[560px] text-sm md:min-w-0">
           <thead>
             <tr className="text-xs text-slate-400">
               <th className="px-3 py-2 text-left">Salida</th>
               {week.days.map((day, i) => (
                 <th key={day} className={`px-2 py-2 text-center ${day === today ? "text-blue-700" : ""}`}>
-                  <Link href={`/cuadro/${day}`} className="hover:underline">
+                  <Link href={`/cuadro/${day}`} className="tap-sm flex flex-col justify-center py-1 active:underline">
                     <span className="block font-semibold">{DAY_NAMES[i]}</span>
                     <span>{day.slice(8, 10)}/{day.slice(5, 7)}</span>
                   </Link>
@@ -69,7 +69,7 @@ export default async function SemanaPage({
                     <td key={day} className="px-1 py-1 text-center">
                       <Link
                         href={`/cuadro/${day}`}
-                        className={`block rounded-lg px-1 py-1.5 hover:ring-2 hover:ring-blue-300 ${cls}`}
+                        className={`flex min-h-[40px] flex-col items-center justify-center rounded-lg px-1 py-2 active:ring-2 active:ring-blue-300 ${cls}`}
                         title={`${row.startTime} ${row.productName} · ${cell.paxTotal}/${cell.capacity}${cell.isDouble ? " · doble salida" : ""}`}
                       >
                         {cell.paxTotal}/{cell.capacity}

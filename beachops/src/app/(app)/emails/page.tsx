@@ -129,7 +129,45 @@ export default async function EmailsPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+      {/* Móvil: lista tocable; cada email abre su detalle */}
+      <ul className="space-y-2 md:hidden">
+        {rows.map((r) => {
+          const s =
+            r.detectedKind === "message"
+              ? { text: "💬 mensaje", cls: "bg-sky-100 text-sky-700" }
+              : STATUS[r.parseStatus] ?? STATUS.pending;
+          return (
+            <li key={r.id} className="rounded-xl border border-slate-200 bg-white">
+              <Link href={`/emails/${r.id}`} className="tap block p-3">
+                <span className="flex items-start gap-2">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[15px] font-medium">
+                      {r.subject ?? "(sin asunto)"}
+                    </span>
+                    <span className="mt-0.5 block truncate text-xs text-slate-500">
+                      {r.fromAddress}
+                    </span>
+                    <span className="mt-0.5 block text-[11px] text-slate-400">
+                      {r.receivedAt ? new Date(r.receivedAt).toLocaleString("es-ES") : "—"}
+                    </span>
+                  </span>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${s.cls}`}>
+                    {s.text}
+                  </span>
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+        {rows.length === 0 && (
+          <li className="rounded-xl border border-slate-200 bg-white p-6 text-center text-slate-400">
+            Sin emails todavía. Conecta tu Gmail en Configuración.
+          </li>
+        )}
+      </ul>
+
+      {/* Escritorio: tabla completa */}
+      <div className="momentum hidden overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm md:block">
         <table className="w-full text-sm">
           <thead className="text-xs text-slate-400 text-left">
             <tr>
