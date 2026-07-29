@@ -15,8 +15,11 @@ import { Booking } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
 import { flagEmoji, formatDateEs, formatEuro, shiftDate } from "@/lib/format";
 import { getDayWeather, orgCoords, HourWeather } from "@/server/weather";
+import { SubmitButton } from "@/components/submit-button";
 import { AutoRefresh } from "./auto-refresh";
 import { PrintButton } from "./print-button";
+import { PdfButton } from "./pdf-button";
+import { BookingEmailLink } from "./booking-email";
 import { BoardChart } from "./chart";
 
 export const dynamic = "force-dynamic";
@@ -126,12 +129,7 @@ export default async function CuadroPage({
           >
             + Reserva
           </Link>
-          <a
-            href={`/cuadro/${date}/pdf`}
-            className="px-3 py-1.5 rounded-lg bg-slate-800 text-white text-sm font-semibold hover:bg-slate-900"
-          >
-            ⬇ PDF
-          </a>
+          <PdfButton date={date} />
           <PrintButton />
         </div>
       </header>
@@ -197,7 +195,9 @@ export default async function CuadroPage({
                             className="w-16 rounded border border-slate-300 px-1 py-0.5 text-xs"
                           />
                         )}
-                        <button className="text-xs px-2 py-0.5 rounded bg-emerald-600 text-white">confirmar</button>
+                        <SubmitButton className="text-xs px-2 py-0.5 rounded bg-emerald-600 text-white" pendingLabel="…" doneLabel="✓">
+                          confirmar
+                        </SubmitButton>
                       </form>
                     )}
                   </td>
@@ -370,9 +370,14 @@ function SlotCard({ g, date }: { g: BoardSlotGroup; date: string }) {
             }
             className="no-print"
           >
-            <button className="text-xs px-2 py-1 rounded border border-slate-300 text-slate-500 hover:bg-slate-100" title="Duplicar cupo (doble salida)">
+            <SubmitButton
+              className="text-xs px-2 py-1 rounded border border-slate-300 text-slate-500 hover:bg-slate-100"
+              pendingLabel="…"
+              doneLabel="✓"
+              title="Duplicar cupo (doble salida)"
+            >
               {g.isDouble ? "quitar doble" : "doble salida"}
-            </button>
+            </SubmitButton>
           </form>
         </div>
       </div>
@@ -420,7 +425,7 @@ function BookingRow({ b, date }: { b: Booking; date: string }) {
     <tr className="border-b border-slate-50 last:border-0">
       <td className="px-3 py-1.5 font-bold w-10 tabular-nums">{b.paxAdults + b.paxChildren}</td>
       <td className="px-2 py-1.5">
-        {b.customerName ?? "—"}
+        <BookingEmailLink bookingId={b.id} label={b.customerName ?? "(sin nombre)"} />
         {b.paxChildren > 0 && (
           <span className="text-xs font-semibold" style={{ color: CHILD_COLOR }}>
             {" "}· {b.paxChildren} niño{b.paxChildren > 1 ? "s" : ""}
@@ -501,7 +506,7 @@ function BookingCells({ b, date }: { b: Booking; date: string }) {
   return (
     <>
       <span className="font-bold">{b.paxAdults + b.paxChildren}</span>
-      <span>{b.customerName ?? "—"}</span>
+      <BookingEmailLink bookingId={b.id} label={b.customerName ?? "(ver email)"} />
       <span className="text-slate-400">{b.activityTime?.slice(0, 5) ?? date}</span>
       <span className="text-xs text-slate-400 font-mono">{b.externalRef}</span>
       <span className="text-xs text-slate-500 max-w-60 truncate">{b.rawProductName}</span>
@@ -519,7 +524,9 @@ function SlotSelect({ slots, date }: { slots: { id: string; label: string }[]; d
           <option key={s.id} value={s.id}>{s.label}</option>
         ))}
       </select>
-      <button className="text-xs px-2 py-0.5 rounded bg-blue-600 text-white">asignar</button>
+      <SubmitButton className="text-xs px-2 py-0.5 rounded bg-blue-600 text-white" pendingLabel="…" doneLabel="✓">
+        asignar
+      </SubmitButton>
     </>
   );
 }

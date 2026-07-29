@@ -10,6 +10,7 @@ import {
 } from "@/server/actions";
 import { requireSession } from "@/server/auth";
 import { getDb, schema } from "@/server/db";
+import { SubmitButton } from "@/components/submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -50,14 +51,21 @@ export default async function EmailsPage() {
         <h1 className="text-xl font-bold">Emails de reservas</h1>
         <div className="ml-auto flex gap-2">
           <form action={reprocessAllBookings}>
-            <button className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700" title="Vuelve a aplicar el mapeo a todas las reservas (mueve Es Pontàs a Cala Santanyí, etc.)">
+            <SubmitButton
+              className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700"
+              pendingLabel="Reprocesando reservas…"
+              title="Vuelve a aplicar el mapeo y los parsers a todas las reservas (playa, nombre, teléfono…)"
+            >
               ↻ Reprocesar reservas
-            </button>
+            </SubmitButton>
           </form>
           <form action={syncNow}>
-            <button className="px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-sm hover:bg-slate-100">
+            <SubmitButton
+              className="px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-sm hover:bg-slate-100"
+              pendingLabel="Sincronizando…"
+            >
               ↻ Sincronizar ahora
-            </button>
+            </SubmitButton>
           </form>
         </div>
       </header>
@@ -70,14 +78,20 @@ export default async function EmailsPage() {
             </span>
             <div className="ml-auto flex gap-2">
               <form action={retryAllFailed}>
-                <button className="px-3 py-1 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700">
+                <SubmitButton
+                  className="px-3 py-1 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700"
+                  pendingLabel="Reintentando…"
+                >
                   ↻ Reintentar todos
-                </button>
+                </SubmitButton>
               </form>
               <form action={ignoreAllFailed}>
-                <button className="px-3 py-1 rounded-lg bg-white border border-red-300 text-red-600 text-xs font-semibold hover:bg-red-100">
+                <SubmitButton
+                  className="px-3 py-1 rounded-lg bg-white border border-red-300 text-red-600 text-xs font-semibold hover:bg-red-100"
+                  pendingLabel="Ignorando…"
+                >
                   Ignorar todos
-                </button>
+                </SubmitButton>
               </form>
             </div>
           </div>
@@ -97,10 +111,14 @@ export default async function EmailsPage() {
                   <td className="py-1.5 whitespace-nowrap text-right">
                     <span className="flex gap-1 justify-end">
                       <form action={reprocessEmail.bind(null, r.id)}>
-                        <button className="text-xs px-2 py-0.5 rounded border border-slate-300 hover:bg-white">reintentar</button>
+                        <SubmitButton className="text-xs px-2 py-0.5 rounded border border-slate-300 hover:bg-white" pendingLabel="…" doneLabel="✓">
+                          reintentar
+                        </SubmitButton>
                       </form>
                       <form action={ignoreEmail.bind(null, r.id)}>
-                        <button className="text-xs px-2 py-0.5 rounded border border-slate-300 text-slate-400 hover:bg-white">ignorar</button>
+                        <SubmitButton className="text-xs px-2 py-0.5 rounded border border-slate-300 text-slate-400 hover:bg-white" pendingLabel="…" doneLabel="✓">
+                          ignorar
+                        </SubmitButton>
                       </form>
                     </span>
                   </td>
@@ -150,10 +168,14 @@ export default async function EmailsPage() {
                     {r.parseStatus === "failed" && (
                       <span className="flex gap-1">
                         <form action={reprocessEmail.bind(null, r.id)}>
-                          <button className="text-xs px-2 py-0.5 rounded border border-slate-300 hover:bg-slate-100">reintentar</button>
+                          <SubmitButton className="text-xs px-2 py-0.5 rounded border border-slate-300 hover:bg-slate-100" pendingLabel="…" doneLabel="✓">
+                            reintentar
+                          </SubmitButton>
                         </form>
                         <form action={ignoreEmail.bind(null, r.id)}>
-                          <button className="text-xs px-2 py-0.5 rounded border border-slate-300 text-slate-400 hover:bg-slate-100">ignorar</button>
+                          <SubmitButton className="text-xs px-2 py-0.5 rounded border border-slate-300 text-slate-400 hover:bg-slate-100" pendingLabel="…" doneLabel="✓">
+                            ignorar
+                          </SubmitButton>
                         </form>
                       </span>
                     )}
