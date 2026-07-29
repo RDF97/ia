@@ -19,6 +19,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { AutoRefresh } from "./auto-refresh";
 import { PrintButton } from "./print-button";
 import { PdfButton } from "./pdf-button";
+import { BookingEmailLink } from "./booking-email";
 import { BoardChart } from "./chart";
 
 export const dynamic = "force-dynamic";
@@ -424,7 +425,7 @@ function BookingRow({ b, date }: { b: Booking; date: string }) {
     <tr className="border-b border-slate-50 last:border-0">
       <td className="px-3 py-1.5 font-bold w-10 tabular-nums">{b.paxAdults + b.paxChildren}</td>
       <td className="px-2 py-1.5">
-        {b.customerName ?? "—"}
+        <BookingEmailLink bookingId={b.id} label={b.customerName ?? "(sin nombre)"} />
         {b.paxChildren > 0 && (
           <span className="text-xs font-semibold" style={{ color: CHILD_COLOR }}>
             {" "}· {b.paxChildren} niño{b.paxChildren > 1 ? "s" : ""}
@@ -505,7 +506,7 @@ function BookingCells({ b, date }: { b: Booking; date: string }) {
   return (
     <>
       <span className="font-bold">{b.paxAdults + b.paxChildren}</span>
-      <span>{b.customerName ?? "—"}</span>
+      <BookingEmailLink bookingId={b.id} label={b.customerName ?? "(ver email)"} />
       <span className="text-slate-400">{b.activityTime?.slice(0, 5) ?? date}</span>
       <span className="text-xs text-slate-400 font-mono">{b.externalRef}</span>
       <span className="text-xs text-slate-500 max-w-60 truncate">{b.rawProductName}</span>
