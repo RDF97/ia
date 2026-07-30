@@ -108,6 +108,26 @@ const CHANNEL_BADGES: Record<string, Badge> = {
 export const MONITOR_BADGE: Badge = { label: "⚓ monitor aparte", bg: "#EDE9FE", fg: "#4C1D95" };
 
 /**
+ * Color de identidad de cada playa, para distinguirlas de un vistazo en el móvil.
+ * NO se mezcla con los colores de cupo del instructivo (verde/ámbar/rojo): esos
+ * siguen significando ocupación. La paleta se asigna por orden de la playa, así
+ * que una playa nueva recibe su color sin tocar código.
+ */
+const BEACH_PALETTE = [
+  { bg: "#E8F0FE", fg: "#1A4FBF", accent: "#2563EB" }, // azul
+  { bg: "#E7F5EC", fg: "#1B6B3A", accent: "#15803D" }, // verde mar
+  { bg: "#FDF0E3", fg: "#9A5B14", accent: "#C2740F" }, // arena
+  { bg: "#F3E9FB", fg: "#6B21A8", accent: "#7E22CE" }, // morado
+  { bg: "#E5F6F8", fg: "#0E6E7A", accent: "#0E7490" }, // turquesa
+] as const;
+
+export type BeachColor = { bg: string; fg: string; accent: string };
+
+export function beachColor(index: number): BeachColor {
+  return BEACH_PALETTE[index % BEACH_PALETTE.length];
+}
+
+/**
  * Badge de un canal. Mapea la fuente/canal libre de la reserva a su color fijo;
  * si es un canal desconocido devuelve un badge neutro con el texto original.
  */

@@ -7,7 +7,7 @@ import { createSessionCookie, destroySession, requireSession } from "./auth";
 import { verifyPassword } from "./crypto";
 import { getDb, schema } from "./db";
 import { syncAllAccounts } from "./gmail/sync";
-import { ensureDeparture, processRawEmail } from "./ingest/process";
+import { ensureAdHocDeparture, ensureDeparture, processRawEmail } from "./ingest/process";
 import { computeCashAmount } from "./board/rules";
 import { parsePhone } from "./parsers/phone";
 
@@ -100,29 +100,97 @@ export async function cancelBooking(bookingId: string, date: string) {
   revalidatePath(`/cuadro/${date}`);
 }
 
-/** Asigna manualmente una reserva sin franja (pending_review) a una salida. */
+/**
+ * Asigna manualmente una reserva sin franja. Acepta dos formas:
+ *  - `timeSlotId`: una franja de la plantilla.
+ *  - `manualTime` (HH:MM, en pasos de 30 min) + `locationId`: crea (o reutiliza)
+ *    una salida a esa hora, para las reservas que llegan a horas que no están en
+ *    la plantilla.
+ * Además admite una nota del equipo en el mismo paso.
+ */
 export async function assignBooking(bookingId: string, formData: FormData) {
   const session = await requireSession();
   const db = await getDb();
-  const timeSlotId = String(formData.get("timeSlotId"));
   const date = String(formData.get("date"));
-  const departureId = await ensureDeparture(session.orgId, timeSlotId, date);
-  const [slot] = await db
+  const timeSlotId = String(formData.get("timeSlotId") ?? "");
+  const manualTime = String(formData.get("manualTime") ?? "").trim();
+  const note = String(formData.get("staffNotes") ?? "").trim();
+
+  const [booking] = await db
     .select()
-    .from(schema.timeSlots)
-    .where(eq(schema.timeSlots.id, timeSlotId));
+    .from(schema.bookings)
+    .where(and(eq(schema.bookings.id, bookingId), eq(schema.bookings.orgId, session.orgId)));
+  if (!booking) return;
+
+  let departureId: string | null = null;
+  let productId = booking.productId;
+  let locationId = booking.locationId;
+
+  if (timeSlotId) {
+    departureId = await ensureDeparture(session.orgId, timeSlotId, date);
+    const [slot] = await db
+      .select()
+      .from(schema.timeSlots)
+      .where(eq(schema.timeSlots.id, timeSlotId));
+    productId = slot.productId;
+    locationId = slot.locationId;
+  } else if (/^\d{2}:\d{2}$/.test(manualTime)) {
+    // Hora escrita a mano: se crea una salida propia a esa hora.
+    const slots = await db
+      .select()
+      .from(schema.timeSlots)
+      .where(eq(schema.timeSlots.orgId, session.orgId));
+    const chosenLocation = String(formData.get("locationId") ?? "") || locationId;
+    if (!chosenLocation) return;
+    // Producto: el que ya tenía o el primero activo de esa playa.
+    if (!productId) {
+      const products = await db
+        .select()
+        .from(schema.products)
+        .where(and(eq(schema.products.orgId, session.orgId), eq(schema.products.locationId, chosenLocation)));
+      productId = products.find((p) => p.active)?.id ?? products[0]?.id ?? null;
+    }
+    if (!productId) return;
+    const adHoc = await ensureAdHocDeparture(
+      session.orgId,
+      date,
+      manualTime,
+      productId,
+      chosenLocation,
+      slots,
+    );
+    departureId = adHoc.id;
+    locationId = chosenLocation;
+  } else {
+    return; // ni franja ni hora válida: no se toca la reserva
+  }
+
   await db
     .update(schema.bookings)
     .set({
       departureId,
       status: "confirmed",
-      productId: slot.productId,
-      locationId: slot.locationId,
+      productId,
+      locationId,
+      activityTime: manualTime ? `${manualTime}:00` : booking.activityTime,
+      ...(note ? { staffNotes: note } : {}),
       updatedAt: new Date(),
     })
     .where(
       and(eq(schema.bookings.id, bookingId), eq(schema.bookings.orgId, session.orgId)),
     );
+  revalidatePath(`/cuadro/${date}`);
+}
+
+/** Guarda (o borra) la nota del equipo en una reserva. */
+export async function updateBookingNotes(bookingId: string, date: string, formData: FormData) {
+  const session = await requireSession();
+  const db = await getDb();
+  const note = String(formData.get("staffNotes") ?? "").trim();
+  await db
+    .update(schema.bookings)
+    .set({ staffNotes: note || null, updatedAt: new Date() })
+    .where(and(eq(schema.bookings.id, bookingId), eq(schema.bookings.orgId, session.orgId)));
   revalidatePath(`/cuadro/${date}`);
 }
 

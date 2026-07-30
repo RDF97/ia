@@ -3,7 +3,9 @@ import { getDb, schema } from "../db";
 import { Booking, CashEntry } from "../db/schema";
 import {
   Badge,
+  BeachColor,
   ColorLevel,
+  beachColor,
   capacityHex,
   capacityLevel,
   channelBadge,
@@ -46,6 +48,11 @@ export type BoardLocation = {
   sortOrder: number;
   /** Playa principal: se muestra aunque no tenga reservas ese día. */
   isDefault: boolean;
+  /** Color de identidad de la playa (no confundir con el color de cupo). */
+  color: BeachColor;
+  /** Franjas con reservas y franjas vacías (estas se ocultan por defecto). */
+  activeGroups: BoardSlotGroup[];
+  emptyGroups: BoardSlotGroup[];
 };
 
 export type ChartBar = { hora: string; pax: number; hex: string };
@@ -233,14 +240,25 @@ export async function getBoard(orgId: string, date: string): Promise<Board> {
       const allGroups = [...groups, ...adHocGroups].sort((a, b) =>
         a.startTime.localeCompare(b.startTime),
       );
+      // Franja "vacía" = sin reservas. Las salidas ad-hoc y las que tienen doble
+      // salida activada NO se consideran vacías: alguien las creó a propósito.
+      const activeGroups = allGroups.filter(
+        (g) => g.paxTotal > 0 || g.isAdHoc || g.isDouble,
+      );
+      const emptyGroups = allGroups.filter(
+        (g) => !(g.paxTotal > 0 || g.isAdHoc || g.isDouble),
+      );
       return {
         locationId: loc.id,
         name: loc.name,
         groups: allGroups,
+        activeGroups,
+        emptyGroups,
         paxTotal: allGroups.reduce((n, g) => n + g.paxTotal, 0),
         isSantanyi: isSantanyiRule(loc.name),
         sortOrder: loc.sortOrder,
         isDefault: false, // se calcula abajo
+        color: beachColor(0), // se asigna abajo, según el orden final
       };
     })
     // Cala Santanyí primero (instructivo §4); el resto por su orden configurado.
@@ -250,6 +268,10 @@ export async function getBoard(orgId: string, date: string): Promise<Board> {
   // no tenga reservas, para que el cuadro nunca salga vacío.
   const mainLocation = boardLocations.filter((l) => !l.isSantanyi)[0];
   if (mainLocation) mainLocation.isDefault = true;
+  // Color de identidad por posición, estable dentro del día.
+  boardLocations.forEach((l, i) => {
+    l.color = beachColor(i);
+  });
 
   const assignedIds = new Set(
     boardLocations.flatMap((l) => l.groups.flatMap((g) => g.bookings.map((b) => b.id))),
