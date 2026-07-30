@@ -203,7 +203,13 @@ export const bookings = pgTable(
     cashAmount: numeric("cash_amount", { precision: 10, scale: 2 }),
     cashConfirmed: boolean("cash_confirmed").notNull().default(false),
     pickupHotel: text("pickup_hotel"),
+    /** Notas que vienen del email (Bókun las trae): las sobrescribe la ingesta. */
     notes: text("notes"),
+    /**
+     * Notas escritas por el equipo. Van en columna aparte a propósito: reprocesar
+     * el email NUNCA debe borrar lo que ha anotado un monitor a mano.
+     */
+    staffNotes: text("staff_notes"),
     sourceEmailId: uuid("source_email_id").references(() => rawEmails.id),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

@@ -4,6 +4,7 @@ import {
   assignBooking,
   cancelBooking,
   confirmCashEntry,
+  updateBookingNotes,
   toggleDoubleAdHoc,
   toggleDoubleDeparture,
 } from "@/server/actions";
@@ -42,6 +43,12 @@ export default async function CuadroPage({
     .select()
     .from(schema.products)
     .where(eq(schema.products.orgId, session.orgId));
+  // Playas activas: para poder asignar a mano una hora en la playa que toque.
+  const locations = (
+    await db.select().from(schema.locations).where(eq(schema.locations.orgId, session.orgId))
+  )
+    .filter((l) => l.active)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
   const productName = (id: string | null) =>
     products.find((p) => p.id === id)?.name ?? "—";
 
@@ -264,9 +271,10 @@ export default async function CuadroPage({
           {board.unassigned.map((b) => (
             <div key={b.id} className="flex flex-wrap items-center gap-2 text-sm bg-white rounded-lg p-2">
               <BookingCells b={b} date={date} />
-              <form action={assignBooking.bind(null, b.id)} className="no-print flex items-center gap-1 ml-auto">
+              <form action={assignBooking.bind(null, b.id)} className="no-print w-full">
                 <SlotSelect
-                  slots={slots.map((s) => ({ id: s.id, label: `${s.startTime.slice(0, 5)} ${productName(s.productId)}` }))}
+                  slots={slots.map((s) => ({ id: s.id, label: `${s.startTime.slice(0, 5)} · ${productName(s.productId)}` }))}
+                  locations={locations.map((l) => ({ id: l.id, name: l.name }))}
                   date={date}
                 />
               </form>
@@ -284,9 +292,10 @@ export default async function CuadroPage({
           {board.pendingNoTime.map((b) => (
             <div key={b.id} className="flex flex-wrap items-center gap-2 text-sm bg-white rounded-lg p-2">
               <BookingCells b={b} date={date} />
-              <form action={assignBooking.bind(null, b.id)} className="no-print flex items-center gap-1 ml-auto">
+              <form action={assignBooking.bind(null, b.id)} className="no-print w-full">
                 <SlotSelect
-                  slots={slots.map((s) => ({ id: s.id, label: `${s.startTime.slice(0, 5)} ${productName(s.productId)}` }))}
+                  slots={slots.map((s) => ({ id: s.id, label: `${s.startTime.slice(0, 5)} · ${productName(s.productId)}` }))}
+                  locations={locations.map((l) => ({ id: l.id, name: l.name }))}
                   date={date}
                 />
               </form>
@@ -301,13 +310,49 @@ export default async function CuadroPage({
         // siempre, aunque esté vacía.
         .filter((loc) => loc.paxTotal > 0 || loc.isDefault)
         .map((loc) => (
-          <section key={loc.locationId} className="order-6 space-y-3 md:order-none">
-            <h2 className="text-xs font-bold tracking-widest text-slate-400 uppercase">
-              📍 {loc.name} · {loc.paxTotal} pax{loc.isSantanyi ? " · monitor aparte" : ""}
-            </h2>
-            {loc.groups.map((g) => (
-              <SlotCard key={g.timeSlotId ?? g.departureId} g={g} date={date} />
+          <section key={loc.locationId} className="order-6 space-y-2.5 md:order-none">
+            {/* Cabecera de playa con su color: separa de un vistazo cada playa */}
+            <div
+              className="flex items-center gap-2 rounded-xl px-3 py-2"
+              style={{
+                background: loc.color.bg,
+                color: loc.color.fg,
+                borderLeft: `5px solid ${loc.color.accent}`,
+              }}
+            >
+              <h2 className="text-base font-bold leading-tight">📍 {loc.name}</h2>
+              <span className="ml-auto whitespace-nowrap text-sm font-semibold">
+                {loc.paxTotal} pax
+              </span>
+            </div>
+            {loc.isSantanyi && loc.paxTotal > 0 && (
+              <p className="px-1 text-xs font-semibold" style={{ color: loc.color.fg }}>
+                ⚓ Monitor independiente
+              </p>
+            )}
+
+            {/* Solo las franjas con reservas: el cuadro se lee de un tirón */}
+            {loc.activeGroups.map((g) => (
+              <SlotCard key={g.timeSlotId ?? g.departureId} g={g} date={date} accent={loc.color.accent} />
             ))}
+            {loc.activeGroups.length === 0 && (
+              <p className="px-1 text-sm text-slate-400">Sin reservas en esta playa</p>
+            )}
+
+            {/* Las vacías quedan a un toque, sin ocupar sitio */}
+            {loc.emptyGroups.length > 0 && (
+              <details className="no-print group">
+                <summary className="tap-sm inline-flex cursor-pointer list-none items-center gap-1.5 rounded-lg px-1 text-xs font-medium text-slate-500 active:text-slate-800">
+                  <span className="transition-transform group-open:rotate-90">▸</span>
+                  {loc.emptyGroups.length} franja{loc.emptyGroups.length > 1 ? "s" : ""} sin reservas
+                </summary>
+                <div className="mt-2 space-y-2">
+                  {loc.emptyGroups.map((g) => (
+                    <SlotCard key={g.timeSlotId ?? g.departureId} g={g} date={date} accent={loc.color.accent} />
+                  ))}
+                </div>
+              </details>
+            )}
           </section>
         ))}
 
@@ -379,9 +424,13 @@ export default async function CuadroPage({
 
 // ── Tarjeta de franja ──────────────────────────────────────────────────
 
-function SlotCard({ g, date }: { g: BoardSlotGroup; date: string }) {
+function SlotCard({ g, date, accent }: { g: BoardSlotGroup; date: string; accent?: string }) {
   return (
-    <div className="slot-card overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div
+      className="slot-card overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+      // Filo del color de la playa: ata la tarjeta a su sección de un vistazo
+      style={accent ? { borderLeft: `5px solid ${accent}` } : undefined}
+    >
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 px-3 py-2.5 border-b border-slate-100">
         {/* La hora es lo que más se busca de un vistazo: tamaño grande */}
         <span className="text-2xl font-bold leading-none tabular-nums">{g.startTime}</span>
@@ -497,6 +546,31 @@ function BookingRow({ b, date }: { b: Booking; date: string }) {
           {b.pickupHotel && <span>Hotel {b.pickupHotel}</span>}
           <span className="font-mono text-[11px] text-slate-400">{b.externalRef ?? b.channel}</span>
         </div>
+        {/* Nota del equipo: se ve siempre, es lo que el monitor necesita leer */}
+        {b.staffNotes && (
+          <p className="mt-1 rounded-lg bg-amber-50 px-2 py-1 text-xs text-amber-900">
+            📝 {b.staffNotes}
+          </p>
+        )}
+        <details className="no-print mt-1">
+          <summary className="tap-sm inline-flex cursor-pointer list-none text-[11px] text-slate-400 active:text-slate-700">
+            {b.staffNotes ? "editar nota" : "+ nota"}
+          </summary>
+          <form
+            action={updateBookingNotes.bind(null, b.id, date)}
+            className="mt-1 flex items-center gap-1"
+          >
+            <input
+              name="staffNotes"
+              defaultValue={b.staffNotes ?? ""}
+              placeholder="Ej.: lleva niño pequeño, recoger en hotel…"
+              className="min-w-0 flex-1 rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
+            />
+            <SubmitButton className="tap-sm rounded-lg bg-slate-700 px-2.5 py-1.5 text-xs text-white" pendingLabel="…" doneLabel="✓">
+              guardar
+            </SubmitButton>
+          </form>
+        </details>
       </div>
 
       <div className="flex shrink-0 items-center gap-1">
@@ -597,19 +671,65 @@ function BookingCells({ b, date }: { b: Booking; date: string }) {
   );
 }
 
-function SlotSelect({ slots, date }: { slots: { id: string; label: string }[]; date: string }) {
+/** Horas cada 30 minutos, para asignar una reserva a una hora que no está en la plantilla. */
+const HALF_HOURS = Array.from({ length: 27 }, (_, i) => {
+  const minutes = 8 * 60 + i * 30; // de 08:00 a 21:00
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${minutes % 60 === 0 ? "00" : "30"}`;
+});
+
+/**
+ * Asignación de una reserva sin franja: o una franja de la plantilla, o una hora
+ * a mano en pasos de 30 min (con su playa), más una nota opcional.
+ */
+function SlotSelect({
+  slots,
+  locations,
+  date,
+}: {
+  slots: { id: string; label: string }[];
+  locations: { id: string; name: string }[];
+  date: string;
+}) {
+  const field = "rounded-lg border border-slate-300 px-2 py-2 text-sm";
   return (
-    <>
+    <div className="w-full space-y-1.5">
       <input type="hidden" name="date" value={date} />
-      <select name="timeSlotId" className="rounded border border-slate-300 px-1 py-0.5 text-xs" required>
-        <option value="">franja…</option>
-        {slots.map((s) => (
-          <option key={s.id} value={s.id}>{s.label}</option>
-        ))}
-      </select>
-      <SubmitButton className="text-xs px-2 py-0.5 rounded bg-blue-600 text-white" pendingLabel="…" doneLabel="✓">
-        asignar
-      </SubmitButton>
-    </>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <select name="timeSlotId" className={`${field} min-w-0 flex-1`} defaultValue="">
+          <option value="">— franja de la plantilla —</option>
+          {slots.map((s) => (
+            <option key={s.id} value={s.id}>{s.label}</option>
+          ))}
+        </select>
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-xs text-slate-500">o a esta hora</span>
+        <select name="manualTime" className={field} defaultValue="">
+          <option value="">--:--</option>
+          {HALF_HOURS.map((h) => (
+            <option key={h} value={h}>{h}</option>
+          ))}
+        </select>
+        <select name="locationId" className={`${field} min-w-0 flex-1`} defaultValue={locations[0]?.id ?? ""}>
+          {locations.map((l) => (
+            <option key={l.id} value={l.id}>{l.name}</option>
+          ))}
+        </select>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <input
+          name="staffNotes"
+          placeholder="Nota (opcional)"
+          className={`${field} min-w-0 flex-1`}
+        />
+        <SubmitButton
+          className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white"
+          pendingLabel="…"
+          doneLabel="✓"
+        >
+          asignar
+        </SubmitButton>
+      </div>
+    </div>
   );
 }

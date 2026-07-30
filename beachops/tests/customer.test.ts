@@ -86,6 +86,88 @@ describe("datos del cliente en cualquier plantilla", () => {
   });
 });
 
+// Casos que fallaban en producción: el email SÍ traía el nombre pero el cuadro
+// salía con "(sin nombre)". Cada uno reproduce una plantilla real distinta.
+describe("el nombre no se pierde nunca (regresiones reales)", () => {
+  it("nombre pegado al correo relay de la plataforma", () => {
+    // Era la causa principal: el candidato contenía "getyourguide" y se
+    // descartaba por el propio filtro anti-plataforma.
+    const c = parse(
+      "<table><tr><td>Main customer</td><td>Ana Torres customer-abc@reply.getyourguide.com</td></tr></table>",
+    );
+    expect(c.name).toBe("Ana Torres");
+    expect(c.email).toBe("customer-abc@reply.getyourguide.com");
+  });
+
+  it("etiqueta en negrita y valor en la misma celda, sin dos puntos", () => {
+    expect(parse("<table><tr><td><strong>Customer</strong> John Rutter</td></tr></table>").name)
+      .toBe("John Rutter");
+  });
+
+  it("etiqueta en negrita con dos puntos", () => {
+    expect(parse("<table><tr><td><strong>Main customer:</strong> Eva Kanai</td></tr></table>").name)
+      .toBe("Eva Kanai");
+  });
+
+  it("lista de definición (dl/dt/dd)", () => {
+    expect(parse("<dl><dt>Customer name</dt><dd>Imke Mevissen</dd></dl>").name)
+      .toBe("Imke Mevissen");
+  });
+
+  it("sin ninguna etiqueta: se reconoce el nombre del encabezado", () => {
+    expect(parse("<h2>Romina Alladio</h2><p>2 x Adult</p>").name).toBe("Romina Alladio");
+  });
+
+  it("no confunde el producto ni el saludo con el cliente", () => {
+    expect(parse("<h1>Mallorca: Kayak &amp; Snorkel Tour</h1><p>Guest: Kaya Zom</p>").name)
+      .toBe("Kaya Zom");
+  });
+
+  it("tabla de datos con cabecera: no confunde la cabecera con el nombre", () => {
+    // Antes devolvía "Email" (nombre falso) al leer la fila de cabecera como par.
+    const c = parse(
+      "<table><tr><th>Name</th><th>Email</th></tr><tr><td>Ana Torres</td><td>ana@x.com</td></tr></table>",
+    );
+    expect(c.name).toBe("Ana Torres");
+  });
+
+  it("tabla sin cabecera: el nombre está en la primera columna", () => {
+    expect(parse("<table><tr><td>Ana Torres</td><td>ana@x.com</td></tr></table>").name)
+      .toBe("Ana Torres");
+  });
+
+  it("no toma una referencia ni un comentario como nombre", () => {
+    // "customer" casaba con "customer reference" y devolvía "ABC-99231".
+    expect(
+      parse(
+        "<table><tr><td>Customer reference</td><td>ABC-99231</td></tr><tr><td>Guest names</td><td>Jane Doe</td></tr></table>",
+      ).name,
+    ).toBe("Jane Doe");
+    expect(
+      parse(
+        "<table><tr><td>Customer comments</td><td>Please bring towels</td></tr><tr><td>Traveller name</td><td>Jane Doe</td></tr></table>",
+      ).name,
+    ).toBe("Jane Doe");
+  });
+
+  it("no rechaza apellidos que contienen palabras de plantilla", () => {
+    // "Lena Bookinger" y "Maria Reserva" se descartaban por contener
+    // "booking"/"reserva" como subcadena.
+    expect(parse("<p>Main customer: Lena Bookinger</p>").name).toBe("Lena Bookinger");
+    expect(parse("<p>Main customer: Maria Reserva</p>").name).toBe("Maria Reserva");
+    expect(parse("<p>Main customer: Hola Fernandez</p>").name).toBe("Hola Fernandez");
+  });
+
+  it("un email pobre sin cliente NO inventa un nombre", () => {
+    // "Date July" tiene dos palabras capitalizadas: sin la lista de palabras
+    // vetadas se colaba como nombre.
+    const c = parse(
+      "<h1>Hi SECRET POINT MALLORCA, S.L.U.,</h1><p>You've received a booking.</p><p>Date July 11, 2026</p>",
+    );
+    expect(c.name).toBeUndefined();
+  });
+});
+
 describe("el parser de GYG rellena cliente aunque cambie la plantilla", () => {
   it("email sin tabla de cliente: saca nombre, teléfono y país", () => {
     const parsed = gygParser.parse({

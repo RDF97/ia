@@ -9,18 +9,49 @@ export type LabeledFields = Map<string, string>;
 export function extractLabeledFields(html: string): LabeledFields {
   const $ = cheerio.load(html);
   const fields: LabeledFields = new Map();
+  const add = (label: string, value: string) => {
+    const key = normalize(label).replace(/[.:]+$/, "").toLowerCase();
+    if (key && value.trim() && !fields.has(key)) fields.set(key, value.trim());
+  };
+
+  // 1) Tabla clásica: etiqueta en la primera celda, valor en las siguientes.
   $("tr").each((_, tr) => {
     const cells = $(tr).children("td, th");
     if (cells.length < 2) return;
-    const label = normalize($(cells[0]).text()).replace(/[.:]+$/, "").toLowerCase();
-    const value = cells
-      .slice(1)
-      .map((_, c) => cellText($, c))
-      .get()
-      .join(" ")
-      .trim();
-    if (label && !fields.has(label)) fields.set(label, value);
+    // Una fila de solo <th> es la CABECERA de una tabla de datos, no un par
+    // etiqueta/valor: tomarla como par daba nombres falsos ("Name" → "Email").
+    if (cells.toArray().every((c) => "tagName" in c && c.tagName.toLowerCase() === "th")) return;
+    add(
+      $(cells[0]).text(),
+      cells.slice(1).map((_, c) => cellText($, c)).get().join(" "),
+    );
   });
+
+  // 2) Listas de definición <dl><dt>etiqueta</dt><dd>valor</dd>.
+  $("dt").each((_, dt) => {
+    const dd = $(dt).next("dd");
+    if (dd.length) add($(dt).text(), cellText($, dd[0]));
+  });
+
+  // 3) Etiqueta y valor en el MISMO bloque, marcada con negrita:
+  //    <td><strong>Main customer</strong> Ana Torres</td>
+  $("td, th, p, div, li").each((_, el) => {
+    const strong = $(el).children("strong, b").first();
+    if (!strong.length) return;
+    const label = strong.text();
+    const clone = $(el).clone();
+    clone.children("strong, b").first().remove();
+    const value = normalize(clone.text()).replace(/^[\s:·-]+/, "");
+    if (label && value) add(label, value);
+  });
+
+  // 4) "Etiqueta: valor" en una sola celda, sin negrita ni celdas separadas.
+  $("td, th, p, li").each((_, el) => {
+    if ($(el).children("td, th, table, strong, b").length) return;
+    const m = normalize($(el).text()).match(/^([\p{L} ./']{2,40}?)\s*:\s*(.+)$/u);
+    if (m) add(m[1], m[2]);
+  });
+
   return fields;
 }
 
