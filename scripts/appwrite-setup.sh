@@ -100,7 +100,10 @@ for C in tasks shopping_items expenses events products price_points categories s
   if ! printf '%s' "$BODY" | grep -q '"\$id"'; then
     echo "  ✗ $C  → NO EXISTE la colección"; ALL_OK=0; continue
   fi
-  PERM_OK=0; printf '%s' "$BODY" | grep -q 'create("users")' && PERM_OK=1
+  # OJO: Appwrite devuelve las comillas escapadas -> create(\"users\").
+  # Hay que quitar las barras antes de comparar, si no da un falso negativo.
+  PLAIN="$(printf '%s' "$BODY" | tr -d '\\')"
+  PERM_OK=0; printf '%s' "$PLAIN" | grep -q 'create("users")' && PERM_OK=1
   # atributos que no estén 'available'
   AT="$(curl -sS "$EP/databases/$DB/collections/$C/attributes" "${H[@]}" 2>/dev/null)"
   BAD="$(printf '%s' "$AT" | tr ',' '\n' | grep '"status"' | grep -cv 'available')"
@@ -108,7 +111,10 @@ for C in tasks shopping_items expenses events products price_points categories s
     echo "  ✓ $C"
   else
     ALL_OK=0
-    [ "$PERM_OK" = 1 ] || echo "  ✗ $C  → le falta el permiso create(\"users\")"
+    if [ "$PERM_OK" != 1 ]; then
+      echo "  ✗ $C  → le falta el permiso create(\"users\")"
+      echo "      permisos actuales: $(printf '%s' "$PLAIN" | sed -n 's/.*"$permissions":\[\([^]]*\)\].*/\1/p')"
+    fi
     [ "${BAD:-0}" = 0 ] || echo "  ✗ $C  → $BAD atributo(s) NO están 'available'"
   fi
 done
