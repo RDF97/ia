@@ -20,9 +20,29 @@ DB="${DB:-homie}"
 H=(-H "X-Appwrite-Project: $PID" -H "X-Appwrite-Key: $KEY" -H "Content-Type: application/json")
 
 post() { curl -sS -X POST "$EP$1" "${H[@]}" -d "$2"; echo; }
-coll() { post "/databases/$DB/collections" "{\"collectionId\":\"$1\",\"name\":\"$1\",\"documentSecurity\":true,\"permissions\":[\"create(\\\"users\\\")\"]}"; }
+put()  { curl -sS -X PUT  "$EP$1" "${H[@]}" -d "$2"; echo; }
 attr() { post "/databases/$DB/collections/$1/attributes/$2" "$3"; }   # coll type json
 idx()  { post "/databases/$DB/collections/$1/indexes" "$2"; }
+
+# Crea la colección y, EXISTA O NO, fuerza su configuración con un PUT.
+# Esto es lo importante: si la colección ya existía creada a mano (o con otros
+# permisos), el POST solo da "already exists" y los permisos se quedaban mal,
+# así que la app no podía insertar documentos. El PUT los deja siempre bien:
+# documentSecurity ON + permiso "create" para el rol users.
+CFG='"documentSecurity":true,"permissions":["create(\"users\")"]'
+coll() {
+  post "/databases/$DB/collections" "{\"collectionId\":\"$1\",\"name\":\"$1\",$CFG}" >/dev/null 2>&1
+  echo -n "  [$1] permisos: "
+  put "/databases/$DB/collections/$1" "{\"name\":\"$1\",$CFG}"
+}
+
+echo "== permisos de TODAS las colecciones (documentSecurity + create users) =="
+# Se aplica también a las que ya existían: si alguna se creó a mano sin el
+# permiso "create" para users, la app no puede añadir nada en ella (tareas,
+# eventos, productos...). Este PUT lo corrige.
+for C in tasks shopping_items expenses events products price_points categories settlements invites; do
+  coll "$C"
+done
 
 echo "== tasks (atributos nuevos) =="
 attr tasks string   '{"key":"assignedToName","size":255,"required":false}'
@@ -35,8 +55,6 @@ attr expenses string   '{"key":"account","size":20,"required":false,"default":"i
 attr expenses datetime '{"key":"spentAt","required":false}'
 
 echo "== events =="
-coll events
-sleep 1
 attr events string   '{"key":"title","size":255,"required":true}'
 attr events datetime '{"key":"startAt","required":true}'
 attr events string   '{"key":"place","size":255,"required":false}'
@@ -44,8 +62,6 @@ attr events string   '{"key":"ownerName","size":255,"required":true}'
 attr events string   '{"key":"hogarId","size":50,"required":true}'
 
 echo "== products =="
-coll products
-sleep 1
 attr products string   '{"key":"name","size":255,"required":true}'
 attr products string   '{"key":"hogarId","size":50,"required":true}'
 attr products float    '{"key":"lastPrice","required":false}'
@@ -53,8 +69,6 @@ attr products string   '{"key":"lastStore","size":100,"required":false}'
 attr products datetime '{"key":"lastAt","required":false}'
 
 echo "== price_points =="
-coll price_points
-sleep 1
 attr price_points string   '{"key":"productId","size":50,"required":true}'
 attr price_points float    '{"key":"price","required":true}'
 attr price_points string   '{"key":"store","size":100,"required":true}'
@@ -62,8 +76,6 @@ attr price_points datetime '{"key":"at","required":true}'
 attr price_points string   '{"key":"hogarId","size":50,"required":true}'
 
 echo "== settlements =="
-coll settlements
-sleep 1
 attr settlements string   '{"key":"fromName","size":255,"required":true}'
 attr settlements string   '{"key":"toName","size":255,"required":true}'
 attr settlements float    '{"key":"amount","required":true}'
@@ -78,7 +90,31 @@ done
 idx price_points '{"key":"productId_idx","type":"key","attributes":["productId"],"orders":["ASC"]}'
 
 echo ""
-echo "Listo. Revisa arriba: los errores 'already exists' son normales."
-echo "Comprueba en la consola que los atributos de 'tasks' (dueAt, repeat, notify,"
-echo "assignedToName) y las colecciones events/products/price_points/settlements"
-echo "aparecen como 'available'. Luego recarga la app."
+echo "======================= COMPROBACIÓN ======================="
+echo "(los 'already exists' de arriba son normales; mira solo esto)"
+echo ""
+sleep 3
+ALL_OK=1
+for C in tasks shopping_items expenses events products price_points categories settlements invites; do
+  BODY="$(curl -sS "$EP/databases/$DB/collections/$C" "${H[@]}" 2>/dev/null)"
+  if ! printf '%s' "$BODY" | grep -q '"\$id"'; then
+    echo "  ✗ $C  → NO EXISTE la colección"; ALL_OK=0; continue
+  fi
+  PERM_OK=0; printf '%s' "$BODY" | grep -q 'create("users")' && PERM_OK=1
+  # atributos que no estén 'available'
+  AT="$(curl -sS "$EP/databases/$DB/collections/$C/attributes" "${H[@]}" 2>/dev/null)"
+  BAD="$(printf '%s' "$AT" | tr ',' '\n' | grep '"status"' | grep -cv 'available')"
+  if [ "$PERM_OK" = 1 ] && [ "${BAD:-0}" = 0 ]; then
+    echo "  ✓ $C"
+  else
+    ALL_OK=0
+    [ "$PERM_OK" = 1 ] || echo "  ✗ $C  → le falta el permiso create(\"users\")"
+    [ "${BAD:-0}" = 0 ] || echo "  ✗ $C  → $BAD atributo(s) NO están 'available'"
+  fi
+done
+echo ""
+if [ "$ALL_OK" = 1 ]; then
+  echo "TODO CORRECTO. Recarga la app: tareas, eventos, precios y Liquidar deben ir."
+else
+  echo "Hay algo mal (líneas con ✗). Pega esta comprobación en el chat."
+fi
