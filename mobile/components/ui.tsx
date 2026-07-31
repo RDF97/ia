@@ -121,38 +121,45 @@ export function CheckCircle({ done, onPress }: { done: boolean; onPress: () => v
   );
 }
 
-/** Botón flotante (FAB) redondeado — como el .fab del mockup. Va dentro de `Screen floating`. */
+/** Botón flotante (FAB) redondeado — como el .fab del mockup. Va dentro de `Screen floating`.
+ *
+ * La posición absoluta va en un View normal con estilo fijo (NO en el Pressable
+ * ni con className ni con estilo en función): esa combinación hacía que
+ * NativeWind descartara el estilo y el botón no se viera. Es la misma estructura
+ * que la pill flotante de Compra, que sí funciona.
+ */
 export function Fab({ onPress, icon = "add" }: { onPress: () => void; icon?: IoniconName }) {
   const t = useTheme();
-  // OJO: `position: "absolute"` va en el estilo en línea (no en className): al
-  // combinar className con una función de estilo en un Pressable, NativeWind no
-  // aplicaba la posición absoluta y el FAB quedaba sin colocar (invisible).
   return (
-    <Pressable
-      onPress={() => {
-        hSelect();
-        onPress();
-      }}
-      style={({ pressed }) => ({
+    <View
+      style={{
         position: "absolute",
-        bottom: 20,
         right: 20,
+        bottom: 20,
         width: 56,
         height: 56,
         borderRadius: 18,
         backgroundColor: t.accent,
         alignItems: "center",
         justifyContent: "center",
-        transform: [{ scale: pressed ? 0.94 : 1 }],
-        shadowColor: t.accent,
-        shadowOpacity: 0.35,
-        shadowRadius: 16,
-        shadowOffset: { width: 0, height: 8 },
+        shadowColor: "#000",
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 6 },
         elevation: 8,
-      })}
+      }}
     >
-      <Ionicons name={icon} size={26} color={t.onAccent} />
-    </Pressable>
+      <Pressable
+        onPress={() => {
+          hSelect();
+          onPress();
+        }}
+        style={{ width: 56, height: 56, alignItems: "center", justifyContent: "center" }}
+        android_ripple={{ color: "rgba(255,255,255,0.2)", borderless: true }}
+      >
+        <Ionicons name={icon} size={28} color={t.onAccent} />
+      </Pressable>
+    </View>
   );
 }
 
