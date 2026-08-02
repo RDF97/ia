@@ -77,6 +77,8 @@ function errorText(code?: string): string {
       return "El servidor no tiene configurada la clave para unir al hogar (APPWRITE_API_KEY en la función joinHogar).";
     case "membership":
       return "El servidor no pudo añadirte al hogar. Suele ser que la clave de la función no tiene permiso 'teams.write'.";
+    case "lookup":
+      return "El servidor no pudo consultar las invitaciones. Suele ser que la clave de la función no tiene permiso 'databases.read'.";
     default:
       return "No se pudo unir al hogar. Inténtalo de nuevo.";
   }

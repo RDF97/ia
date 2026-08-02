@@ -38,31 +38,34 @@ Crea una **API key** (Consola → Overview → API keys) con scopes **`databases
 **`teams.write`**. Cópiala; es distinta de la de setup y solo la usará la función.
 
 ## 3. Función `joinHogar`
-El código está en `appwrite/functions/joinHogar/` (entrypoint `src/main.js`, dependencia
-`node-appwrite`).
+El código está en `appwrite/functions/joinHogar/` (entrypoint `src/main.js`).
+**No tiene dependencias**: usa el módulo `https` de Node contra la API REST de
+Appwrite. Esto es importante — la versión anterior importaba `node-appwrite` y,
+si el despliegue no ejecutaba `npm install` (lo típico al subir un `.tar.gz` a
+mano), la función fallaba al arrancar y la app solo decía "no se pudo unir".
 
 ### Crear la función (consola, una vez)
-Functions → **Create function** → runtime **Node.js** (18 o 20) →
+Functions → **Create function** → runtime **Node.js** →
 **Function ID = `joinHogar`** → **Execute access: Users**.
-Luego, en **Settings → Variables**, añade:
-- `APPWRITE_API_KEY` = la API key del paso 2.
+En **Settings → Variables**: `APPWRITE_API_KEY` = la API key del paso 2.
 
-### Subir el código (Appwrite CLI)
+### Subir el código (igual que scanReceipt)
+En el VPS:
 ```bash
-npm install -g appwrite-cli
-appwrite client --endpoint "$EP" --project-id "$PID" --key "TU_API_KEY_DE_SETUP"
-
-# desde la raíz del repo:
-appwrite functions create-deployment \
-  --function-id joinHogar \
-  --entrypoint 'src/main.js' \
-  --commands 'npm install' \
-  --code 'appwrite/functions/joinHogar' \
-  --activate true
+cd ~/homie/appwrite/functions/joinHogar
+tar -czf /tmp/joinHogar.tar.gz .
 ```
-> Los nombres de comando/opciones del CLI pueden variar según versión (`create-deployment`
-> vs `createDeployment`, `--project-id` vs `--projectId`). Si tu CLL usa camelCase, adáptalo.
-> El runtime Node debe estar habilitado en tu Appwrite (`_APP_FUNCTIONS_RUNTIMES`).
+Y en la consola → Functions → `joinHogar` → **Create deployment**: sube el
+`.tar.gz`, Entrypoint `src/main.js`, actívalo. **No hace falta build command.**
+
+### Si falla
+La función devuelve ahora el motivo real y la app lo muestra:
+- `no-key` → falta la variable `APPWRITE_API_KEY`.
+- `lookup` → la clave no tiene scope `databases.read`.
+- `membership` → la clave no tiene scope `teams.write`.
+
+También puedes verlo en la consola → Functions → `joinHogar` → **Executions** →
+abre la ejecución fallida → **Logs**.
 
 ## 4. Conectar la app
 Los IDs ya están en `mobile/app.json → extra`:
