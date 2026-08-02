@@ -74,6 +74,33 @@ export async function recordPrice(
   });
 }
 
+/** Borra un producto de la base de precios y todo su histórico de precios. */
+export async function deleteProduct(productId: string): Promise<void> {
+  // Primero los precios (si falla alguno seguimos: mejor dejarlo limpio a medias
+  // que dejar el producto colgado).
+  try {
+    const points = await databases.listDocuments<PricePoint>(DB_ID, PRICES_COL, [
+      Query.equal("productId", productId),
+      Query.limit(500),
+    ]);
+    for (const p of points.documents) {
+      try {
+        await databases.deleteDocument(DB_ID, PRICES_COL, p.$id);
+      } catch {
+        /* seguimos con el resto */
+      }
+    }
+  } catch {
+    /* sin histórico o sin permiso de listado */
+  }
+  await databases.deleteDocument(DB_ID, PRODUCTS_COL, productId);
+}
+
+/** Borra un precio concreto del histórico. */
+export async function deletePricePoint(id: string): Promise<void> {
+  await databases.deleteDocument(DB_ID, PRICES_COL, id);
+}
+
 export async function listPricePoints(productId: string): Promise<PricePoint[]> {
   const res = await databases.listDocuments<PricePoint>(DB_ID, PRICES_COL, [
     Query.equal("productId", productId),

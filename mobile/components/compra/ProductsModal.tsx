@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/theme/theme";
 import {
+  deleteProduct,
   latestByStore,
   listPricePoints,
   listProducts,
@@ -41,6 +42,28 @@ export function ProductsModal({
     listPricePoints(selected.$id).then(setPoints).catch(() => setPoints([]));
   }, [selected]);
 
+  const removeProduct = (p: Product) =>
+    Alert.alert(
+      "Borrar producto",
+      `Se borrará “${p.name}” y todo su histórico de precios. ¿Seguro?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Borrar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteProduct(p.$id);
+              setSelected(null);
+              setProducts((prev) => (prev ?? []).filter((x) => x.$id !== p.$id));
+            } catch (e) {
+              Alert.alert("No se pudo borrar", e instanceof Error ? e.message : "Inténtalo de nuevo.");
+            }
+          },
+        },
+      ],
+    );
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
@@ -61,10 +84,21 @@ export function ProductsModal({
           <Text className="text-[17px] font-semibold text-label">
             {selected ? selected.name : "Base de precios"}
           </Text>
-          <View style={{ width: 52 }} />
+          {selected ? (
+            <Pressable onPress={() => removeProduct(selected)} hitSlop={8} style={{ width: 52, alignItems: "flex-end" }}>
+              <Ionicons name="trash-outline" size={20} color={t.red} />
+            </Pressable>
+          ) : (
+            <View style={{ width: 52 }} />
+          )}
         </View>
 
         <ScrollView contentContainerStyle={{ paddingBottom: 28 }}>
+          {!selected && products && products.length > 0 && (
+            <Text className="text-center text-[12px] text-tertiary pt-3">
+              Toca la papelera para borrar un producto y su histórico.
+            </Text>
+          )}
           {!selected ? (
             products === null ? (
               <ActivityIndicator color={t.accent} style={{ marginTop: 24 }} />
@@ -94,6 +128,9 @@ export function ProductsModal({
                     {typeof p.lastPrice === "number" && (
                       <Text className="text-[15px] font-semibold text-label">{eur(p.lastPrice)}</Text>
                     )}
+                    <Pressable onPress={() => removeProduct(p)} hitSlop={10} style={{ padding: 4 }}>
+                      <Ionicons name="trash-outline" size={18} color={t.red} />
+                    </Pressable>
                     <Ionicons name="chevron-forward" size={16} color={t.tabInactive} />
                   </Pressable>
                 ))}
