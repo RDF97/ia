@@ -1,4 +1,4 @@
-import { useColorScheme } from "react-native";
+import { useColorScheme } from "nativewind";
 
 // Paleta semántica claro/oscuro alineada con Apple HIG (system colors).
 export interface Theme {
@@ -77,7 +77,8 @@ const dark: Theme = {
 };
 
 export function useTheme(): Theme {
-  return useColorScheme() === "dark" ? dark : light;
+  const { colorScheme } = useColorScheme();
+  return colorScheme === "dark" ? dark : light;
 }
 
 export { light as lightTheme, dark as darkTheme };

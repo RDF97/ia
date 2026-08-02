@@ -9,6 +9,8 @@ import { useHogar } from "@/lib/hogar";
 import { InviteModal } from "@/components/InviteModal";
 import { Avatar } from "@/components/ui";
 import { IconPickerModal } from "@/components/IconPickerModal";
+import { Segmented } from "@/components/Segmented";
+import { getThemeChoice, setThemeChoice, THEME_OPTIONS, type ThemeChoice } from "@/lib/themePref";
 import {
   getHogarIcon,
   getPerfilIcon,
@@ -62,6 +64,11 @@ export default function Perfil() {
   const [hogarIcon, setHogarIconState] = useState<IconStyle>({ icon: "home", color: t.accent });
   const [perfilIcon, setPerfilIconState] = useState<IconStyle | null>(null);
   const [pick, setPick] = useState<"hogar" | "perfil" | null>(null);
+  const [theme, setTheme] = useState<ThemeChoice>("system");
+
+  useEffect(() => {
+    getThemeChoice().then(setTheme).catch(() => undefined);
+  }, []);
 
   const loadIcons = useCallback(() => {
     if (active) getHogarIcon(active.$id, t.accent).then(setHogarIconState).catch(() => undefined);
@@ -175,6 +182,23 @@ export default function Perfil() {
             </View>
           </>
         )}
+
+        {/* Apariencia */}
+        <Text className="px-5 pt-2 pb-2 text-[13px] font-medium uppercase tracking-wide text-secondary">
+          Apariencia
+        </Text>
+        <Segmented
+          value={theme}
+          onChange={(k) => {
+            setTheme(k);
+            setThemeChoice(k).catch(() => undefined);
+          }}
+          options={THEME_OPTIONS}
+        />
+        <Text className="px-5 pb-3 text-[12px] text-tertiary">
+          “Claro” deja siempre los colores del diseño original (verde {"#1F4D52"}); en oscuro el
+          acento se aclara para que se lea bien.
+        </Text>
 
         {/* Sesión */}
         <Text className="px-5 pt-2 pb-2 text-[13px] font-medium uppercase tracking-wide text-secondary">
