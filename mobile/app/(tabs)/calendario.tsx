@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -19,6 +19,16 @@ import { useAuth } from "@/lib/auth";
 import { appwriteConfigured } from "@/lib/appwrite";
 import { useEvents } from "@/lib/useEvents";
 import { addEvent, daysWithEvents, deleteEvent, eventsOfDay, hhmm, ymd, type Event } from "@/lib/events";
+import { SwipeToDelete } from "@/components/SwipeToDelete";
+import { Segmented } from "@/components/Segmented";
+import {
+  addToGoogleCalendar,
+  getLeadMinutes,
+  setLeadMinutes,
+  syncEventReminders,
+  LEAD_OPTIONS,
+} from "@/lib/eventReminders";
+import { ensureNotificationPermissions } from "@/lib/notifications";
 import { cardShadow } from "@/components/Card";
 import { useTheme } from "@/theme/theme";
 
@@ -53,6 +63,22 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
   const [view, setView] = useState({ y: today.getFullYear(), m: today.getMonth() });
   const [selected, setSelected] = useState(new Date());
   const [addOpen, setAddOpen] = useState(false);
+  const [lead, setLead] = useState(15);
+
+  useEffect(() => {
+    getLeadMinutes().then(setLead).catch(() => undefined);
+  }, []);
+
+  // Programa/actualiza los avisos locales de los eventos.
+  useEffect(() => {
+    if (events) syncEventReminders(events, lead).catch(() => undefined);
+  }, [events, lead]);
+
+  const changeLead = async (min: number) => {
+    setLead(min);
+    await setLeadMinutes(min).catch(() => undefined);
+    if (min >= 0) await ensureNotificationPermissions().catch(() => undefined);
+  };
 
   const list = events ?? [];
   const marked = useMemo(() => daysWithEvents(list), [list]);
@@ -167,23 +193,31 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
       ) : (
         <View className="bg-card rounded-lg2 mx-4 mb-3 overflow-hidden" style={cardShadow(t.dark)}>
           {dayEvents.map((e, i) => (
-            <Pressable
-              key={e.$id}
-              onLongPress={() => remove(e.$id)}
-              className="flex-row items-center px-4 py-3"
-              style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}
-            >
-              <Text className="text-[14px] font-semibold text-secondary" style={{ width: 48 }}>
-                {hhmm(e.startAt)}
-              </Text>
-              <View style={{ width: 3, height: 34, borderRadius: 2, backgroundColor: t.accent }} />
-              <View className="flex-1">
-                <Text className="text-[15px] font-medium text-label">{e.title}</Text>
-                <Text className="text-[12px] text-secondary mt-0.5">
-                  {e.ownerName}{e.place ? ` · ${e.place}` : ""}
+            <SwipeToDelete key={e.$id} onDelete={() => remove(e.$id)}>
+              <View
+                className="flex-row items-center px-4 py-3"
+                style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}
+              >
+                <Text className="text-[14px] font-semibold text-secondary" style={{ width: 48 }}>
+                  {hhmm(e.startAt)}
                 </Text>
+                <View style={{ width: 3, height: 34, borderRadius: 2, backgroundColor: t.accent }} />
+                <View className="flex-1">
+                  <Text className="text-[15px] font-medium text-label">{e.title}</Text>
+                  <Text className="text-[12px] text-secondary mt-0.5">
+                    {e.ownerName}{e.place ? ` · ${e.place}` : ""}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => addToGoogleCalendar(e).catch(() => undefined)}
+                  hitSlop={8}
+                  className="rounded-pill items-center justify-center"
+                  style={{ width: 32, height: 32, backgroundColor: t.fill }}
+                >
+                  <Ionicons name="logo-google" size={15} color={t.accent} />
+                </Pressable>
               </View>
-            </Pressable>
+            </SwipeToDelete>
           ))}
         </View>
       )}
@@ -196,6 +230,19 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
         <Ionicons name="add" size={20} color="#fff" />
         <Text className="text-white text-base font-semibold">Añadir evento</Text>
       </Pressable>
+
+      <Text className="px-5 pt-5 pb-2 text-[13px] font-medium uppercase tracking-wide text-secondary">
+        Avisarme
+      </Text>
+      <Segmented
+        value={String(lead)}
+        onChange={(k) => changeLead(parseInt(k, 10))}
+        options={LEAD_OPTIONS.map((o) => ({ key: String(o.key), label: o.label }))}
+      />
+      <Text className="px-5 pb-2 text-[12px] text-tertiary">
+        Aviso en este móvil antes de cada evento. Desliza un evento para borrarlo; el botón de
+        Google lo añade a tu Google Calendar.
+      </Text>
 
       <AddEvent
         visible={addOpen}

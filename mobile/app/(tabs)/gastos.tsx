@@ -5,8 +5,8 @@ import DateTimePicker, { type DateTimePickerEvent } from "@react-native-communit
 import { useQueryClient } from "@tanstack/react-query";
 import { Screen } from "@/components/Screen";
 import { Card, PhaseCard, cardShadow } from "@/components/Card";
-import { IconTile, Money, SectionTitle } from "@/components/ui";
-import { AddBar } from "@/components/AddBar";
+import { AddFab, IconTile, Money, SectionTitle } from "@/components/ui";
+import { SwipeToDelete } from "@/components/SwipeToDelete";
 import { UploadCard } from "@/components/UploadCard";
 import { Segmented } from "@/components/Segmented";
 import { DebtCard } from "@/components/DebtCard";
@@ -19,7 +19,7 @@ import { appwriteConfigured } from "@/lib/appwrite";
 import { useExpenses } from "@/lib/useExpenses";
 import { useCategories } from "@/lib/useCategories";
 import { useSettlements } from "@/lib/useSettlements";
-import { accountTotals, addExpense, balances, deleteExpense, effectiveAccount, expenseDate, monthlyTotal, updateExpense, type Account, type Expense } from "@/lib/expenses";
+import { accountTotals, addExpense, balances, deleteExpense, effectiveAccount, expenseDate, updateExpense, type Account, type Expense } from "@/lib/expenses";
 import {
   budgetStatus,
   budgetTotals,
@@ -64,6 +64,11 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
   const [csvOpen, setCsvOpen] = useState(false);
   const [scanSource, setScanSource] = useState<"camera" | "library" | "pdf" | null>(null);
   const [filter, setFilter] = useState<"all" | Account>("all");
+  // Mes que se está viendo (se puede retroceder/avanzar).
+  const [month, setMonth] = useState(() => {
+    const n = new Date();
+    return { y: n.getFullYear(), m: n.getMonth() };
+  });
 
   useEffect(() => {
     getBudgetEnabled(hogarId).then(setBudgetOn).catch(() => undefined);
@@ -80,17 +85,29 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
       qc.invalidateQueries({ queryKey: ["expenses", hogarId] }),
       qc.invalidateQueries({ queryKey: ["settlements", hogarId] }),
     ]);
-  const list = expenses ?? [];
+  const all = expenses ?? [];
   const cats = categories ?? [];
-  const total = monthlyTotal(list);
-  const bal = balances(list, members, settlements ?? []);
-  const accTotals = accountTotals(list);
+  const monthDate = new Date(month.y, month.m, 15);
+  // Solo los gastos del mes que se está viendo.
+  const list = all.filter((e) => {
+    const d = new Date(expenseDate(e));
+    return d.getFullYear() === month.y && d.getMonth() === month.m;
+  });
+  const total = list.reduce((s, e) => s + e.amount, 0);
+  const bal = balances(all, members, settlements ?? []);
+  const accTotals = accountTotals(list, monthDate);
   const movements = filter === "all" ? list : list.filter((e) => effectiveAccount(e) === filter);
 
-  const rows = budgetStatus(cats, list);
+  const rows = budgetStatus(cats, list, monthDate);
   const budgeted = rows.filter((r) => r.hasBudget);
   const totals = budgetTotals(rows);
-  const monthLabel = MONTHS[new Date().getMonth()];
+  const monthLabel = MONTHS[month.m];
+  const isCurrentMonth = month.y === new Date().getFullYear() && month.m === new Date().getMonth();
+  const shiftMonth = (delta: number) =>
+    setMonth((prev) => {
+      const d = new Date(prev.y, prev.m + delta, 1);
+      return { y: d.getFullYear(), m: d.getMonth() };
+    });
 
   const remove = (id: string) =>
     Alert.alert("Borrar gasto", "¿Seguro?", [
@@ -124,8 +141,39 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
           <Ionicons name="pie-chart-outline" size={17} color={t.accent} />
         </Pressable>
       }
-      floating={<AddBar placeholder="Añadir gasto…" onPress={() => setOpen(true)} />}
+      floating={<AddFab onPress={() => setOpen(true)} />}
     >
+      {/* Selector de mes, como el mockup */}
+      <View className="flex-row items-center mx-4 mb-3" style={{ gap: 8 }}>
+        <Pressable
+          onPress={() => shiftMonth(-1)}
+          hitSlop={8}
+          className="rounded-pill items-center justify-center"
+          style={{ width: 32, height: 32, backgroundColor: t.fill }}
+        >
+          <Ionicons name="chevron-back" size={16} color={t.accent} />
+        </Pressable>
+        <View className="rounded-pill px-4 py-1.5" style={{ backgroundColor: t.fill }}>
+          <Text className="text-[14px] font-medium text-label">
+            {monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1)} {month.y}
+          </Text>
+        </View>
+        <Pressable
+          onPress={() => shiftMonth(1)}
+          hitSlop={8}
+          disabled={isCurrentMonth}
+          className="rounded-pill items-center justify-center"
+          style={{ width: 32, height: 32, backgroundColor: t.fill, opacity: isCurrentMonth ? 0.4 : 1 }}
+        >
+          <Ionicons name="chevron-forward" size={16} color={t.accent} />
+        </Pressable>
+        {!isCurrentMonth && (
+          <Pressable onPress={() => setMonth({ y: new Date().getFullYear(), m: new Date().getMonth() })} hitSlop={8}>
+            <Text className="text-[13px] font-medium" style={{ color: t.accent }}>Hoy</Text>
+          </Pressable>
+        )}
+      </View>
+
       <UploadCard
         title="Subir gasto"
         subtitle="OCR o CSV · lo categoriza y lo añade"
@@ -144,7 +192,7 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
       )}
       <Card>
         <Text className="text-[12px] text-secondary mb-1" style={{ textTransform: "uppercase", letterSpacing: 0.4 }}>
-          Gastado este mes
+          Gastado · {monthLabel}
         </Text>
         <Text className="text-[36px] font-bold text-label" style={{ lineHeight: 42, letterSpacing: -1, fontVariant: ["tabular-nums"] }}>
           {eur(total)}
@@ -212,10 +260,9 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
             const color = joint ? t.accent : e.shared ? t.teal : t.gray;
             const source = joint ? "conjunta" : e.shared ? "compartido" : "personal";
             return (
+              <SwipeToDelete key={e.$id} onDelete={() => remove(e.$id)}>
               <Pressable
-                key={e.$id}
                 onPress={() => setEditing(e)}
-                onLongPress={() => remove(e.$id)}
                 className="flex-row items-center px-4 py-3"
                 style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}
               >
@@ -231,11 +278,12 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
                   −{eur(e.amount)}
                 </Money>
               </Pressable>
+              </SwipeToDelete>
             );
           })}
         </View>
       )}
-      <Text className="text-center text-[12px] text-tertiary mb-2">Toca un gasto para editarlo o borrarlo</Text>
+      <Text className="text-center text-[12px] text-tertiary mb-2">Toca un gasto para editarlo · desliza para borrarlo</Text>
 
       <AddExpense visible={open} onClose={() => setOpen(false)} hogarId={hogarId} userName={userName} categories={cats} onAdded={refresh} />
       <BudgetModal visible={budgetOpen} hogarId={hogarId} enabled={budgetOn} onToggle={toggleBudget} onClose={() => setBudgetOpen(false)} />
@@ -329,7 +377,22 @@ function BudgetSection({
         </View>
       </View>
 
-      <SectionTitle action="Editar presupuesto" onAction={onManage}>Por categoría</SectionTitle>
+      <View className="flex-row items-center justify-between px-5 pt-4 pb-2">
+        <Text
+          className="text-[13px] font-medium"
+          style={{ color: t.labelSecondary, textTransform: "uppercase", letterSpacing: 0.5 }}
+        >
+          Por categoría
+        </Text>
+        <Pressable
+          onPress={onManage}
+          className="flex-row items-center rounded-pill px-3 py-1.5"
+          style={{ gap: 4, backgroundColor: t.accentSoft }}
+        >
+          <Ionicons name="add" size={13} color={t.accent} />
+          <Text className="text-[13px] font-semibold" style={{ color: t.accent }}>Editar presupuesto</Text>
+        </Pressable>
+      </View>
       <View className="flex-row flex-wrap mx-4 mb-2" style={{ gap: 8 }}>
         {rows.map((r) => {
           const col = stateColor(r.state);

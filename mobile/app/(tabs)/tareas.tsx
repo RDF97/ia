@@ -6,13 +6,14 @@ import { Screen } from "@/components/Screen";
 import { PhaseCard, cardShadow } from "@/components/Card";
 import { Avatar, CheckCircle, SectionTitle } from "@/components/ui";
 import { AddBar } from "@/components/AddBar";
+import { SwipeToDelete } from "@/components/SwipeToDelete";
 import { Segmented } from "@/components/Segmented";
 import { TaskEditor } from "@/components/tareas/TaskEditor";
 import { useHogar } from "@/lib/hogar";
 import { useAuth } from "@/lib/auth";
 import { appwriteConfigured } from "@/lib/appwrite";
 import { useTasks } from "@/lib/useTasks";
-import { completeTask, createTask, listMemberNames, setTaskDone, type Task } from "@/lib/tasks";
+import { completeTask, createTask, deleteTask, listMemberNames, setTaskDone, type Task } from "@/lib/tasks";
 import { dueInfo, groupTasks, repeatLabel, type TaskFilter } from "@/lib/taskLogic";
 import { syncTaskReminders } from "@/lib/taskReminders";
 import { useTheme } from "@/theme/theme";
@@ -83,6 +84,23 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
     }
   };
 
+  const remove = (task: Task) =>
+    Alert.alert("Borrar tarea", `¿Borrar “${task.title}”?`, [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Borrar",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteTask(task.$id);
+            refresh();
+          } catch (e) {
+            oops(e);
+          }
+        },
+      },
+    ]);
+
   const all = tasks ?? [];
   const pending = all.filter((x) => !x.done);
   const groups = groupTasks(all, filter);
@@ -128,7 +146,9 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
           {pending.length === 0 ? "No hay tareas todavía. ¡Añade la primera!" : "Nada en este periodo. Cambia de pestaña."}
         </Text>
       ) : (
-        groups.map((g) => <Section key={g.key} title={g.title} tasks={g.tasks} onToggle={toggle} onEdit={setEditing} />)
+        groups.map((g) => (
+          <Section key={g.key} title={g.title} tasks={g.tasks} onToggle={toggle} onEdit={setEditing} onDelete={remove} />
+        ))
       )}
 
       <TaskEditor
@@ -151,11 +171,13 @@ function Section({
   tasks,
   onToggle,
   onEdit,
+  onDelete,
 }: {
   title: string;
   tasks: Task[];
   onToggle: (t: Task) => void;
   onEdit: (t: Task) => void;
+  onDelete: (t: Task) => void;
 }) {
   const t = useTheme();
   if (tasks.length === 0) return null;
@@ -164,8 +186,8 @@ function Section({
       <SectionTitle>{title}</SectionTitle>
       <View className="bg-card rounded-lg2 mx-4 mb-3 overflow-hidden" style={cardShadow(t.dark)}>
         {tasks.map((task, i) => (
+          <SwipeToDelete key={task.$id} onDelete={() => onDelete(task)}>
           <View
-            key={task.$id}
             className="flex-row items-center px-4 py-3"
             style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}
           >
@@ -184,6 +206,7 @@ function Section({
             </Pressable>
             <Ionicons name="chevron-forward" size={16} color={t.tabInactive} />
           </View>
+          </SwipeToDelete>
         ))}
       </View>
     </>

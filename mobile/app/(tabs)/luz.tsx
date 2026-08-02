@@ -8,6 +8,7 @@ import { cardShadow } from "@/components/Card";
 import { useLuzPrices } from "@/lib/useLuzPrices";
 import type { LuzSource } from "@/lib/luzData";
 import { PriceChart } from "@/components/luz/PriceChart";
+import { PriceList } from "@/components/luz/PriceList";
 import { Planner } from "@/components/luz/Planner";
 import { Segmented } from "@/components/Segmented";
 import { Toggle } from "@/components/Toggle";
@@ -51,6 +52,7 @@ export default function Luz() {
   const t = useTheme();
   const { data, refetch } = useLuzPrices();
   const [day, setDay] = useState<"today" | "tomorrow">("today");
+  const [priceView, setPriceView] = useState<"chart" | "list">("chart");
   const [plannerId, setPlannerId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -174,8 +176,37 @@ export default function Luz() {
           />
         </View>
 
-        <SectionTitle>Precio por horas · {day === "today" ? "Hoy" : "Mañana"}</SectionTitle>
-        <PriceChart prices={dayPrices} isToday={day === "today"} />
+        <View className="flex-row items-center justify-between px-5 pt-4 pb-2">
+          <Text
+            className="text-[13px] font-medium"
+            style={{ color: t.labelSecondary, textTransform: "uppercase", letterSpacing: 0.5 }}
+          >
+            Precio por horas · {day === "today" ? "Hoy" : "Mañana"}
+          </Text>
+          <View className="flex-row rounded-pill p-0.5" style={{ backgroundColor: t.fill }}>
+            {([
+              { key: "chart", icon: "bar-chart" },
+              { key: "list", icon: "list" },
+            ] as const).map((o) => {
+              const on = priceView === o.key;
+              return (
+                <Pressable
+                  key={o.key}
+                  onPress={() => setPriceView(o.key)}
+                  className="rounded-pill items-center justify-center"
+                  style={{ width: 34, height: 26, backgroundColor: on ? t.card : "transparent" }}
+                >
+                  <Ionicons name={o.icon} size={15} color={on ? t.accent : t.labelSecondary} />
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+        {priceView === "chart" ? (
+          <PriceChart prices={dayPrices} isToday={day === "today"} />
+        ) : (
+          <PriceList prices={dayPrices} isToday={day === "today"} />
+        )}
 
         {/* Mejores tramos */}
         <SectionTitle>Mejores tramos para consumir</SectionTitle>
@@ -348,7 +379,7 @@ function AlertsCard({ today, tomorrow }: { today: number[]; tomorrow: number[] |
   return (
     <View className="bg-card rounded-lg2 mx-4 mb-1" style={cardShadow(t.dark)}>
       <AlertRow first icon="flash" color={t.green} label="Avisar en la hora más barata" value={cheap} onChange={onCheap} />
-      <AlertRow icon="time-outline" color={t.orange} label="Recordatorio de electrodoméstico programado" value={reminder} onChange={onReminder} />
+      <AlertRow icon="time-outline" color={t.orange} label="Avisar antes de poner un electrodoméstico" value={reminder} onChange={onReminder} />
       <AlertRow icon="warning-outline" color={t.red} label="Avisar de tramos caros" value={expensive} onChange={onExpensive} />
       <AlertRow icon="newspaper-outline" color={t.blue} label="Resumen de precios de mañana (20:30)" value={summary} onChange={onSummary} />
     </View>

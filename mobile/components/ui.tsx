@@ -121,6 +121,46 @@ export function CheckCircle({ done, onPress }: { done: boolean; onPress: () => v
   );
 }
 
+/**
+ * Botón flotante redondeado con "+" — como el .fab del mockup.
+ * Va dentro de `Screen floating`. Todo el estilo en un View normal con estilo
+ * fijo (misma estructura que AddBar, que es la que renderiza bien).
+ */
+export function AddFab({ onPress, icon = "add" }: { onPress: () => void; icon?: IoniconName }) {
+  const t = useTheme();
+  return (
+    <View
+      style={{
+        position: "absolute",
+        right: 20,
+        bottom: 20,
+        width: 56,
+        height: 56,
+        borderRadius: 18,
+        backgroundColor: t.accent,
+        alignItems: "center",
+        justifyContent: "center",
+        shadowColor: "#000",
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 8,
+      }}
+    >
+      <Pressable
+        onPress={() => {
+          hSelect();
+          onPress();
+        }}
+        style={{ width: 56, height: 56, alignItems: "center", justifyContent: "center" }}
+        android_ripple={{ color: "rgba(255,255,255,0.2)", borderless: true }}
+      >
+        <Ionicons name={icon} size={28} color={t.onAccent} />
+      </Pressable>
+    </View>
+  );
+}
+
 /** Número tabular (precios/importes alineados). */
 export function Money({ children, size = 15, color, weight = "600" }: { children: ReactNode; size?: number; color?: string; weight?: "400" | "500" | "600" | "700" }) {
   const t = useTheme();
