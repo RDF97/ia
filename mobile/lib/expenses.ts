@@ -57,6 +57,27 @@ export async function addExpense(
   );
 }
 
+export async function updateExpense(
+  id: string,
+  data: {
+    amount: number;
+    concept: string;
+    shared: boolean;
+    category?: string | null;
+    account?: Account;
+    spentAt?: string;
+  },
+): Promise<Expense> {
+  return databases.updateDocument<Expense>(DB_ID, EXPENSES_COL, id, {
+    amount: data.amount,
+    concept: data.concept,
+    category: data.category || null,
+    shared: data.shared,
+    account: data.account ?? "individual",
+    ...(data.spentAt ? { spentAt: data.spentAt } : {}),
+  });
+}
+
 export async function deleteExpense(id: string): Promise<void> {
   await databases.deleteDocument(DB_ID, EXPENSES_COL, id);
 }

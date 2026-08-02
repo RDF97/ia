@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -8,6 +8,16 @@ import { useAuth } from "@/lib/auth";
 import { useHogar } from "@/lib/hogar";
 import { InviteModal } from "@/components/InviteModal";
 import { Avatar } from "@/components/ui";
+import { IconPickerModal } from "@/components/IconPickerModal";
+import {
+  getHogarIcon,
+  getPerfilIcon,
+  setHogarIcon,
+  setPerfilIcon,
+  HOGAR_ICONS,
+  PERFIL_ICONS,
+  type IconStyle,
+} from "@/lib/appearance";
 import { useTheme } from "@/theme/theme";
 
 function Row({
@@ -49,6 +59,16 @@ export default function Perfil() {
   const { user, logout } = useAuth();
   const { active, leaveHogar } = useHogar();
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [hogarIcon, setHogarIconState] = useState<IconStyle>({ icon: "home", color: t.accent });
+  const [perfilIcon, setPerfilIconState] = useState<IconStyle | null>(null);
+  const [pick, setPick] = useState<"hogar" | "perfil" | null>(null);
+
+  const loadIcons = useCallback(() => {
+    if (active) getHogarIcon(active.$id, t.accent).then(setHogarIconState).catch(() => undefined);
+    getPerfilIcon(t.accent).then(setPerfilIconState).catch(() => undefined);
+  }, [active, t.accent]);
+
+  useEffect(loadIcons, [loadIcons]);
 
   const confirmLeave = () => {
     if (!active) return;
@@ -100,7 +120,31 @@ export default function Perfil() {
 
         {/* Cuenta */}
         <View className="bg-card rounded-card mx-4 mb-3 p-4 flex-row items-center" style={{ gap: 14 }}>
-          <Avatar name={user?.name || user?.email || "?"} size={52} />
+          <Pressable onPress={() => setPick("perfil")} hitSlop={6}>
+            {perfilIcon ? (
+              <View
+                style={{
+                  width: 52, height: 52, borderRadius: 26,
+                  backgroundColor: perfilIcon.color,
+                  alignItems: "center", justifyContent: "center",
+                }}
+              >
+                <Ionicons name={perfilIcon.icon} size={26} color="#fff" />
+              </View>
+            ) : (
+              <Avatar name={user?.name || user?.email || "?"} size={52} />
+            )}
+            <View
+              style={{
+                position: "absolute", right: -2, bottom: -2,
+                width: 20, height: 20, borderRadius: 10,
+                backgroundColor: t.accent, alignItems: "center", justifyContent: "center",
+                borderWidth: 2, borderColor: t.card,
+              }}
+            >
+              <Ionicons name="pencil" size={9} color="#fff" />
+            </View>
+          </Pressable>
           <View className="flex-1">
             <Text className="text-[17px] font-semibold text-label">{user?.name || "Sin nombre"}</Text>
             <Text className="text-[13px] text-secondary mt-0.5">{user?.email}</Text>
@@ -114,9 +158,9 @@ export default function Perfil() {
               Tu hogar
             </Text>
             <View className="bg-card rounded-lg2 mx-4 mb-3 overflow-hidden">
-              <View className="flex-row items-center px-4 py-3" style={{ gap: 12 }}>
-                <View className="rounded-lg items-center justify-center" style={{ width: 30, height: 30, backgroundColor: t.accent }}>
-                  <Ionicons name="home" size={15} color="#fff" />
+              <Pressable onPress={() => setPick("hogar")} className="flex-row items-center px-4 py-3" style={{ gap: 12 }}>
+                <View className="rounded-lg items-center justify-center" style={{ width: 30, height: 30, backgroundColor: hogarIcon.color }}>
+                  <Ionicons name={hogarIcon.icon} size={15} color="#fff" />
                 </View>
                 <View className="flex-1">
                   <Text className="text-[15px] text-label">{active.name}</Text>
@@ -124,7 +168,8 @@ export default function Perfil() {
                     {active.total} {active.total === 1 ? "miembro" : "miembros"}
                   </Text>
                 </View>
-              </View>
+                <Text className="text-[13px]" style={{ color: t.accent }}>Cambiar icono</Text>
+              </Pressable>
               <Row icon="person-add" color={t.green} label="Invitar a alguien" onPress={() => setInviteOpen(true)} />
               <Row icon="exit-outline" color={t.red} label="Salir del hogar" danger onPress={confirmLeave} />
             </View>
@@ -145,6 +190,34 @@ export default function Perfil() {
       </ScrollView>
 
       {active && <InviteModal visible={inviteOpen} hogarName={active.name} onClose={() => setInviteOpen(false)} />}
+
+      <IconPickerModal
+        visible={pick === "hogar"}
+        title="Icono del hogar"
+        icons={HOGAR_ICONS}
+        value={hogarIcon}
+        onClose={() => setPick(null)}
+        onSave={async (st) => {
+          if (!active) return;
+          await setHogarIcon(active.$id, st);
+          setHogarIconState(st);
+        }}
+      />
+      <IconPickerModal
+        visible={pick === "perfil"}
+        title="Icono del perfil"
+        icons={PERFIL_ICONS}
+        value={perfilIcon ?? { icon: "person", color: t.accent }}
+        onClose={() => setPick(null)}
+        onSave={async (st) => {
+          await setPerfilIcon(st);
+          setPerfilIconState(st);
+        }}
+        onReset={async () => {
+          await setPerfilIcon(null);
+          setPerfilIconState(null);
+        }}
+      />
     </SafeAreaView>
   );
 }

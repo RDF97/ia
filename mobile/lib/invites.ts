@@ -73,6 +73,10 @@ function errorText(code?: string): string {
       return "Inicia sesión antes de unirte al hogar.";
     case "code":
       return "Falta el código de invitación.";
+    case "no-key":
+      return "El servidor no tiene configurada la clave para unir al hogar (APPWRITE_API_KEY en la función joinHogar).";
+    case "membership":
+      return "El servidor no pudo añadirte al hogar. Suele ser que la clave de la función no tiene permiso 'teams.write'.";
     default:
       return "No se pudo unir al hogar. Inténtalo de nuevo.";
   }
@@ -86,12 +90,16 @@ export async function redeemInvite(code: string): Promise<RedeemResult> {
     functionId: JOIN_FUNCTION_ID,
     body: JSON.stringify({ code: clean }),
   });
-  let out: { ok?: boolean; error?: string; hogarName?: string } = {};
+  let out: { ok?: boolean; error?: string; hogarName?: string; detail?: string } = {};
   try {
     out = JSON.parse(exec.responseBody || "{}");
   } catch {
     /* respuesta no-JSON */
   }
-  if (!out.ok) throw new Error(errorText(out.error));
+  if (!out.ok) {
+    // El detalle del servidor ayuda a saber qué falta (scopes, variables…).
+    const base = errorText(out.error);
+    throw new Error(out.detail ? `${base}\n\n(${out.detail})` : base);
+  }
   return { ok: true, hogarName: out.hogarName };
 }

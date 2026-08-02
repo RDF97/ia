@@ -5,7 +5,9 @@ import DateTimePicker, { type DateTimePickerEvent } from "@react-native-communit
 import { useQueryClient } from "@tanstack/react-query";
 import { Screen } from "@/components/Screen";
 import { Card, PhaseCard, cardShadow } from "@/components/Card";
-import { Fab, IconTile, Money, SectionTitle } from "@/components/ui";
+import { IconTile, Money, SectionTitle } from "@/components/ui";
+import { AddBar } from "@/components/AddBar";
+import { UploadCard } from "@/components/UploadCard";
 import { Segmented } from "@/components/Segmented";
 import { DebtCard } from "@/components/DebtCard";
 import { BudgetModal } from "@/components/gastos/BudgetModal";
@@ -17,7 +19,7 @@ import { appwriteConfigured } from "@/lib/appwrite";
 import { useExpenses } from "@/lib/useExpenses";
 import { useCategories } from "@/lib/useCategories";
 import { useSettlements } from "@/lib/useSettlements";
-import { accountTotals, addExpense, balances, deleteExpense, effectiveAccount, monthlyTotal, type Account } from "@/lib/expenses";
+import { accountTotals, addExpense, balances, deleteExpense, effectiveAccount, expenseDate, monthlyTotal, updateExpense, type Account, type Expense } from "@/lib/expenses";
 import {
   budgetStatus,
   budgetTotals,
@@ -56,10 +58,11 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
   const { data: categories } = useCategories(hogarId);
   const { data: settlements } = useSettlements(hogarId);
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Expense | null>(null);
   const [budgetOpen, setBudgetOpen] = useState(false);
   const [budgetOn, setBudgetOn] = useState(false);
   const [csvOpen, setCsvOpen] = useState(false);
-  const [scanOpen, setScanOpen] = useState(false);
+  const [scanSource, setScanSource] = useState<"camera" | "library" | "pdf" | null>(null);
   const [filter, setFilter] = useState<"all" | Account>("all");
 
   useEffect(() => {
@@ -121,8 +124,19 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
           <Ionicons name="pie-chart-outline" size={17} color={t.accent} />
         </Pressable>
       }
-      floating={<Fab onPress={() => setOpen(true)} />}
+      floating={<AddBar placeholder="Añadir gasto…" onPress={() => setOpen(true)} />}
     >
+      <UploadCard
+        title="Subir gasto"
+        subtitle="OCR o CSV · lo categoriza y lo añade"
+        actions={[
+          { key: "camera", label: "Cámara", icon: "camera-outline", onPress: () => setScanSource("camera") },
+          { key: "library", label: "Galería", icon: "images-outline", onPress: () => setScanSource("library") },
+          { key: "pdf", label: "PDF", icon: "document-text-outline", onPress: () => setScanSource("pdf") },
+          { key: "csv", label: "CSV", icon: "swap-horizontal-outline", onPress: () => setCsvOpen(true) },
+        ]}
+      />
+
       {isError && (
         <Text className="text-center text-[13px] mb-2" style={{ color: t.red }}>
           No se pudieron cargar los gastos. Desliza hacia abajo para reintentar.
@@ -200,6 +214,7 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
             return (
               <Pressable
                 key={e.$id}
+                onPress={() => setEditing(e)}
                 onLongPress={() => remove(e.$id)}
                 className="flex-row items-center px-4 py-3"
                 style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}
@@ -220,23 +235,39 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
           })}
         </View>
       )}
-      <Text className="text-center text-[12px] text-tertiary mb-2">Mantén pulsado un gasto para borrarlo</Text>
-
-      <View className="flex-row justify-center mx-4 mt-1" style={{ gap: 20 }}>
-        <Pressable onPress={() => setScanOpen(true)} className="flex-row items-center" style={{ gap: 6 }}>
-          <Ionicons name="scan-outline" size={16} color={t.accent} />
-          <Text className="text-[14px] font-semibold text-accent">Escanear ticket</Text>
-        </Pressable>
-        <Pressable onPress={() => setCsvOpen(true)} className="flex-row items-center" style={{ gap: 6 }}>
-          <Ionicons name="document-text-outline" size={16} color={t.accent} />
-          <Text className="text-[14px] font-semibold text-accent">CSV del banco</Text>
-        </Pressable>
-      </View>
+      <Text className="text-center text-[12px] text-tertiary mb-2">Toca un gasto para editarlo o borrarlo</Text>
 
       <AddExpense visible={open} onClose={() => setOpen(false)} hogarId={hogarId} userName={userName} categories={cats} onAdded={refresh} />
       <BudgetModal visible={budgetOpen} hogarId={hogarId} enabled={budgetOn} onToggle={toggleBudget} onClose={() => setBudgetOpen(false)} />
       <CsvModal visible={csvOpen} hogarId={hogarId} userName={userName} expenses={list} onClose={() => setCsvOpen(false)} onImported={refresh} />
-      <ScanModal visible={scanOpen} hogarId={hogarId} userName={userName} categories={cats} onClose={() => setScanOpen(false)} onDone={refresh} />
+      <ScanModal
+        visible={scanSource !== null}
+        hogarId={hogarId}
+        userName={userName}
+        categories={cats}
+        initialSource={scanSource}
+        onClose={() => setScanSource(null)}
+        onDone={() => {
+          setScanSource(null);
+          refresh();
+        }}
+      />
+      <AddExpense
+        visible={editing !== null}
+        expense={editing}
+        onClose={() => setEditing(null)}
+        hogarId={hogarId}
+        userName={userName}
+        categories={cats}
+        onAdded={() => {
+          setEditing(null);
+          refresh();
+        }}
+        onDelete={(id) => {
+          setEditing(null);
+          remove(id);
+        }}
+      />
     </Screen>
   );
 }
@@ -340,6 +371,8 @@ function AddExpense({
   userName,
   categories,
   onAdded,
+  expense = null,
+  onDelete,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -347,6 +380,9 @@ function AddExpense({
   userName: string;
   categories: Category[];
   onAdded: () => void;
+  /** Si viene un gasto, el formulario edita en vez de crear. */
+  expense?: Expense | null;
+  onDelete?: (id: string) => void;
 }) {
   const t = useTheme();
   const [amount, setAmount] = useState("");
@@ -363,27 +399,42 @@ function AddExpense({
     if (d) setDate(d);
   };
 
-  const submit = async () => {
-    const value = parseFloat(amount.replace(",", "."));
-    if (!isFinite(value) || value <= 0 || !concept.trim()) return;
-    setBusy(true);
-    try {
-      await addExpense(hogarId, {
-        amount: value,
-        concept: concept.trim(),
-        paidByName: userName,
-        account,
-        shared: account === "joint" ? true : shared,
-        category: category ?? undefined,
-        spentAt: date.toISOString(),
-      });
-      onAdded();
+  // Al abrir, precarga los datos del gasto que se edita (o limpia para uno nuevo).
+  useEffect(() => {
+    if (!visible) return;
+    if (expense) {
+      setAmount(String(expense.amount).replace(".", ","));
+      setConcept(expense.concept);
+      setShared(expense.shared);
+      setAccount(effectiveAccount(expense));
+      setCategory(expense.category ?? null);
+      setDate(new Date(expenseDate(expense)));
+    } else {
       setAmount("");
       setConcept("");
       setShared(true);
       setAccount("joint");
       setCategory(null);
       setDate(new Date());
+    }
+  }, [visible, expense]);
+
+  const submit = async () => {
+    const value = parseFloat(amount.replace(",", "."));
+    if (!isFinite(value) || value <= 0 || !concept.trim()) return;
+    setBusy(true);
+    try {
+      const data = {
+        amount: value,
+        concept: concept.trim(),
+        account,
+        shared: account === "joint" ? true : shared,
+        category: category ?? undefined,
+        spentAt: date.toISOString(),
+      };
+      if (expense) await updateExpense(expense.$id, data);
+      else await addExpense(hogarId, { ...data, paidByName: userName });
+      onAdded();
       onClose();
     } catch (e) {
       Alert.alert("No se pudo guardar", e instanceof Error ? e.message : "Inténtalo de nuevo.");
@@ -396,7 +447,7 @@ function AddExpense({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
       <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32, backgroundColor: t.bg }}>
-        <Text className="text-[17px] font-semibold mb-4 text-label">Nuevo gasto</Text>
+        <Text className="text-[17px] font-semibold mb-4 text-label">{expense ? "Editar gasto" : "Nuevo gasto"}</Text>
         <TextInput
           className="bg-card rounded-lg2 px-4 py-3 mb-3 text-[16px] text-label"
           placeholder="Importe (€)"
@@ -484,6 +535,12 @@ function AddExpense({
         >
           {busy ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-base font-semibold">Guardar</Text>}
         </Pressable>
+
+        {expense && onDelete && (
+          <Pressable onPress={() => onDelete(expense.$id)} disabled={busy} className="mt-3 items-center py-2">
+            <Text className="text-[15px] font-medium" style={{ color: t.red }}>Borrar gasto</Text>
+          </Pressable>
+        )}
       </View>
     </Modal>
   );

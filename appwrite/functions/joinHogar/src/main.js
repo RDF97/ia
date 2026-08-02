@@ -27,6 +27,11 @@ export default async ({ req, res, log, error }) => {
     const code = String(body.code || "").trim().toUpperCase();
     if (!code) return res.json({ ok: false, error: "code" }, 400);
 
+    if (!process.env.APPWRITE_API_KEY) {
+      error("Falta la variable APPWRITE_API_KEY en la función");
+      return res.json({ ok: false, error: "no-key" }, 500);
+    }
+
     const client = new Client()
       .setEndpoint(process.env.APPWRITE_FUNCTION_API_ENDPOINT)
       .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
@@ -53,12 +58,20 @@ export default async ({ req, res, log, error }) => {
     } catch (e) {
       // 409 = ya es miembro → lo tratamos como éxito idempotente.
       const already = e?.code === 409 || String(e?.message || "").toLowerCase().includes("already");
-      if (!already) throw e;
+      if (!already) {
+        // Causa típica: la API key de la función no tiene el scope teams.write,
+        // o falta la variable APPWRITE_API_KEY. Lo decimos claramente.
+        error(`createMembership falló: ${e?.code || ""} ${e?.message || e}`);
+        return res.json(
+          { ok: false, error: "membership", detail: String(e?.message || e).slice(0, 300) },
+          500,
+        );
+      }
     }
 
     return res.json({ ok: true, hogarName: inv.hogarName });
   } catch (e) {
     error(e?.message || String(e));
-    return res.json({ ok: false, error: "server" }, 500);
+    return res.json({ ok: false, error: "server", detail: String(e?.message || e).slice(0, 300) }, 500);
   }
 };

@@ -15,6 +15,8 @@ import { Screen } from "@/components/Screen";
 import { PhaseCard } from "@/components/Card";
 import { ProductsModal } from "@/components/compra/ProductsModal";
 import { ScanModal } from "@/components/gastos/ScanModal";
+import { AddBar } from "@/components/AddBar";
+import { UploadCard } from "@/components/UploadCard";
 import { useHogar } from "@/lib/hogar";
 import { useAuth } from "@/lib/auth";
 import { appwriteConfigured } from "@/lib/appwrite";
@@ -154,17 +156,27 @@ function CompraList({ hogarId, userName }: { hogarId: string; userName: string }
         </Pressable>
       }
       floating={
-        <QuickAdd
+        <AddBar
+          placeholder="Añadir a la lista…"
           value={name}
           onChange={setName}
           onSubmit={add}
           busy={busy}
+          actionIcon="mic"
           inputRef={inputRef}
         />
       }
     >
       {/* Subir ticket (OCR) — mismo flujo que el escáner de Gastos */}
-      <UploadTicket onPick={(s) => setScanSource(s)} />
+      <UploadCard
+        title="Subir ticket"
+        subtitle="OCR automático · vincula precios y supermercado"
+        actions={[
+          { key: "camera", label: "Cámara", icon: "camera-outline", onPress: () => setScanSource("camera") },
+          { key: "library", label: "Galería", icon: "images-outline", onPress: () => setScanSource("library") },
+          { key: "pdf", label: "PDF", icon: "document-text-outline", onPress: () => setScanSource("pdf") },
+        ]}
+      />
 
       {isError && (
         <Text className="text-center text-[13px] mb-2" style={{ color: t.red }}>
@@ -213,48 +225,6 @@ function CompraList({ hogarId, userName }: { hogarId: string; userName: string }
         }}
       />
     </Screen>
-  );
-}
-
-/** Tarjeta con degradado "Subir ticket" (Cámara / Galería / PDF), como el mockup. */
-function UploadTicket({ onPick }: { onPick: (s: ScanSource) => void }) {
-  const t = useTheme();
-  return (
-    <View className="mx-4 mb-4">
-      <LinearGradient
-        colors={[t.accent, "#2A6E75"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ borderRadius: 18, padding: 14, shadowColor: t.accent, shadowOpacity: 0.22, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } }}
-      >
-        <View className="flex-row items-center mb-3" style={{ gap: 10 }}>
-          <View className="rounded-[10px] items-center justify-center" style={{ width: 32, height: 32, backgroundColor: "rgba(255,255,255,0.18)" }}>
-            <Ionicons name="receipt-outline" size={18} color="#fff" />
-          </View>
-          <View className="flex-1">
-            <Text className="text-white text-[15px] font-semibold">Subir ticket</Text>
-            <Text className="text-[12px]" style={{ color: "rgba(255,255,255,0.85)" }}>OCR automático · vincula precios y supermercado</Text>
-          </View>
-        </View>
-        <View className="flex-row" style={{ gap: 6 }}>
-          {([
-            { key: "camera", label: "Cámara", icon: "camera-outline" },
-            { key: "library", label: "Galería", icon: "images-outline" },
-            { key: "pdf", label: "PDF", icon: "document-text-outline" },
-          ] as const).map((o) => (
-            <Pressable
-              key={o.key}
-              onPress={() => onPick(o.key)}
-              className="flex-1 items-center justify-center rounded-[10px] py-2.5"
-              style={{ backgroundColor: "rgba(255,255,255,0.16)", gap: 5 }}
-            >
-              <Ionicons name={o.icon} size={18} color="#fff" />
-              <Text className="text-white text-[12px] font-medium">{o.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </LinearGradient>
-    </View>
   );
 }
 
@@ -348,71 +318,6 @@ function ShopRow({
         <Text className="text-[12px] text-secondary mt-0.5" numberOfLines={1}>{meta}</Text>
       </Pressable>
       <Text className="text-[13px] text-secondary" style={{ fontVariant: ["tabular-nums"] }}>{qtyLabel}</Text>
-    </View>
-  );
-}
-
-/** Pill flotante "Añadir a la lista…" con botón de acción, como el mockup. */
-function QuickAdd({
-  value,
-  onChange,
-  onSubmit,
-  busy,
-  inputRef,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  onSubmit: () => void;
-  busy: boolean;
-  inputRef: React.RefObject<TextInput | null>;
-}) {
-  const t = useTheme();
-  const hasText = value.trim().length > 0;
-  return (
-    <View
-      className="absolute flex-row items-center rounded-pill"
-      style={{
-        left: 16,
-        right: 16,
-        bottom: 16,
-        paddingLeft: 16,
-        paddingRight: 6,
-        paddingVertical: 6,
-        gap: 10,
-        backgroundColor: t.card,
-        borderWidth: 0.5,
-        borderColor: t.separator,
-        shadowColor: "#000",
-        shadowOpacity: t.dark ? 0.3 : 0.12,
-        shadowRadius: 18,
-        shadowOffset: { width: 0, height: 6 },
-        elevation: 6,
-      }}
-    >
-      <Ionicons name="add" size={20} color={t.labelTertiary} />
-      <TextInput
-        ref={inputRef}
-        className="flex-1 text-[15px] text-label"
-        style={{ paddingVertical: 6 }}
-        placeholder="Añadir a la lista…"
-        placeholderTextColor={t.labelTertiary}
-        value={value}
-        onChangeText={onChange}
-        onSubmitEditing={onSubmit}
-        returnKeyType="done"
-        blurOnSubmit={false}
-      />
-      <Pressable
-        onPress={() => (hasText ? onSubmit() : inputRef.current?.focus())}
-        className="items-center justify-center rounded-full"
-        style={{ width: 32, height: 32, backgroundColor: t.accent }}
-      >
-        {busy ? (
-          <ActivityIndicator color="#fff" size="small" />
-        ) : (
-          <Ionicons name={hasText ? "arrow-up" : "mic"} size={16} color="#fff" />
-        )}
-      </Pressable>
     </View>
   );
 }
