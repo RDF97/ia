@@ -1,17 +1,63 @@
-import { Client, Databases, Teams, Query } from "node-appwrite";
+import https from "https";
+import { URL } from "url";
 
 // Función "joinHogar": añade al usuario que la ejecuta al hogar (equipo) asociado
-// a un código de invitación. Se ejecuta desde la app con la sesión del usuario;
-// usa una API key (env APPWRITE_API_KEY) para poder crear la membresía confirmada.
+// a un código de invitación.
 //
-// Env vars necesarias:
-//   APPWRITE_API_KEY  → API key con scopes: teams.write, databases.read
+// SIN DEPENDENCIAS a propósito: usa el módulo `https` de Node contra la API REST
+// de Appwrite. Así el despliegue por .tar.gz funciona aunque no se ejecute
+// `npm install` — que es justo lo que rompía la versión anterior (importaba
+// node-appwrite y, sin node_modules, la función fallaba al arrancar). De paso
+// evita los cambios de firma entre versiones del SDK.
+//
+// Variables necesarias:
+//   APPWRITE_API_KEY  → API key con scopes teams.write y databases.read
 // (APPWRITE_FUNCTION_API_ENDPOINT y APPWRITE_FUNCTION_PROJECT_ID los inyecta Appwrite)
 //
-// Permiso de ejecución: Any / Users (cualquier usuario con sesión).
+// Permiso de ejecución: Users.
 
 const DB_ID = "homie";
 const INVITES_COL = "invites";
+
+/** Petición JSON a la API de Appwrite. Devuelve { status, body }. */
+function api(method, path, cfg, payload) {
+  const url = new URL(cfg.endpoint.replace(/\/$/, "") + path);
+  const data = payload ? JSON.stringify(payload) : null;
+  const headers = {
+    "X-Appwrite-Project": cfg.project,
+    "X-Appwrite-Key": cfg.key,
+    "Content-Type": "application/json",
+  };
+  if (data) headers["Content-Length"] = Buffer.byteLength(data);
+
+  return new Promise((resolve, reject) => {
+    const req = https.request(
+      {
+        hostname: url.hostname,
+        port: url.port || 443,
+        path: url.pathname + url.search,
+        method,
+        headers,
+      },
+      (r) => {
+        let raw = "";
+        r.on("data", (c) => (raw += c));
+        r.on("end", () => {
+          let body = {};
+          try {
+            body = raw ? JSON.parse(raw) : {};
+          } catch {
+            body = { message: raw.slice(0, 200) };
+          }
+          resolve({ status: r.statusCode || 0, body });
+        });
+      },
+    );
+    req.on("error", reject);
+    if (data) req.write(data);
+    req.end();
+  });
+}
 
 export default async ({ req, res, log, error }) => {
   try {
@@ -27,48 +73,53 @@ export default async ({ req, res, log, error }) => {
     const code = String(body.code || "").trim().toUpperCase();
     if (!code) return res.json({ ok: false, error: "code" }, 400);
 
-    if (!process.env.APPWRITE_API_KEY) {
+    const cfg = {
+      endpoint: process.env.APPWRITE_FUNCTION_API_ENDPOINT,
+      project: process.env.APPWRITE_FUNCTION_PROJECT_ID,
+      key: process.env.APPWRITE_API_KEY,
+    };
+    if (!cfg.key) {
       error("Falta la variable APPWRITE_API_KEY en la función");
       return res.json({ ok: false, error: "no-key" }, 500);
     }
 
-    const client = new Client()
-      .setEndpoint(process.env.APPWRITE_FUNCTION_API_ENDPOINT)
-      .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
-      .setKey(process.env.APPWRITE_API_KEY);
+    // 1) Buscar el código de invitación.
+    const q = encodeURIComponent(
+      JSON.stringify({ method: "equal", attribute: "code", values: [code] }),
+    );
+    const found = await api(
+      "GET",
+      `/databases/${DB_ID}/collections/${INVITES_COL}/documents?queries[]=${q}`,
+      cfg,
+    );
+    if (found.status >= 400) {
+      const detail = found.body?.message || `HTTP ${found.status}`;
+      error(`No se pudo leer invites: ${detail}`);
+      return res.json({ ok: false, error: "lookup", detail: String(detail).slice(0, 300) }, 500);
+    }
 
-    const db = new Databases(client);
-    const teams = new Teams(client);
+    const docs = found.body?.documents ?? [];
+    if (!docs.length) return res.json({ ok: false, error: "invalid" }, 404);
 
-    // Llamadas en estilo posicional: compatible con node-appwrite antiguos y nuevos.
-    const found = await db.listDocuments(DB_ID, INVITES_COL, [
-      Query.equal("code", code),
-      Query.limit(1),
-    ]);
-    if (!found.documents.length) return res.json({ ok: false, error: "invalid" }, 404);
-
-    const inv = found.documents[0];
+    const inv = docs[0];
     if (inv.expiresAt && new Date(inv.expiresAt).getTime() < Date.now()) {
       return res.json({ ok: false, error: "expired" }, 410);
     }
 
-    try {
-      // Alta server-side por userId → membresía ya confirmada (sin email).
-      await teams.createMembership(inv.hogarId, ["member"], undefined, userId);
-    } catch (e) {
-      // 409 = ya es miembro → lo tratamos como éxito idempotente.
-      const already = e?.code === 409 || String(e?.message || "").toLowerCase().includes("already");
-      if (!already) {
-        // Causa típica: la API key de la función no tiene el scope teams.write,
-        // o falta la variable APPWRITE_API_KEY. Lo decimos claramente.
-        error(`createMembership falló: ${e?.code || ""} ${e?.message || e}`);
-        return res.json(
-          { ok: false, error: "membership", detail: String(e?.message || e).slice(0, 300) },
-          500,
-        );
-      }
+    // 2) Alta directa por userId → membresía ya confirmada (sin email).
+    const made = await api("POST", `/teams/${inv.hogarId}/memberships`, cfg, {
+      userId,
+      roles: ["member"],
+    });
+
+    // 409 = ya es miembro → éxito idempotente.
+    if (made.status >= 400 && made.status !== 409) {
+      const detail = made.body?.message || `HTTP ${made.status}`;
+      error(`Alta en el equipo falló: ${detail}`);
+      return res.json({ ok: false, error: "membership", detail: String(detail).slice(0, 300) }, 500);
     }
 
+    log(`Usuario ${userId} añadido al hogar ${inv.hogarId}`);
     return res.json({ ok: true, hogarName: inv.hogarName });
   } catch (e) {
     error(e?.message || String(e));
