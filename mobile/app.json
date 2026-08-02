@@ -17,7 +17,10 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive.png",
         "backgroundColor": "#1F4D52"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -47,6 +50,16 @@
         {
           "photosPermission": "Homie usa tus fotos para escanear tickets de compra.",
           "cameraPermission": "Homie usa la cámara para escanear tickets de compra."
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Homie usa el micrófono para que puedas dictar la lista de la compra.",
+          "speechRecognitionPermission": "Homie usa el reconocimiento de voz para convertir lo que dictas en productos.",
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox"
+          ]
         }
       ]
     ],

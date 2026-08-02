@@ -25,6 +25,7 @@ import { useShopping } from "@/lib/useShopping";
 import { useCategories } from "@/lib/useCategories";
 import { addItem, deleteItem, setItemDone, type ShoppingItem } from "@/lib/shopping";
 import { listProducts, normalizeName, recordPrice, type Product } from "@/lib/products";
+import { startDictation, voiceAvailable, type VoiceSession } from "@/lib/voice";
 import { useTheme } from "@/theme/theme";
 
 type ScanSource = "camera" | "library" | "pdf";
@@ -92,6 +93,8 @@ function CompraList({ hogarId, userName }: { hogarId: string; userName: string }
   const [dbOpen, setDbOpen] = useState(false);
   const [scanSource, setScanSource] = useState<ScanSource | null>(null);
   const inputRef = useRef<TextInput>(null);
+  const [listening, setListening] = useState(false);
+  const voiceRef = useRef<VoiceSession | null>(null);
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["shopping", hogarId] });
 
@@ -99,14 +102,34 @@ function CompraList({ hogarId, userName }: { hogarId: string; userName: string }
   const priceIndex = new Map<string, Product>();
   for (const p of products.data ?? []) priceIndex.set(normalizeName(p.name).toLowerCase(), p);
 
-  // Dictado: abrimos el teclado y el usuario usa su micrófono (el del teclado del
-  // móvil). El reconocimiento de voz dentro de la app necesitaría un módulo nativo.
-  const dictate = () => {
-    inputRef.current?.focus();
-    Alert.alert(
-      "Añadir por voz",
-      "Se ha abierto el teclado: pulsa el micrófono de tu teclado y dicta el producto.",
-    );
+  // Dictado por voz. El reconocimiento nativo solo existe en la APK (no en Expo
+  // Go); si no está, caemos en el dictado del teclado del móvil.
+  const dictate = async () => {
+    if (listening) {
+      voiceRef.current?.stop();
+      return;
+    }
+    if (!voiceAvailable()) {
+      inputRef.current?.focus();
+      Alert.alert(
+        "Añadir por voz",
+        "El dictado dentro de la app está en la versión instalable (APK). Mientras tanto se ha abierto el teclado: usa su micrófono para dictar.",
+      );
+      return;
+    }
+    setListening(true);
+    const session = await startDictation({
+      onResult: (text) => setName(text),
+      onEnd: (err) => {
+        setListening(false);
+        voiceRef.current = null;
+        if (err === "permiso") {
+          Alert.alert("Sin permiso de micrófono", "Actívalo en los ajustes para dictar.");
+        }
+      },
+    });
+    voiceRef.current = session;
+    if (!session) setListening(false);
   };
 
   const add = async () => {
@@ -173,7 +196,7 @@ function CompraList({ hogarId, userName }: { hogarId: string; userName: string }
           onChange={setName}
           onSubmit={add}
           busy={busy}
-          actionIcon="mic"
+          actionIcon={listening ? "stop" : "mic"}
           onAction={dictate}
           inputRef={inputRef}
         />
