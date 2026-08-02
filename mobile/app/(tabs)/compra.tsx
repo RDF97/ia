@@ -17,6 +17,7 @@ import { ProductsModal } from "@/components/compra/ProductsModal";
 import { ScanModal } from "@/components/gastos/ScanModal";
 import { AddBar } from "@/components/AddBar";
 import { UploadCard } from "@/components/UploadCard";
+import { SwipeToDelete } from "@/components/SwipeToDelete";
 import { useHogar } from "@/lib/hogar";
 import { useAuth } from "@/lib/auth";
 import { appwriteConfigured } from "@/lib/appwrite";
@@ -98,6 +99,16 @@ function CompraList({ hogarId, userName }: { hogarId: string; userName: string }
   const priceIndex = new Map<string, Product>();
   for (const p of products.data ?? []) priceIndex.set(normalizeName(p.name).toLowerCase(), p);
 
+  // Dictado: abrimos el teclado y el usuario usa su micrófono (el del teclado del
+  // móvil). El reconocimiento de voz dentro de la app necesitaría un módulo nativo.
+  const dictate = () => {
+    inputRef.current?.focus();
+    Alert.alert(
+      "Añadir por voz",
+      "Se ha abierto el teclado: pulsa el micrófono de tu teclado y dicta el producto.",
+    );
+  };
+
   const add = async () => {
     const n = name.trim();
     if (!n) return;
@@ -163,6 +174,7 @@ function CompraList({ hogarId, userName }: { hogarId: string; userName: string }
           onSubmit={add}
           busy={busy}
           actionIcon="mic"
+          onAction={dictate}
           inputRef={inputRef}
         />
       }
@@ -295,6 +307,7 @@ function ShopRow({
   const qtyLabel = item.done ? "✓" : Number.isFinite(qtyNum) ? `×${qtyNum}` : item.qty ? item.qty : "×1";
 
   return (
+    <SwipeToDelete onDelete={onDelete}>
     <View
       className="flex-row items-center px-4 py-3"
       style={{ gap: 12, borderTopWidth: first ? 0 : 0.5, borderTopColor: t.separator }}
@@ -319,6 +332,7 @@ function ShopRow({
       </Pressable>
       <Text className="text-[13px] text-secondary" style={{ fontVariant: ["tabular-nums"] }}>{qtyLabel}</Text>
     </View>
+    </SwipeToDelete>
   );
 }
 
