@@ -5,6 +5,7 @@ import { useTheme } from "@/theme/theme";
 import { useKeyboardHeight } from "@/lib/useKeyboard";
 import { hSelect } from "@/lib/haptics";
 import { ICON_COLORS, type IconStyle } from "@/lib/appearance";
+import { SheetHeader } from "./SheetHeader";
 import type { IoniconName } from "./ui";
 
 /** Hoja para elegir icono y color (del hogar o del perfil). */
@@ -61,16 +62,13 @@ export function IconPickerModal({
         <View className="items-center pt-2 pb-1">
           <View style={{ width: 36, height: 5, borderRadius: 999, backgroundColor: t.separator }} />
         </View>
-        <View
-          className="flex-row items-center justify-between px-5 py-3"
-          style={{ borderBottomWidth: 0.5, borderBottomColor: t.separator }}
-        >
-          <Pressable onPress={onClose} hitSlop={8}>
-            <Text className="text-base text-accent">Cancelar</Text>
-          </Pressable>
-          <Text className="text-[17px] font-semibold text-label">{title}</Text>
-          <View style={{ width: 62 }} />
-        </View>
+        <SheetHeader
+          title={title}
+          onClose={onClose}
+          onSave={() => run(() => onSave({ icon, color }))}
+          dirty={icon !== value.icon || color !== value.color}
+          saving={busy}
+        />
 
         <ScrollView contentContainerStyle={{ padding: 16 }}>
           {/* Vista previa */}
@@ -144,19 +142,6 @@ export function IconPickerModal({
               );
             })}
           </View>
-
-          <Pressable
-            onPress={() => run(() => onSave({ icon, color }))}
-            disabled={busy}
-            className="rounded-[14px] py-3.5 items-center"
-            style={{ backgroundColor: t.accent, opacity: busy ? 0.6 : 1 }}
-          >
-            {busy ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text className="text-white text-base font-semibold">Guardar</Text>
-            )}
-          </Pressable>
 
           {onReset && (
             <Pressable onPress={() => run(onReset)} disabled={busy} className="mt-3 items-center py-1">
