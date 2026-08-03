@@ -9,7 +9,7 @@ import { File } from "expo-file-system";
 import { useTheme } from "@/theme/theme";
 import { hSelect } from "@/lib/haptics";
 import { scanReceipt, type ReceiptData } from "@/lib/receipts";
-import { addExpense, type Account } from "@/lib/expenses";
+import { addExpense, stringifyExpenseItems, type Account, type ExpenseItem } from "@/lib/expenses";
 import { recordPrice } from "@/lib/products";
 import type { Category } from "@/lib/categories";
 
@@ -139,6 +139,21 @@ export function ScanModal({
     }
     setBusy(true);
     try {
+      // Guardamos los artículos marcados dentro del gasto, para poder verlos
+      // luego en su detalle.
+      const chosen: ExpenseItem[] = data
+        ? [...picked]
+            .sort((a, b) => a - b)
+            .map((i) => data.lines[i])
+            .filter((l) => l && l.description.trim())
+            .map((l) => ({
+              description: l.description.trim(),
+              qty: l.qty,
+              unitPrice: l.unitPrice,
+              total: l.total,
+            }))
+        : [];
+
       await addExpense(hogarId, {
         amount: value,
         concept: merchant.trim() || "Compra",
@@ -147,6 +162,7 @@ export function ScanModal({
         shared: account === "joint",
         category: category ?? undefined,
         spentAt: data?.date ? new Date(data.date).toISOString() : undefined,
+        items: stringifyExpenseItems(chosen),
       });
       // Los precios son "best-effort": el gasto ya está guardado, así que si falla
       // registrar un precio NO abortamos (evita que reintentar duplique el gasto).

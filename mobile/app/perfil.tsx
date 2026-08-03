@@ -11,6 +11,7 @@ import { Avatar } from "@/components/ui";
 import { IconPickerModal } from "@/components/IconPickerModal";
 import { Segmented } from "@/components/Segmented";
 import { getThemeChoice, setThemeChoice, THEME_OPTIONS, type ThemeChoice } from "@/lib/themePref";
+import { listMembers, type Member } from "@/lib/members";
 import {
   getHogarIcon,
   getPerfilIcon,
@@ -65,10 +66,17 @@ export default function Perfil() {
   const [perfilIcon, setPerfilIconState] = useState<IconStyle | null>(null);
   const [pick, setPick] = useState<"hogar" | "perfil" | null>(null);
   const [theme, setTheme] = useState<ThemeChoice>("system");
+  const [members, setMembers] = useState<Member[] | null>(null);
 
   useEffect(() => {
     getThemeChoice().then(setTheme).catch(() => undefined);
   }, []);
+
+  // Quién más está en el hogar.
+  useEffect(() => {
+    if (!active) return;
+    listMembers(active.$id).then(setMembers).catch(() => setMembers([]));
+  }, [active]);
 
   const loadIcons = useCallback(() => {
     if (active) getHogarIcon(active.$id, t.accent).then(setHogarIconState).catch(() => undefined);
@@ -177,6 +185,30 @@ export default function Perfil() {
                 </View>
                 <Text className="text-[13px]" style={{ color: t.accent }}>Cambiar icono</Text>
               </Pressable>
+              {(members ?? []).map((m) => {
+                const isMe = m.email && user?.email ? m.email === user.email : m.name === user?.name;
+                return (
+                  <View
+                    key={m.id}
+                    className="flex-row items-center px-4 py-2.5"
+                    style={{ gap: 12, borderTopWidth: 0.5, borderTopColor: t.separator }}
+                  >
+                    <Avatar name={m.name} size={30} />
+                    <View className="flex-1">
+                      <Text className="text-[15px] text-label">
+                        {m.name}
+                        {isMe ? <Text className="text-secondary"> · tú</Text> : null}
+                      </Text>
+                      {m.email ? (
+                        <Text className="text-[12px] text-secondary" numberOfLines={1}>{m.email}</Text>
+                      ) : null}
+                    </View>
+                    {!m.confirmed && (
+                      <Text className="text-[11px] font-medium" style={{ color: t.orange }}>pendiente</Text>
+                    )}
+                  </View>
+                );
+              })}
               <Row icon="person-add" color={t.green} label="Invitar a alguien" onPress={() => setInviteOpen(true)} />
               <Row icon="exit-outline" color={t.red} label="Salir del hogar" danger onPress={confirmLeave} />
             </View>

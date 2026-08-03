@@ -7,6 +7,8 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { initThemeChoice } from "@/lib/themePref";
+import { wireAppState } from "@/lib/appState";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/lib/auth";
@@ -74,18 +76,23 @@ export default function RootLayout() {
     initThemeChoice().catch(() => undefined);
   }, []);
 
+  // Al volver del segundo plano, refresca los datos (si no, se quedan viejos).
+  useEffect(() => wireAppState(queryClient), []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <HogarProvider>
-              <RootNavigator />
-              <StatusBar style="auto" />
-            </HogarProvider>
-          </AuthProvider>
-        </QueryClientProvider>
-      </SafeAreaProvider>
+      <ErrorBoundary>
+        <SafeAreaProvider>
+          <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+              <HogarProvider>
+                <RootNavigator />
+                <StatusBar style="auto" />
+              </HogarProvider>
+            </AuthProvider>
+          </QueryClientProvider>
+        </SafeAreaProvider>
+      </ErrorBoundary>
     </GestureHandlerRootView>
   );
 }

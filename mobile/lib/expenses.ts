@@ -12,7 +12,41 @@ export interface Expense extends Models.Document {
   shared: boolean;
   account?: Account | null; // "joint" = cuenta conjunta; ausente = individual (compat)
   spentAt?: string | null; // fecha real del gasto (ISO); ausente → se usa $createdAt
+  items?: string | null; // JSON con los artículos del ticket escaneado
   hogarId: string;
+}
+
+/** Un artículo del ticket, tal como se guarda dentro del gasto. */
+export interface ExpenseItem {
+  description: string;
+  qty: number | null;
+  unitPrice: number | null;
+  total: number | null;
+}
+
+/** Lee los artículos guardados en un gasto. Nunca lanza: si el JSON está mal, devuelve []. */
+export function parseExpenseItems(raw: string | null | undefined): ExpenseItem[] {
+  if (!raw) return [];
+  try {
+    const data = JSON.parse(raw);
+    if (!Array.isArray(data)) return [];
+    return data
+      .filter((x) => x && typeof x === "object")
+      .map((x) => ({
+        description: String(x.description ?? "").trim(),
+        qty: typeof x.qty === "number" ? x.qty : null,
+        unitPrice: typeof x.unitPrice === "number" ? x.unitPrice : null,
+        total: typeof x.total === "number" ? x.total : null,
+      }))
+      .filter((x) => x.description.length > 0);
+  } catch {
+    return [];
+  }
+}
+
+/** Serializa los artículos para guardarlos (null si no hay). */
+export function stringifyExpenseItems(items: ExpenseItem[]): string | null {
+  return items.length ? JSON.stringify(items) : null;
 }
 
 // Gastos antiguos sin cuenta se tratan como individuales (comportamiento previo).
@@ -33,7 +67,7 @@ export async function listExpenses(hogarId: string): Promise<Expense[]> {
 
 export async function addExpense(
   hogarId: string,
-  data: { amount: number; concept: string; paidByName: string; shared: boolean; category?: string; account?: Account; spentAt?: string },
+  data: { amount: number; concept: string; paidByName: string; shared: boolean; category?: string; account?: Account; spentAt?: string; items?: string | null },
 ): Promise<Expense> {
   return databases.createDocument<Expense>(
     DB_ID,
@@ -47,6 +81,7 @@ export async function addExpense(
       shared: data.shared,
       account: data.account ?? "individual",
       spentAt: data.spentAt ?? new Date().toISOString(),
+      items: data.items ?? null,
       hogarId,
     },
     [
