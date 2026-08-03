@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/theme/theme";
 import { useKeyboardHeight } from "@/lib/useKeyboard";
 import { Toggle } from "@/components/Toggle";
+import { SheetHeader } from "@/components/SheetHeader";
 import { useCategories } from "@/lib/useCategories";
 import {
   CATEGORY_COLORS,
@@ -61,11 +62,7 @@ export function BudgetModal({
         <View className="items-center pt-2 pb-1">
           <View style={{ width: 36, height: 5, borderRadius: 999, backgroundColor: t.separator }} />
         </View>
-        <View className="flex-row items-center justify-between px-5 py-3" style={{ borderBottomWidth: 0.5, borderBottomColor: t.separator }}>
-          <Pressable onPress={onClose} hitSlop={8}><Text className="text-base text-accent">Cerrar</Text></Pressable>
-          <Text className="text-[17px] font-semibold text-label">Categorías y presupuesto</Text>
-          <View style={{ width: 52 }} />
-        </View>
+        <SheetHeader title="Categorías y presupuesto" onClose={onClose} />
 
         <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
           {/* Interruptor */}
@@ -185,6 +182,14 @@ function CategoryEditor({
     }
   }, [target]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ¿Hay cambios sin guardar? Solo entonces avisamos al cerrar.
+  const dirty = cat
+    ? name !== cat.name ||
+      color !== cat.color ||
+      icon !== cat.icon ||
+      (budget.trim() ? parseFloat(budget.replace(",", ".")) : 0) !== cat.budget
+    : name.trim().length > 0 || budget.trim().length > 0;
+
   const save = async () => {
     if (!name.trim()) return;
     const b = budget.trim() ? parseFloat(budget.replace(",", ".")) : 0;
@@ -223,12 +228,21 @@ function CategoryEditor({
   return (
     <Modal visible={target !== null} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
-      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
+      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
+        <SheetHeader
+          title={isNew ? "Nueva categoría" : "Editar categoría"}
+          onClose={onClose}
+          onSave={save}
+          dirty={dirty}
+          saving={busy}
+          saveDisabled={!name.trim()}
+        />
+        <ScrollView contentContainerStyle={{ padding: 20 }}>
         <View className="flex-row items-center mb-4" style={{ gap: 12 }}>
           <View className="rounded-lg items-center justify-center" style={{ width: 34, height: 34, backgroundColor: color }}>
             <Ionicons name={icon as IoniconName} size={18} color="#fff" />
           </View>
-          <Text className="text-[17px] font-semibold text-label">{isNew ? "Nueva categoría" : "Editar categoría"}</Text>
+          <Text className="text-[15px] text-secondary">Así se verá en tus gastos</Text>
         </View>
 
         <TextInput
@@ -279,20 +293,12 @@ function CategoryEditor({
           })}
         </View>
 
-        <Pressable
-          onPress={save}
-          disabled={busy || !name.trim()}
-          className="rounded-[14px] py-3.5 items-center"
-          style={{ backgroundColor: t.accent, opacity: busy || !name.trim() ? 0.6 : 1 }}
-        >
-          {busy ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-base font-semibold">Guardar</Text>}
-        </Pressable>
-
         {cat && (
-          <Pressable onPress={remove} className="mt-3 items-center py-1">
-            <Text className="text-[14px]" style={{ color: t.red }}>Borrar categoría</Text>
+          <Pressable onPress={remove} className="mt-2 items-center py-2">
+            <Text className="text-[15px] font-medium" style={{ color: t.red }}>Borrar categoría</Text>
           </Pressable>
         )}
+        </ScrollView>
       </View>
     </Modal>
   );

@@ -20,6 +20,7 @@ import { appwriteConfigured } from "@/lib/appwrite";
 import { useEvents } from "@/lib/useEvents";
 import { addEvent, daysWithEvents, deleteEvent, eventsOfDay, hhmm, ymd, type Event } from "@/lib/events";
 import { SwipeToDelete } from "@/components/SwipeToDelete";
+import { SheetHeader } from "@/components/SheetHeader";
 import { Segmented } from "@/components/Segmented";
 import {
   addToGoogleCalendar,
@@ -318,8 +319,16 @@ function AddEvent({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
-      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
-        <Text className="text-[17px] font-semibold mb-4 text-label">Nuevo evento</Text>
+      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
+        <SheetHeader
+          title="Nuevo evento"
+          onClose={onClose}
+          onSave={submit}
+          dirty={title.trim().length > 0 || place.trim().length > 0}
+          saving={busy}
+          saveDisabled={!title.trim()}
+        />
+        <View className="p-5">
         <TextInput
           className="bg-card rounded-lg2 px-4 py-3 mb-3 text-[16px] text-label"
           placeholder="Título"
@@ -355,14 +364,7 @@ function AddEvent({
           />
         )}
 
-        <Pressable
-          onPress={submit}
-          disabled={busy}
-          className="rounded-[14px] py-3.5 items-center"
-          style={{ backgroundColor: t.accent, opacity: busy ? 0.6 : 1 }}
-        >
-          {busy ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-base font-semibold">Guardar</Text>}
-        </Pressable>
+        </View>
       </View>
     </Modal>
   );

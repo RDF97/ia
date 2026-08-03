@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, Modal, Platform, Pressable, ScrollView, Text,
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { useTheme } from "@/theme/theme";
+import { SheetHeader } from "@/components/SheetHeader";
 import { useKeyboardHeight } from "@/lib/useKeyboard";
 import { Toggle } from "@/components/Toggle";
 import { Avatar } from "@/components/ui";
@@ -124,13 +125,14 @@ export function TaskEditor({
     <Modal visible={target !== null} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
       <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0" style={{ maxHeight: "90%", backgroundColor: t.bg }}>
-        <View className="flex-row items-center justify-between px-5 py-3" style={{ borderBottomWidth: 0.5, borderBottomColor: t.separator }}>
-          <Pressable onPress={onClose} hitSlop={8}><Text className="text-base text-accent">Cancelar</Text></Pressable>
-          <Text className="text-[17px] font-semibold text-label">{isNew ? "Nueva tarea" : "Editar tarea"}</Text>
-          <Pressable onPress={save} disabled={busy || !title.trim()} hitSlop={8}>
-            <Text className="text-base font-semibold" style={{ color: t.accent, opacity: busy || !title.trim() ? 0.4 : 1 }}>Listo</Text>
-          </Pressable>
-        </View>
+        <SheetHeader
+          title={isNew ? "Nueva tarea" : "Editar tarea"}
+          onClose={onClose}
+          onSave={save}
+          dirty={title.trim().length > 0}
+          saving={busy}
+          saveDisabled={!title.trim()}
+        />
 
         <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 32 }}>
           <TextInput

@@ -7,6 +7,7 @@ import { Screen } from "@/components/Screen";
 import { Card, PhaseCard, cardShadow } from "@/components/Card";
 import { AddFab, IconTile, Money, SectionTitle } from "@/components/ui";
 import { SwipeToDelete } from "@/components/SwipeToDelete";
+import { SheetHeader } from "@/components/SheetHeader";
 import { UploadCard } from "@/components/UploadCard";
 import { Segmented } from "@/components/Segmented";
 import { DebtCard } from "@/components/DebtCard";
@@ -422,7 +423,7 @@ function BudgetSection({
           style={{ gap: 4, backgroundColor: t.accentSoft }}
         >
           <Ionicons name="add" size={13} color={t.accent} />
-          <Text className="text-[13px] font-semibold" style={{ color: t.accent }}>Editar presupuesto</Text>
+          <Text className="text-[13px] font-semibold" style={{ color: t.accent }}>Editar</Text>
         </Pressable>
       </View>
       <View className="flex-row flex-wrap mx-4 mb-2" style={{ gap: 8 }}>
@@ -503,6 +504,14 @@ function AddExpense({
   const [showDate, setShowDate] = useState(false);
   const [busy, setBusy] = useState(false);
   const items = parseExpenseItems(expense?.items);
+  // ¿Cambió algo respecto a lo que había al abrir?
+  const dirty = expense
+    ? amount.replace(",", ".") !== String(expense.amount) ||
+      concept !== expense.concept ||
+      shared !== expense.shared ||
+      account !== effectiveAccount(expense) ||
+      (category ?? null) !== (expense.category ?? null)
+    : amount.trim().length > 0 || concept.trim().length > 0;
 
   const onPickDate = (_e: DateTimePickerEvent, d?: Date) => {
     setShowDate(false);
@@ -556,8 +565,16 @@ function AddExpense({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
-      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
-        <Text className="text-[17px] font-semibold mb-4 text-label">{expense ? "Editar gasto" : "Nuevo gasto"}</Text>
+      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
+        <SheetHeader
+          title={expense ? "Editar gasto" : "Nuevo gasto"}
+          onClose={onClose}
+          onSave={submit}
+          dirty={dirty}
+          saving={busy}
+          saveDisabled={!concept.trim() || !amount.trim()}
+        />
+        <ScrollView contentContainerStyle={{ padding: 20 }}>
 
         {items.length > 0 && (
           <>
@@ -666,20 +683,12 @@ function AddExpense({
             <Switch value={shared} onValueChange={setShared} trackColor={{ true: t.accent, false: t.separator }} />
           </View>
         )}
-        <Pressable
-          onPress={submit}
-          disabled={busy}
-          className="rounded-[14px] py-3.5 items-center"
-          style={{ backgroundColor: t.accent, opacity: busy ? 0.6 : 1 }}
-        >
-          {busy ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-base font-semibold">Guardar</Text>}
-        </Pressable>
-
         {expense && onDelete && (
-          <Pressable onPress={() => onDelete(expense.$id)} disabled={busy} className="mt-3 items-center py-2">
+          <Pressable onPress={() => onDelete(expense.$id)} disabled={busy} className="mt-2 items-center py-2">
             <Text className="text-[15px] font-medium" style={{ color: t.red }}>Borrar gasto</Text>
           </Pressable>
         )}
+        </ScrollView>
       </View>
     </Modal>
   );
