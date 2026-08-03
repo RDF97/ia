@@ -19,7 +19,7 @@ import { appwriteConfigured } from "@/lib/appwrite";
 import { useExpenses } from "@/lib/useExpenses";
 import { useCategories } from "@/lib/useCategories";
 import { useSettlements } from "@/lib/useSettlements";
-import { accountTotals, addExpense, balances, deleteExpense, effectiveAccount, expenseDate, updateExpense, type Account, type Expense } from "@/lib/expenses";
+import { accountTotals, addExpense, balances, deleteExpense, effectiveAccount, expenseDate, parseExpenseItems, updateExpense, type Account, type Expense } from "@/lib/expenses";
 import {
   budgetStatus,
   budgetTotals,
@@ -456,6 +456,7 @@ function AddExpense({
   const [date, setDate] = useState(new Date());
   const [showDate, setShowDate] = useState(false);
   const [busy, setBusy] = useState(false);
+  const items = parseExpenseItems(expense?.items);
 
   const onPickDate = (_e: DateTimePickerEvent, d?: Date) => {
     setShowDate(false);
@@ -511,6 +512,35 @@ function AddExpense({
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
       <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32, backgroundColor: t.bg }}>
         <Text className="text-[17px] font-semibold mb-4 text-label">{expense ? "Editar gasto" : "Nuevo gasto"}</Text>
+
+        {items.length > 0 && (
+          <>
+            <Text className="text-[12px] font-medium uppercase tracking-wide text-secondary mb-2">
+              Artículos del ticket ({items.length})
+            </Text>
+            <ScrollView className="bg-card rounded-lg2 mb-3" style={{ maxHeight: 170 }}>
+              {items.map((it, i) => (
+                <View
+                  key={i}
+                  className="flex-row items-center px-4 py-2.5"
+                  style={{ gap: 10, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}
+                >
+                  <View className="flex-1">
+                    <Text className="text-[14px] text-label" numberOfLines={1}>{it.description}</Text>
+                    {it.qty != null && it.qty > 1 && it.unitPrice != null && (
+                      <Text className="text-[12px] text-secondary mt-0.5">
+                        {it.qty} × {eur(it.unitPrice)}
+                      </Text>
+                    )}
+                  </View>
+                  <Text className="text-[14px] font-semibold text-label" style={{ fontVariant: ["tabular-nums"] }}>
+                    {it.total != null ? eur(it.total) : it.unitPrice != null ? eur(it.unitPrice) : "—"}
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
+          </>
+        )}
         <TextInput
           className="bg-card rounded-lg2 px-4 py-3 mb-3 text-[16px] text-label"
           placeholder="Importe (€)"

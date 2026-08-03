@@ -1,4 +1,11 @@
-import { accountTotals, balances, monthlyTotal, type Expense } from "./expenses";
+import {
+  accountTotals,
+  balances,
+  monthlyTotal,
+  parseExpenseItems,
+  stringifyExpenseItems,
+  type Expense,
+} from "./expenses";
 
 // Helper para construir gastos mínimos (solo los campos que usa la lógica).
 function exp(partial: Partial<Expense>): Expense {
@@ -96,5 +103,30 @@ describe("expenses · cálculos", () => {
       exp({ amount: 999, account: "joint", $createdAt: "2026-06-01T09:00:00.000Z" }), // otro mes
     ];
     expect(accountTotals(list, now)).toEqual({ joint: 200, individual: 80 });
+  });
+});
+
+describe("parseExpenseItems", () => {
+  test("lee los artículos guardados", () => {
+    const raw = JSON.stringify([
+      { description: "Leche", qty: 2, unitPrice: 1.15, total: 2.3 },
+      { description: "Pan", qty: null, unitPrice: null, total: 1.2 },
+    ]);
+    const items = parseExpenseItems(raw);
+    expect(items).toHaveLength(2);
+    expect(items[0]).toEqual({ description: "Leche", qty: 2, unitPrice: 1.15, total: 2.3 });
+    expect(items[1].qty).toBeNull();
+  });
+
+  test("nunca lanza: JSON inválido, vacío o formato raro → []", () => {
+    expect(parseExpenseItems(null)).toEqual([]);
+    expect(parseExpenseItems("")).toEqual([]);
+    expect(parseExpenseItems("{no es json")).toEqual([]);
+    expect(parseExpenseItems('{"a":1}')).toEqual([]);
+    expect(parseExpenseItems('[{"description":""}]')).toEqual([]);
+  });
+
+  test("stringify devuelve null si no hay artículos", () => {
+    expect(stringifyExpenseItems([])).toBeNull();
   });
 });
