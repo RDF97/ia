@@ -122,7 +122,7 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
       }
     >
       {isError && (
-        <Text className="text-center text-[13px] mb-2" style={{ color: t.red }}>
+        <Text className="text-center text-footnote mb-2" style={{ color: t.red }}>
           No se pudieron cargar las tareas. Desliza hacia abajo para reintentar.
         </Text>
       )}
@@ -192,7 +192,7 @@ function Section({
             <CheckCircle done={task.done} onPress={() => onToggle(task)} />
             <Pressable className="flex-1" onPress={() => onEdit(task)}>
               <Text
-                className="text-[15px]"
+                className="text-body"
                 style={{
                   color: task.done ? t.labelTertiary : t.label,
                   textDecorationLine: task.done ? "line-through" : "none",
@@ -225,20 +225,20 @@ function TaskMeta({ task }: { task: Task }) {
       {due && (
         <View className="flex-row items-center rounded-pill px-2 py-0.5" style={{ gap: 4, backgroundColor: overdue ? t.red + "22" : t.fill }}>
           <Ionicons name="calendar-outline" size={11} color={overdue ? t.red : t.labelSecondary} />
-          <Text className="text-[11px] font-medium" style={{ color: overdue ? t.red : t.labelSecondary }}>{due.label}</Text>
+          <Text className="text-caption2 font-medium" style={{ color: overdue ? t.red : t.labelSecondary }}>{due.label}</Text>
         </View>
       )}
       {repeat !== "none" && (
         <View className="flex-row items-center" style={{ gap: 3 }}>
           <Ionicons name="repeat" size={12} color={t.labelSecondary} />
-          <Text className="text-[11px] text-secondary">{repeatLabel(repeat)}</Text>
+          <Text className="text-caption2 text-secondary">{repeatLabel(repeat)}</Text>
         </View>
       )}
       {task.notify && <Ionicons name="notifications" size={11} color={t.labelSecondary} />}
       {task.assignedToName && (
         <View className="flex-row items-center" style={{ gap: 4 }}>
           <Avatar name={task.assignedToName} size={16} />
-          <Text className="text-[11px] text-secondary">{task.assignedToName}</Text>
+          <Text className="text-caption2 text-secondary">{task.assignedToName}</Text>
         </View>
       )}
     </View>

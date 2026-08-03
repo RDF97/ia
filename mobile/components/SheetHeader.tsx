@@ -50,7 +50,7 @@ export function SheetHeader({
         <Text className="text-base" style={{ color: t.accent }}>{closeLabel}</Text>
       </Pressable>
 
-      <Text className="text-[17px] font-semibold text-label" numberOfLines={1} style={{ flex: 1, textAlign: "center" }}>
+      <Text className="text-headline font-semibold text-label" numberOfLines={1} style={{ flex: 1, textAlign: "center" }}>
         {title}
       </Text>
 

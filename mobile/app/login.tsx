@@ -51,15 +51,15 @@ export default function Login() {
             >
               <Text className="text-white text-3xl font-bold">H</Text>
             </View>
-            <Text className="text-[28px] font-bold text-label">Homie</Text>
-            <Text className="text-[14px] text-secondary mt-1">
+            <Text className="text-title1 font-bold text-label">Homie</Text>
+            <Text className="text-subhead text-secondary mt-1">
               {mode === "login" ? "Inicia sesión en tu hogar" : "Crea tu cuenta"}
             </Text>
           </View>
 
           {!appwriteConfigured && (
             <View className="bg-card rounded-lg2 p-3 mb-4" style={{ borderWidth: 1, borderColor: t.orange }}>
-              <Text className="text-[13px] text-label">
+              <Text className="text-footnote text-label">
                 Backend no configurado todavía. Añade tu endpoint y Project ID de Appwrite en
                 app.json para activar el login.
               </Text>
@@ -68,7 +68,7 @@ export default function Login() {
 
           {mode === "register" && (
             <TextInput
-              className="bg-card rounded-lg2 px-4 py-3 mb-3 text-[16px] text-label"
+              className="bg-card rounded-lg2 px-4 py-3 mb-3 text-callout text-label"
               placeholder="Nombre"
               placeholderTextColor={t.labelTertiary}
               value={name}
@@ -77,7 +77,7 @@ export default function Login() {
             />
           )}
           <TextInput
-            className="bg-card rounded-lg2 px-4 py-3 mb-3 text-[16px] text-label"
+            className="bg-card rounded-lg2 px-4 py-3 mb-3 text-callout text-label"
             placeholder="Email"
             placeholderTextColor={t.labelTertiary}
             value={email}
@@ -87,7 +87,7 @@ export default function Login() {
             autoComplete="email"
           />
           <TextInput
-            className="bg-card rounded-lg2 px-4 py-3 mb-3 text-[16px] text-label"
+            className="bg-card rounded-lg2 px-4 py-3 mb-3 text-callout text-label"
             placeholder="Contraseña"
             placeholderTextColor={t.labelTertiary}
             value={password}
@@ -95,7 +95,7 @@ export default function Login() {
             secureTextEntry
           />
 
-          {error && <Text className="text-[13px] mb-3" style={{ color: t.red }}>{error}</Text>}
+          {error && <Text className="text-footnote mb-3" style={{ color: t.red }}>{error}</Text>}
 
           <Pressable
             onPress={submit}
@@ -119,7 +119,7 @@ export default function Login() {
             }}
             className="mt-4 items-center"
           >
-            <Text className="text-[14px]" style={{ color: t.accent }}>
+            <Text className="text-subhead" style={{ color: t.accent }}>
               {mode === "login" ? "¿No tienes cuenta? Regístrate" : "¿Ya tienes cuenta? Inicia sesión"}
             </Text>
           </Pressable>

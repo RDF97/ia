@@ -54,13 +54,13 @@ export function Screen({
           ) : undefined
         }
       >
-        <View className="px-5 pt-2 pb-2 flex-row items-end justify-between">
+        <View className="px-4 pt-2 pb-2 flex-row items-end justify-between">
           <View className="flex-1 pr-3">
-            <Text className="text-[34px] font-bold" style={{ lineHeight: 41, letterSpacing: -0.5, color: t.label }}>
+            <Text className="text-largeTitle" style={{ color: t.label }}>
               {title}
             </Text>
             {subtitle ? (
-              <Text className="text-[13px] mt-1" style={{ color: t.labelSecondary }}>{subtitle}</Text>
+              <Text className="text-footnote mt-1" style={{ color: t.labelSecondary }}>{subtitle}</Text>
             ) : null}
           </View>
           {right}

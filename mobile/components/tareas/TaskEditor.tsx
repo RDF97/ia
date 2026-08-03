@@ -136,7 +136,7 @@ export function TaskEditor({
 
         <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 32 }}>
           <TextInput
-            className="bg-card rounded-lg2 px-4 py-3 mb-4 text-[16px] text-label"
+            className="bg-card rounded-lg2 px-4 py-3 mb-4 text-callout text-label"
             placeholder="¿Qué hay que hacer?"
             placeholderTextColor={t.labelTertiary}
             value={title}
@@ -156,7 +156,7 @@ export function TaskEditor({
           {/* Fecha */}
           <View className="bg-card rounded-lg2 px-4 py-3 mb-3 flex-row items-center" style={{ gap: 12 }}>
             <Ionicons name="calendar-outline" size={19} color={t.accent} />
-            <Text className="flex-1 text-[15px] text-label">Fecha y hora</Text>
+            <Text className="flex-1 text-subhead text-label">Fecha y hora</Text>
             <Toggle value={hasDate} onChange={setHasDate} />
           </View>
 
@@ -165,11 +165,11 @@ export function TaskEditor({
               <View className="flex-row mb-3" style={{ gap: 8 }}>
                 <Pressable onPress={() => setPicker("date")} className="flex-1 bg-card rounded-lg2 px-4 py-3 flex-row items-center justify-center" style={{ gap: 8 }}>
                   <Ionicons name="calendar-outline" size={17} color={t.accent} />
-                  <Text className="text-[15px] text-label">{dateLabel}</Text>
+                  <Text className="text-subhead text-label">{dateLabel}</Text>
                 </Pressable>
                 <Pressable onPress={() => setPicker("time")} className="flex-1 bg-card rounded-lg2 px-4 py-3 flex-row items-center justify-center" style={{ gap: 8 }}>
                   <Ionicons name="time-outline" size={17} color={t.accent} />
-                  <Text className="text-[15px] text-label">{timeLabel}</Text>
+                  <Text className="text-subhead text-label">{timeLabel}</Text>
                 </Pressable>
               </View>
 
@@ -188,7 +188,7 @@ export function TaskEditor({
               {/* Aviso */}
               <View className="bg-card rounded-lg2 px-4 py-3 mb-2 flex-row items-center" style={{ gap: 12 }}>
                 <Ionicons name="notifications-outline" size={19} color={t.accent} />
-                <Text className="flex-1 text-[15px] text-label">Avisarme a esa hora</Text>
+                <Text className="flex-1 text-subhead text-label">Avisarme a esa hora</Text>
                 <Toggle value={notify} onChange={setNotify} />
               </View>
             </>
@@ -196,7 +196,7 @@ export function TaskEditor({
 
           {task && (
             <Pressable onPress={remove} className="mt-4 items-center py-2">
-              <Text className="text-[14px]" style={{ color: t.red }}>Borrar tarea</Text>
+              <Text className="text-subhead" style={{ color: t.red }}>Borrar tarea</Text>
             </Pressable>
           )}
         </ScrollView>
@@ -215,7 +215,7 @@ function Chip({ on, label, avatar, onPress }: { on: boolean; label: string; avat
       style={{ gap: 6, backgroundColor: on ? t.accent : t.fill }}
     >
       {avatar && <Avatar name={label} size={18} />}
-      <Text className="text-[13px] font-medium" style={{ color: on ? "#fff" : t.label }}>{label}</Text>
+      <Text className="text-footnote font-medium" style={{ color: on ? "#fff" : t.label }}>{label}</Text>
     </Pressable>
   );
 }

@@ -48,7 +48,7 @@ function Row({
       <View className="rounded-lg items-center justify-center" style={{ width: 30, height: 30, backgroundColor: color }}>
         <Ionicons name={icon} size={15} color="#fff" />
       </View>
-      <Text className="flex-1 text-[15px]" style={{ color: danger ? t.red : t.label }}>
+      <Text className="flex-1 text-subhead" style={{ color: danger ? t.red : t.label }}>
         {label}
       </Text>
       <Ionicons name="chevron-forward" size={16} color={t.tabInactive} />
@@ -135,12 +135,12 @@ export default function Perfil() {
       <View className="flex-row items-center px-4 py-2" style={{ gap: 8 }}>
         <Pressable onPress={() => router.back()} hitSlop={8} className="flex-row items-center">
           <Ionicons name="chevron-back" size={24} color={t.accent} />
-          <Text className="text-[16px]" style={{ color: t.accent }}>Inicio</Text>
+          <Text className="text-callout" style={{ color: t.accent }}>Inicio</Text>
         </Pressable>
       </View>
       <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
-        <View className="px-5 pt-1 pb-3">
-          <Text className="text-[34px] font-bold tracking-tight text-label" style={{ lineHeight: 41 }}>
+        <View className="px-4 pt-1 pb-3">
+          <Text className="text-largeTitle font-bold tracking-tight text-label" style={{ lineHeight: 41 }}>
             Perfil
           </Text>
         </View>
@@ -181,7 +181,7 @@ export default function Perfil() {
                   onChangeText={setEditName}
                   placeholder="Tu nombre"
                   placeholderTextColor={t.labelTertiary}
-                  className="flex-1 bg-bg rounded-lg2 px-3 py-2 text-[16px] text-label"
+                  className="flex-1 bg-bg rounded-lg2 px-3 py-2 text-callout text-label"
                   onSubmitEditing={saveName}
                   returnKeyType="done"
                 />
@@ -194,18 +194,18 @@ export default function Perfil() {
               </View>
             ) : (
               <Pressable onPress={() => setEditName(user?.name || "")} className="flex-row items-center" style={{ gap: 6 }}>
-                <Text className="text-[17px] font-semibold text-label">{user?.name || "Sin nombre"}</Text>
+                <Text className="text-headline font-semibold text-label">{user?.name || "Sin nombre"}</Text>
                 <Ionicons name="pencil" size={13} color={t.accent} />
               </Pressable>
             )}
-            <Text className="text-[13px] text-secondary mt-0.5">{user?.email}</Text>
+            <Text className="text-footnote text-secondary mt-0.5">{user?.email}</Text>
           </View>
         </View>
 
         {/* Hogar */}
         {active && (
           <>
-            <Text className="px-5 pt-2 pb-2 text-[13px] font-medium uppercase tracking-wide text-secondary">
+            <Text className="px-4 pt-2 pb-2 text-footnote font-medium uppercase tracking-wide text-secondary">
               Tu hogar
             </Text>
             <View className="bg-card rounded-lg2 mx-4 mb-3 overflow-hidden">
@@ -214,12 +214,12 @@ export default function Perfil() {
                   <Ionicons name={hogarIcon.icon} size={15} color="#fff" />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-[15px] text-label">{active.name}</Text>
-                  <Text className="text-[12px] text-secondary">
+                  <Text className="text-subhead text-label">{active.name}</Text>
+                  <Text className="text-caption1 text-secondary">
                     {active.total} {active.total === 1 ? "miembro" : "miembros"}
                   </Text>
                 </View>
-                <Text className="text-[13px]" style={{ color: t.accent }}>Cambiar icono</Text>
+                <Text className="text-footnote" style={{ color: t.accent }}>Cambiar icono</Text>
               </Pressable>
               {(members ?? []).map((m) => {
                 const isMe = m.email && user?.email ? m.email === user.email : m.name === user?.name;
@@ -231,16 +231,16 @@ export default function Perfil() {
                   >
                     <Avatar name={m.name} size={30} />
                     <View className="flex-1">
-                      <Text className="text-[15px] text-label">
+                      <Text className="text-subhead text-label">
                         {m.name}
                         {isMe ? <Text className="text-secondary"> · tú</Text> : null}
                       </Text>
                       {m.email ? (
-                        <Text className="text-[12px] text-secondary" numberOfLines={1}>{m.email}</Text>
+                        <Text className="text-caption1 text-secondary" numberOfLines={1}>{m.email}</Text>
                       ) : null}
                     </View>
                     {!m.confirmed && (
-                      <Text className="text-[11px] font-medium" style={{ color: t.orange }}>pendiente</Text>
+                      <Text className="text-caption2 font-medium" style={{ color: t.orange }}>pendiente</Text>
                     )}
                   </View>
                 );
@@ -252,7 +252,7 @@ export default function Perfil() {
         )}
 
         {/* Apariencia */}
-        <Text className="px-5 pt-2 pb-2 text-[13px] font-medium uppercase tracking-wide text-secondary">
+        <Text className="px-4 pt-2 pb-2 text-footnote font-medium uppercase tracking-wide text-secondary">
           Apariencia
         </Text>
         <Segmented
@@ -263,20 +263,20 @@ export default function Perfil() {
           }}
           options={THEME_OPTIONS}
         />
-        <Text className="px-5 pb-3 text-[12px] text-tertiary">
+        <Text className="px-4 pb-3 text-caption1 text-tertiary">
           “Claro” deja siempre los colores del diseño original (verde {"#1F4D52"}); en oscuro el
           acento se aclara para que se lea bien.
         </Text>
 
         {/* Sesión */}
-        <Text className="px-5 pt-2 pb-2 text-[13px] font-medium uppercase tracking-wide text-secondary">
+        <Text className="px-4 pt-2 pb-2 text-footnote font-medium uppercase tracking-wide text-secondary">
           Cuenta
         </Text>
         <View className="bg-card rounded-lg2 mx-4 mb-3 overflow-hidden">
           <Row first icon="log-out-outline" color={t.gray} label="Cerrar sesión" danger onPress={confirmLogout} />
         </View>
 
-        <Text className="text-center text-[12px] text-tertiary mt-4">
+        <Text className="text-center text-caption1 text-tertiary mt-4">
           Homie v{Constants.expoConfig?.version ?? "0.1.0"} · hecho con ♥
         </Text>
       </ScrollView>

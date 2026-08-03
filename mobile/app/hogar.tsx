@@ -48,15 +48,15 @@ export default function HogarOnboarding() {
   return (
     <SafeAreaView className="flex-1 bg-bg">
       <View className="flex-1 justify-center px-6">
-        <Text className="text-[28px] font-bold text-label" style={{ lineHeight: 34 }}>
+        <Text className="text-title1 font-bold text-label" style={{ lineHeight: 34 }}>
           Crea tu hogar
         </Text>
-        <Text className="text-[14px] text-secondary mt-1 mb-6">
+        <Text className="text-subhead text-secondary mt-1 mb-6">
           Un "hogar" es el espacio que compartís. Luego podrás invitar a otra persona.
         </Text>
 
         <TextInput
-          className="bg-card rounded-lg2 px-4 py-3 mb-3 text-[16px] text-label"
+          className="bg-card rounded-lg2 px-4 py-3 mb-3 text-callout text-label"
           placeholder="Nombre del hogar (p. ej. Casa Ruben · María)"
           placeholderTextColor={t.labelTertiary}
           value={name}
@@ -64,7 +64,7 @@ export default function HogarOnboarding() {
           autoCapitalize="sentences"
         />
 
-        {error && <Text className="text-[13px] mb-3" style={{ color: t.red }}>{error}</Text>}
+        {error && <Text className="text-footnote mb-3" style={{ color: t.red }}>{error}</Text>}
 
         <Pressable
           onPress={submit}
@@ -81,16 +81,16 @@ export default function HogarOnboarding() {
 
         <View className="flex-row items-center my-6" style={{ gap: 12 }}>
           <View className="flex-1" style={{ height: 0.5, backgroundColor: t.separator }} />
-          <Text className="text-[12px] text-tertiary">o únete a uno</Text>
+          <Text className="text-caption1 text-tertiary">o únete a uno</Text>
           <View className="flex-1" style={{ height: 0.5, backgroundColor: t.separator }} />
         </View>
 
-        <Text className="text-[14px] text-secondary mb-2">
+        <Text className="text-subhead text-secondary mb-2">
           ¿Te han invitado? Pega aquí el código (o abre el enlace que te han pasado).
         </Text>
         <View className="flex-row" style={{ gap: 8 }}>
           <TextInput
-            className="flex-1 bg-card rounded-lg2 px-4 py-3 text-[16px] text-label"
+            className="flex-1 bg-card rounded-lg2 px-4 py-3 text-callout text-label"
             placeholder="Código de invitación"
             placeholderTextColor={t.labelTertiary}
             value={code}
@@ -107,10 +107,10 @@ export default function HogarOnboarding() {
             {joining ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-base font-semibold">Unirme</Text>}
           </Pressable>
         </View>
-        {joinError && <Text className="text-[13px] mt-2" style={{ color: t.red }}>{joinError}</Text>}
+        {joinError && <Text className="text-footnote mt-2" style={{ color: t.red }}>{joinError}</Text>}
 
         <Pressable onPress={logout} className="mt-6 items-center">
-          <Text className="text-[14px]" style={{ color: t.accent }}>
+          <Text className="text-subhead" style={{ color: t.accent }}>
             Cerrar sesión
           </Text>
         </Pressable>

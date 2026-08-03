@@ -207,7 +207,7 @@ export function ScanModal({
       <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0" style={{ height: step === "review" ? "90%" : undefined, backgroundColor: t.bg, paddingBottom: kb }}>
         <View className="flex-row items-center justify-between px-5 py-3" style={{ borderBottomWidth: 0.5, borderBottomColor: t.separator }}>
           <Pressable onPress={close} hitSlop={8}><Text className="text-base text-accent">Cerrar</Text></Pressable>
-          <Text className="text-[17px] font-semibold text-label">{step === "review" ? "Ticket detectado" : "Escanear ticket"}</Text>
+          <Text className="text-headline font-semibold text-label">{step === "review" ? "Ticket detectado" : "Escanear ticket"}</Text>
           <View style={{ width: 52 }} />
         </View>
 
@@ -225,8 +225,8 @@ export function ScanModal({
                   <Ionicons name="receipt-outline" size={18} color="#fff" />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-white text-[15px] font-semibold">Subir ticket</Text>
-                  <Text className="text-[12px]" style={{ color: "rgba(255,255,255,0.85)" }}>OCR automático · gasto + precios</Text>
+                  <Text className="text-white text-subhead font-semibold">Subir ticket</Text>
+                  <Text className="text-caption1" style={{ color: "rgba(255,255,255,0.85)" }}>OCR automático · gasto + precios</Text>
                 </View>
               </View>
               <View className="flex-row" style={{ gap: 6 }}>
@@ -242,12 +242,12 @@ export function ScanModal({
                     style={{ backgroundColor: "rgba(255,255,255,0.16)", gap: 5 }}
                   >
                     <Ionicons name={o.icon as IoniconName} size={20} color="#fff" />
-                    <Text className="text-white text-[13px] font-semibold">{o.label}</Text>
+                    <Text className="text-white text-footnote font-semibold">{o.label}</Text>
                   </Pressable>
                 ))}
               </View>
             </LinearGradient>
-            <Text className="text-[13px] text-secondary text-center mt-5 px-4">
+            <Text className="text-footnote text-secondary text-center mt-5 px-4">
               Foto recta y bien iluminada, o un PDF del ticket. Detecto comercio, total y productos; luego lo revisas.
             </Text>
           </View>
@@ -266,14 +266,14 @@ export function ScanModal({
             <View className="bg-card rounded-card p-4 mb-3" style={{ shadowColor: "#000", shadowOpacity: t.dark ? 0 : 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }}>
               <View className="flex-row items-center mb-3" style={{ gap: 8 }}>
                 <Ionicons name="checkmark-circle" size={18} color={t.green} />
-                <Text className="text-[13px] font-medium" style={{ color: t.green }}>
+                <Text className="text-footnote font-medium" style={{ color: t.green }}>
                   Ticket leído · {nLines} {nLines === 1 ? "producto" : "productos"}
                 </Text>
               </View>
 
               <MetaRow label="Comercio">
                 <TextInput
-                  className="text-[15px] text-label text-right"
+                  className="text-subhead text-label text-right"
                   style={{ minWidth: 120, flex: 1, marginLeft: 12 }}
                   value={merchant}
                   onChangeText={setMerchant}
@@ -282,12 +282,12 @@ export function ScanModal({
                 />
               </MetaRow>
               <MetaRow label="Fecha">
-                <Text className="text-[15px] text-label font-medium">{data.date ?? "Hoy"}</Text>
+                <Text className="text-subhead text-label font-medium">{data.date ?? "Hoy"}</Text>
               </MetaRow>
               <MetaRow label="Total">
                 <View className="flex-row items-center" style={{ gap: 4 }}>
                   <TextInput
-                    className="text-[17px] font-bold text-label text-right"
+                    className="text-headline font-bold text-label text-right"
                     style={{ minWidth: 70 }}
                     value={total}
                     onChangeText={setTotal}
@@ -295,7 +295,7 @@ export function ScanModal({
                     placeholder="0,00"
                     placeholderTextColor={t.labelTertiary}
                   />
-                  <Text className="text-[15px] text-secondary">€</Text>
+                  <Text className="text-subhead text-secondary">€</Text>
                 </View>
               </MetaRow>
               <MetaRow label="Cuenta" last>
@@ -307,7 +307,7 @@ export function ScanModal({
                     const on = account === o.key;
                     return (
                       <Pressable key={o.key} onPress={() => setAccount(o.key)} className="rounded-pill px-3 py-1.5" style={{ backgroundColor: on ? t.accent : t.fill }}>
-                        <Text className="text-[13px] font-medium" style={{ color: on ? "#fff" : t.label }}>{o.label}</Text>
+                        <Text className="text-footnote font-medium" style={{ color: on ? "#fff" : t.label }}>{o.label}</Text>
                       </Pressable>
                     );
                   })}
@@ -317,14 +317,14 @@ export function ScanModal({
 
             {categories.length > 0 && (
               <>
-                <Text className="px-1 pb-2 text-[12px] font-medium uppercase tracking-wide text-secondary">Categoría</Text>
+                <Text className="px-1 pb-2 text-caption1 font-medium uppercase tracking-wide text-secondary">Categoría</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3" contentContainerStyle={{ gap: 8, paddingRight: 8 }}>
                   {categories.map((c) => {
                     const on = category === c.name;
                     return (
                       <Pressable key={c.$id} onPress={() => setCategory(on ? null : c.name)} className="flex-row items-center rounded-pill px-3 py-2" style={{ gap: 6, backgroundColor: on ? c.color : t.fill }}>
                         <Ionicons name={c.icon as IoniconName} size={14} color={on ? "#fff" : c.color} />
-                        <Text className="text-[13px] font-medium" style={{ color: on ? "#fff" : t.label }}>{c.name}</Text>
+                        <Text className="text-footnote font-medium" style={{ color: on ? "#fff" : t.label }}>{c.name}</Text>
                       </Pressable>
                     );
                   })}
@@ -335,9 +335,9 @@ export function ScanModal({
             {nLines > 0 && (
               <>
                 <View className="flex-row items-center justify-between px-1 mb-2">
-                  <Text className="text-[12px] font-medium uppercase tracking-wide text-secondary">Productos detectados</Text>
+                  <Text className="text-caption1 font-medium uppercase tracking-wide text-secondary">Productos detectados</Text>
                   <View className="flex-row items-center" style={{ gap: 8 }}>
-                    <Text className="text-[12px] text-secondary">Guardar precios</Text>
+                    <Text className="text-caption1 text-secondary">Guardar precios</Text>
                     <Switch value={savePrices} onValueChange={setSavePrices} trackColor={{ true: t.accent, false: t.separator }} />
                   </View>
                 </View>
@@ -358,12 +358,12 @@ export function ScanModal({
                             {on && <Ionicons name="checkmark" size={13} color="#fff" />}
                           </View>
                           <View className="flex-1">
-                            <Text className="text-[14px] text-label" numberOfLines={1}>{l.description.trim() || "—"}</Text>
+                            <Text className="text-subhead text-label" numberOfLines={1}>{l.description.trim() || "—"}</Text>
                             {l.qty != null && l.qty > 1 && l.unitPrice != null && (
-                              <Text className="text-[12px] text-secondary">{l.qty} × {eur(l.unitPrice)}</Text>
+                              <Text className="text-caption1 text-secondary">{l.qty} × {eur(l.unitPrice)}</Text>
                             )}
                           </View>
-                          <Text className="text-[14px] font-semibold text-label" style={{ fontVariant: ["tabular-nums"] }}>
+                          <Text className="text-subhead font-semibold text-label" style={{ fontVariant: ["tabular-nums"] }}>
                             {l.total != null ? eur(l.total) : l.unitPrice != null ? eur(l.unitPrice) : "—"}
                           </Text>
                         </Pressable>
@@ -377,7 +377,7 @@ export function ScanModal({
             <Pressable onPress={save} disabled={busy} className="rounded-[14px] py-3.5 items-center mt-3" style={{ backgroundColor: t.accent, opacity: busy ? 0.6 : 1 }}>
               {busy ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-base font-semibold">Guardar gasto{savePrices && picked.size ? ` + ${picked.size} precios` : ""}</Text>}
             </Pressable>
-            <Text className="text-center text-[12px] text-tertiary mt-3">Puedes editar el comercio y el total antes de guardar.</Text>
+            <Text className="text-center text-caption1 text-tertiary mt-3">Puedes editar el comercio y el total antes de guardar.</Text>
           </ScrollView>
         )}
       </View>
@@ -393,7 +393,7 @@ function MetaRow({ label, children, last }: { label: string; children: React.Rea
       className="flex-row items-center justify-between"
       style={{ paddingVertical: 9, borderBottomWidth: last ? 0 : 0.5, borderBottomColor: t.separator }}
     >
-      <Text className="text-[13px] text-secondary">{label}</Text>
+      <Text className="text-footnote text-secondary">{label}</Text>
       {children}
     </View>
   );

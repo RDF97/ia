@@ -57,12 +57,12 @@ export default function Join() {
         </>
       )}
       {status === "ok" && (
-        <Text className="text-[16px] font-semibold" style={{ color: t.green }}>
+        <Text className="text-callout font-semibold" style={{ color: t.green }}>
           ¡Te has unido al hogar! 🎉
         </Text>
       )}
       {status === "error" && (
-        <Text className="text-[15px] text-center" style={{ color: t.red }}>
+        <Text className="text-subhead text-center" style={{ color: t.red }}>
           {msg}
         </Text>
       )}

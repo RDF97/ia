@@ -83,7 +83,7 @@ export function ProductsModal({
               <Text className="text-base text-accent">Cerrar</Text>
             </Pressable>
           )}
-          <Text className="text-[17px] font-semibold text-label">
+          <Text className="text-headline font-semibold text-label">
             {selected ? selected.name : "Base de precios"}
           </Text>
           {selected ? (
@@ -97,7 +97,7 @@ export function ProductsModal({
 
         <ScrollView contentContainerStyle={{ paddingBottom: 28 }}>
           {!selected && products && products.length > 0 && (
-            <Text className="text-center text-[12px] text-tertiary pt-3">
+            <Text className="text-center text-caption1 text-tertiary pt-3">
               Toca la papelera para borrar un producto y su histórico.
             </Text>
           )}
@@ -119,16 +119,16 @@ export function ProductsModal({
                     style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}
                   >
                     <View className="flex-1">
-                      <Text className="text-[16px] font-medium text-label">{p.name}</Text>
+                      <Text className="text-callout font-medium text-label">{p.name}</Text>
                       {p.lastStore ? (
-                        <Text className="text-[12px] text-secondary mt-0.5">
+                        <Text className="text-caption1 text-secondary mt-0.5">
                           {p.lastStore}
                           {p.lastAt ? ` · ${fecha(p.lastAt)}` : ""}
                         </Text>
                       ) : null}
                     </View>
                     {typeof p.lastPrice === "number" && (
-                      <Text className="text-[15px] font-semibold text-label">{eur(p.lastPrice)}</Text>
+                      <Text className="text-subhead font-semibold text-label">{eur(p.lastPrice)}</Text>
                     )}
                     <Pressable onPress={() => removeProduct(p)} hitSlop={10} style={{ padding: 4 }}>
                       <Ionicons name="trash-outline" size={18} color={t.red} />
@@ -155,7 +155,7 @@ function ProductDetail({ points }: { points: PricePoint[] }) {
   const byStore = latestByStore(points);
   return (
     <>
-      <Text className="px-5 pt-4 pb-2 text-xs font-medium uppercase tracking-wide text-secondary">
+      <Text className="px-4 pt-4 pb-2 text-footnote font-medium uppercase tracking-wide text-secondary">
         Comparativa por supermercado
       </Text>
       {byStore.length === 0 ? (
@@ -174,19 +174,19 @@ function ProductDetail({ points }: { points: PricePoint[] }) {
               }}
             >
               {i === 0 && <Ionicons name="trophy" size={16} color={t.green} />}
-              <Text className="flex-1 text-[15px] font-medium text-label">{s.store}</Text>
+              <Text className="flex-1 text-subhead font-medium text-label">{s.store}</Text>
               <View style={{ alignItems: "flex-end" }}>
-                <Text className="text-[15px] font-semibold" style={{ color: i === 0 ? t.green : t.label }}>
+                <Text className="text-subhead font-semibold" style={{ color: i === 0 ? t.green : t.label }}>
                   {eur(s.price)}
                 </Text>
-                <Text className="text-[11px] text-tertiary">{fecha(s.at)}</Text>
+                <Text className="text-caption2 text-tertiary">{fecha(s.at)}</Text>
               </View>
             </View>
           ))}
         </View>
       )}
 
-      <Text className="px-5 pt-4 pb-2 text-xs font-medium uppercase tracking-wide text-secondary">
+      <Text className="px-4 pt-4 pb-2 text-footnote font-medium uppercase tracking-wide text-secondary">
         Últimas compras
       </Text>
       <View className="bg-card rounded-lg2 mx-4 mb-4 overflow-hidden">
@@ -196,10 +196,10 @@ function ProductDetail({ points }: { points: PricePoint[] }) {
             className="flex-row items-center px-4 py-3"
             style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}
           >
-            <Text className="flex-1 text-[14px] text-label">
+            <Text className="flex-1 text-subhead text-label">
               {fecha(p.at)} · {p.store}
             </Text>
-            <Text className="text-[14px] font-semibold text-label">{eur(p.price)}</Text>
+            <Text className="text-subhead font-semibold text-label">{eur(p.price)}</Text>
           </View>
         ))}
       </View>

@@ -58,8 +58,8 @@ export function InviteModal({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
       <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
-        <Text className="text-[17px] font-semibold mb-1 text-label">Invitar al hogar</Text>
-        <Text className="text-[13px] text-secondary mb-4">
+        <Text className="text-headline font-semibold mb-1 text-label">Invitar al hogar</Text>
+        <Text className="text-footnote text-secondary mb-4">
           Crea un código y compártelo por WhatsApp. El mensaje incluye el enlace para descargar
           la app y el código para entrar en “{hogarName}”.
         </Text>
@@ -83,8 +83,8 @@ export function InviteModal({
         ) : (
           <>
             <View className="bg-card rounded-lg2 px-4 py-4 mb-3 items-center">
-              <Text className="text-[12px] uppercase tracking-wide text-secondary mb-1">Código</Text>
-              <Text className="text-[26px] font-bold text-label" style={{ letterSpacing: 4 }}>
+              <Text className="text-caption1 uppercase tracking-wide text-secondary mb-1">Código</Text>
+              <Text className="text-title1 text-label" style={{ letterSpacing: 4 }}>
                 {invite.code}
               </Text>
             </View>
@@ -97,9 +97,9 @@ export function InviteModal({
               <Text className="text-white text-base font-semibold">Compartir enlace</Text>
             </Pressable>
             <Pressable onPress={generate} disabled={busy} className="mt-3 items-center py-1">
-              <Text className="text-[14px]" style={{ color: t.accent }}>Crear otro código</Text>
+              <Text className="text-subhead" style={{ color: t.accent }}>Crear otro código</Text>
             </Pressable>
-            <Text className="text-[12px] text-tertiary text-center mt-2">
+            <Text className="text-caption1 text-tertiary text-center mt-2">
               El código caduca en 14 días.
             </Text>
           </>
