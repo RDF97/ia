@@ -130,3 +130,17 @@ describe("parseExpenseItems", () => {
     expect(stringifyExpenseItems([])).toBeNull();
   });
 });
+
+describe("balances · con miembros que no han pagado", () => {
+  test("quien no ha pagado nada también aparece debiendo su parte", () => {
+    const list = [exp({ amount: 100, paidByName: "A", shared: true })];
+    // Antes solo salía "A": "B" no aparecía porque nunca pagó.
+    const res = balances(list, 2, [], ["A", "B"]);
+    expect(res.find((r) => r.name === "A")!.net).toBeCloseTo(50, 5);
+    expect(res.find((r) => r.name === "B")!.net).toBeCloseTo(-50, 5);
+  });
+
+  test("sin gastos compartidos no aparece nadie", () => {
+    expect(balances([], 2, [], ["A", "B"])).toEqual([]);
+  });
+});

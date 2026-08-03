@@ -31,6 +31,7 @@ import {
 import { ensureNotificationPermissions } from "@/lib/notifications";
 import { cardShadow } from "@/components/Card";
 import { useTheme } from "@/theme/theme";
+import { useKeyboardHeight } from "@/lib/useKeyboard";
 
 const MONTHS = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -57,6 +58,7 @@ export default function Calendario() {
 
 function CalendarView({ hogarId, userName }: { hogarId: string; userName: string }) {
   const t = useTheme();
+  const kb = useKeyboardHeight();
   const qc = useQueryClient();
   const { data: events, isLoading } = useEvents(hogarId);
   const today = new Date();
@@ -279,6 +281,7 @@ function AddEvent({
   onAdded: () => void;
 }) {
   const t = useTheme();
+  const kb = useKeyboardHeight();
   const [title, setTitle] = useState("");
   const [place, setPlace] = useState("");
   const [when, setWhen] = useState(() => {
@@ -315,7 +318,7 @@ function AddEvent({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
-      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32, backgroundColor: t.bg }}>
+      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
         <Text className="text-[17px] font-semibold mb-4 text-label">Nuevo evento</Text>
         <TextInput
           className="bg-card rounded-lg2 px-4 py-3 mb-3 text-[16px] text-label"

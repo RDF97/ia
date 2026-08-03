@@ -5,6 +5,7 @@ import { useHogar } from "@/lib/hogar";
 import { useAuth } from "@/lib/auth";
 import { createInvite, inviteMessage, type Invite } from "@/lib/invites";
 import { useTheme } from "@/theme/theme";
+import { useKeyboardHeight } from "@/lib/useKeyboard";
 import { hSelect } from "@/lib/haptics";
 
 export function InviteModal({
@@ -17,6 +18,7 @@ export function InviteModal({
   onClose: () => void;
 }) {
   const t = useTheme();
+  const kb = useKeyboardHeight();
   const { active } = useHogar();
   const { user } = useAuth();
   const [invite, setInvite] = useState<Invite | null>(null);
@@ -55,7 +57,7 @@ export function InviteModal({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
-      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32, backgroundColor: t.bg }}>
+      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
         <Text className="text-[17px] font-semibold mb-1 text-label">Invitar al hogar</Text>
         <Text className="text-[13px] text-secondary mb-4">
           Crea un código y compártelo por WhatsApp. El mensaje incluye el enlace para descargar

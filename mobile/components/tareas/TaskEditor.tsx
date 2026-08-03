@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, Modal, Platform, Pressable, ScrollView, Text,
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { useTheme } from "@/theme/theme";
+import { useKeyboardHeight } from "@/lib/useKeyboard";
 import { Toggle } from "@/components/Toggle";
 import { Avatar } from "@/components/ui";
 import { REPEAT_OPTIONS, type Repeat } from "@/lib/taskLogic";
@@ -25,6 +26,7 @@ export function TaskEditor({
   onSaved: () => void;
 }) {
   const t = useTheme();
+  const kb = useKeyboardHeight();
   const isNew = target === "new";
   const task = target && target !== "new" ? target : null;
 
@@ -203,6 +205,7 @@ export function TaskEditor({
 
 function Chip({ on, label, avatar, onPress }: { on: boolean; label: string; avatar?: boolean; onPress: () => void }) {
   const t = useTheme();
+  const kb = useKeyboardHeight();
   return (
     <Pressable
       onPress={onPress}

@@ -69,27 +69,39 @@ export async function addExpense(
   hogarId: string,
   data: { amount: number; concept: string; paidByName: string; shared: boolean; category?: string; account?: Account; spentAt?: string; items?: string | null },
 ): Promise<Expense> {
-  return databases.createDocument<Expense>(
-    DB_ID,
-    EXPENSES_COL,
-    ID.unique(),
-    {
-      amount: data.amount,
-      concept: data.concept,
-      category: data.category || null,
-      paidByName: data.paidByName,
-      shared: data.shared,
-      account: data.account ?? "individual",
-      spentAt: data.spentAt ?? new Date().toISOString(),
-      items: data.items ?? null,
-      hogarId,
-    },
-    [
-      Permission.read(Role.team(hogarId)),
-      Permission.update(Role.team(hogarId)),
-      Permission.delete(Role.team(hogarId)),
-    ],
-  );
+  const base = {
+    amount: data.amount,
+    concept: data.concept,
+    category: data.category || null,
+    paidByName: data.paidByName,
+    shared: data.shared,
+    account: data.account ?? "individual",
+    spentAt: data.spentAt ?? new Date().toISOString(),
+    hogarId,
+  };
+  const perms = [
+    Permission.read(Role.team(hogarId)),
+    Permission.update(Role.team(hogarId)),
+    Permission.delete(Role.team(hogarId)),
+  ];
+
+  // Appwrite RECHAZA el documento entero si mandas un atributo que no existe en
+  // la colección. Si `items` aún no está creado, guardamos el gasto sin los
+  // artículos en vez de perderlo: es mejor un gasto sin detalle que ningún gasto.
+  if (data.items) {
+    try {
+      return await databases.createDocument<Expense>(
+        DB_ID,
+        EXPENSES_COL,
+        ID.unique(),
+        { ...base, items: data.items },
+        perms,
+      );
+    } catch {
+      /* seguimos sin items */
+    }
+  }
+  return databases.createDocument<Expense>(DB_ID, EXPENSES_COL, ID.unique(), base, perms);
 }
 
 export async function updateExpense(
@@ -178,11 +190,15 @@ export function balances(
   expenses: Expense[],
   members: number,
   settlements: SettlementLike[] = [],
+  memberNames: string[] = [],
 ): { name: string; net: number }[] {
   const shared = expenses.filter((e) => e.shared && effectiveAccount(e) === "individual");
   const totalShared = shared.reduce((s, e) => s + e.amount, 0);
   const share = members > 0 ? totalShared / members : 0;
   const paid: Record<string, number> = {};
+  // Sembramos con todos los miembros: si alguien no ha pagado nada sigue
+  // debiendo su parte, y antes no aparecía en la lista.
+  for (const n of memberNames) if (n.trim()) paid[n] = 0;
   for (const e of shared) paid[e.paidByName] = (paid[e.paidByName] ?? 0) + e.amount;
   for (const s of settlements) {
     paid[s.fromName] = (paid[s.fromName] ?? 0) + s.amount;

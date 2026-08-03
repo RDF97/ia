@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Text, TextInput
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/theme/theme";
+import { useKeyboardHeight } from "@/lib/useKeyboard";
 import { Toggle } from "@/components/Toggle";
 import { useCategories } from "@/lib/useCategories";
 import {
@@ -32,6 +33,7 @@ export function BudgetModal({
   onClose: () => void;
 }) {
   const t = useTheme();
+  const kb = useKeyboardHeight();
   const qc = useQueryClient();
   const { data: categories, isLoading } = useCategories(hogarId);
   const [editing, setEditing] = useState<Category | "new" | null>(null);
@@ -158,6 +160,7 @@ function CategoryEditor({
   onSaved: () => void;
 }) {
   const t = useTheme();
+  const kb = useKeyboardHeight();
   const isNew = target === "new";
   const cat = target && target !== "new" ? target : null;
 
@@ -220,7 +223,7 @@ function CategoryEditor({
   return (
     <Modal visible={target !== null} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
-      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32, backgroundColor: t.bg }}>
+      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
         <View className="flex-row items-center mb-4" style={{ gap: 12 }}>
           <View className="rounded-lg items-center justify-center" style={{ width: 34, height: 34, backgroundColor: color }}>
             <Ionicons name={icon as IoniconName} size={18} color="#fff" />

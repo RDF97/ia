@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -59,7 +59,7 @@ function Row({
 export default function Perfil() {
   const t = useTheme();
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, updateName } = useAuth();
   const { active, leaveHogar } = useHogar();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [hogarIcon, setHogarIconState] = useState<IconStyle>({ icon: "home", color: t.accent });
@@ -67,6 +67,7 @@ export default function Perfil() {
   const [pick, setPick] = useState<"hogar" | "perfil" | null>(null);
   const [theme, setTheme] = useState<ThemeChoice>("system");
   const [members, setMembers] = useState<Member[] | null>(null);
+  const [editName, setEditName] = useState<string | null>(null);
 
   useEffect(() => {
     getThemeChoice().then(setTheme).catch(() => undefined);
@@ -84,6 +85,17 @@ export default function Perfil() {
   }, [active, t.accent]);
 
   useEffect(loadIcons, [loadIcons]);
+
+  const saveName = async () => {
+    const val = (editName ?? "").trim();
+    if (!val) return;
+    try {
+      await updateName(val);
+      setEditName(null);
+    } catch (e) {
+      Alert.alert("No se pudo cambiar el nombre", e instanceof Error ? e.message : "Inténtalo de nuevo.");
+    }
+  };
 
   const confirmLeave = () => {
     if (!active) return;
@@ -161,7 +173,31 @@ export default function Perfil() {
             </View>
           </Pressable>
           <View className="flex-1">
-            <Text className="text-[17px] font-semibold text-label">{user?.name || "Sin nombre"}</Text>
+            {editName !== null ? (
+              <View className="flex-row items-center" style={{ gap: 8 }}>
+                <TextInput
+                  autoFocus
+                  value={editName}
+                  onChangeText={setEditName}
+                  placeholder="Tu nombre"
+                  placeholderTextColor={t.labelTertiary}
+                  className="flex-1 bg-bg rounded-lg2 px-3 py-2 text-[16px] text-label"
+                  onSubmitEditing={saveName}
+                  returnKeyType="done"
+                />
+                <Pressable onPress={saveName} hitSlop={8}>
+                  <Ionicons name="checkmark-circle" size={26} color={t.green} />
+                </Pressable>
+                <Pressable onPress={() => setEditName(null)} hitSlop={8}>
+                  <Ionicons name="close-circle" size={26} color={t.labelTertiary} />
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable onPress={() => setEditName(user?.name || "")} className="flex-row items-center" style={{ gap: 6 }}>
+                <Text className="text-[17px] font-semibold text-label">{user?.name || "Sin nombre"}</Text>
+                <Ionicons name="pencil" size={13} color={t.accent} />
+              </Pressable>
+            )}
             <Text className="text-[13px] text-secondary mt-0.5">{user?.email}</Text>
           </View>
         </View>

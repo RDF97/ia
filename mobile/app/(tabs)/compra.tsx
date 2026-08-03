@@ -27,6 +27,7 @@ import { addItem, deleteItem, setItemDone, type ShoppingItem } from "@/lib/shopp
 import { listProducts, normalizeName, recordPrice, type Product } from "@/lib/products";
 import { startDictation, voiceAvailable, type VoiceSession } from "@/lib/voice";
 import { useTheme } from "@/theme/theme";
+import { useKeyboardHeight } from "@/lib/useKeyboard";
 
 type ScanSource = "camera" | "library" | "pdf";
 const eur = (v: number) => `${v.toFixed(2).replace(".", ",")} €`;
@@ -78,6 +79,7 @@ function groupByStore(items: ShoppingItem[]): StoreGroup[] {
 
 function CompraList({ hogarId, userName }: { hogarId: string; userName: string }) {
   const t = useTheme();
+  const kb = useKeyboardHeight();
   const qc = useQueryClient();
   const { data: items, isLoading, isError } = useShopping(hogarId);
   const { data: cats } = useCategories(hogarId);
@@ -276,6 +278,7 @@ function ShopSection({
   onDelete: (id: string) => void;
 }) {
   const t = useTheme();
+  const kb = useKeyboardHeight();
   const pending = group.items.filter((i) => !i.done).length;
   return (
     <View className="mx-4 mb-4">
@@ -316,6 +319,7 @@ function ShopRow({
   onDelete: () => void;
 }) {
   const t = useTheme();
+  const kb = useKeyboardHeight();
 
   let meta: string;
   if (item.done) {
@@ -371,6 +375,7 @@ function PricePrompt({
   onCancel: () => void;
 }) {
   const t = useTheme();
+  const kb = useKeyboardHeight();
   const [price, setPrice] = useState("");
   const [store, setStore] = useState("");
   const [busy, setBusy] = useState(false);
@@ -402,7 +407,7 @@ function PricePrompt({
   return (
     <Modal visible={item !== null} transparent animationType="slide" onRequestClose={onCancel}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onCancel} />
-      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32, backgroundColor: t.bg }}>
+      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
         <Text className="text-[17px] font-semibold mb-1 text-label">¿A cuánto lo has comprado?</Text>
         <Text className="text-[13px] text-secondary mb-4">
           {item?.name} · alimenta la base de precios para comparar supermercados.

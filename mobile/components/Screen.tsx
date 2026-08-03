@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { RefreshControl, ScrollView, Text, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/theme/theme";
+import { useKeyboardHeight } from "@/lib/useKeyboard";
 
 // Alto de la barra de pestañas (absoluta): 56 + inset inferior (mín. 10).
 // Debe coincidir con app/(tabs)/_layout.tsx para anclar la capa flotante encima.
@@ -28,6 +29,7 @@ export function Screen({
 }) {
   const t = useTheme();
   const insets = useSafeAreaInsets();
+  const kb = useKeyboardHeight();
   const tabBarH = TAB_BAR_BASE + (insets.bottom > 0 ? insets.bottom : 10);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -67,7 +69,7 @@ export function Screen({
       </ScrollView>
       {floating ? (
         // Anclada por encima de la barra de pestañas (que es absoluta y taparía el FAB).
-        <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: tabBarH, top: 0 }}>
+        <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: kb > 0 ? kb : tabBarH, top: 0 }}>
           {floating}
         </View>
       ) : null}

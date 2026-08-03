@@ -19,6 +19,7 @@ interface AuthContextValue {
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
+  updateName: (name: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -56,6 +57,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const updateName = useCallback(async (name: string) => {
+    const clean = name.trim();
+    if (!clean) throw new Error("El nombre no puede estar vacío.");
+    await account.updateName(clean);
+    setUser(await account.get());
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await account.deleteSession("current");
@@ -65,8 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, login, register, logout, refresh }),
-    [user, loading, login, register, logout, refresh],
+    () => ({ user, loading, login, register, logout, refresh, updateName }),
+    [user, loading, login, register, logout, refresh, updateName],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

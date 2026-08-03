@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import { File } from "expo-file-system";
 import { useTheme } from "@/theme/theme";
+import { useKeyboardHeight } from "@/lib/useKeyboard";
 import { Toggle } from "@/components/Toggle";
 import {
   guessMapping,
@@ -52,6 +53,7 @@ export function CsvModal({
   onImported: () => void;
 }) {
   const t = useTheme();
+  const kb = useKeyboardHeight();
   const [step, setStep] = useState<Step>("pick");
   const [rows, setRows] = useState<string[][]>([]);
   const [hasHeader, setHasHeader] = useState(true);
