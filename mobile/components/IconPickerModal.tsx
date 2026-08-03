@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/theme/theme";
+import { useKeyboardHeight } from "@/lib/useKeyboard";
 import { hSelect } from "@/lib/haptics";
 import { ICON_COLORS, type IconStyle } from "@/lib/appearance";
 import type { IoniconName } from "./ui";
@@ -26,6 +27,7 @@ export function IconPickerModal({
   onReset?: () => Promise<void>;
 }) {
   const t = useTheme();
+  const kb = useKeyboardHeight();
   const [icon, setIcon] = useState<IoniconName>(value.icon);
   const [color, setColor] = useState<string>(value.color);
   const [busy, setBusy] = useState(false);
@@ -54,7 +56,7 @@ export function IconPickerModal({
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
       <View
         className="rounded-t-[14px] absolute left-0 right-0 bottom-0"
-        style={{ backgroundColor: t.bg, paddingBottom: 32 }}
+        style={{ backgroundColor: t.bg, paddingBottom: 32 + kb }}
       >
         <View className="items-center pt-2 pb-1">
           <View style={{ width: 36, height: 5, borderRadius: 999, backgroundColor: t.separator }} />

@@ -7,6 +7,7 @@ import * as ImageManipulator from "expo-image-manipulator";
 import * as DocumentPicker from "expo-document-picker";
 import { File } from "expo-file-system";
 import { useTheme } from "@/theme/theme";
+import { useKeyboardHeight } from "@/lib/useKeyboard";
 import { hSelect } from "@/lib/haptics";
 import { scanReceipt, type ReceiptData } from "@/lib/receipts";
 import { addExpense, stringifyExpenseItems, type Account, type ExpenseItem } from "@/lib/expenses";
@@ -37,6 +38,7 @@ export function ScanModal({
   onDone: () => void;
 }) {
   const t = useTheme();
+  const kb = useKeyboardHeight();
   const [step, setStep] = useState<Step>("choose");
   const [data, setData] = useState<ReceiptData | null>(null);
   const [merchant, setMerchant] = useState("");
@@ -202,7 +204,7 @@ export function ScanModal({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={close}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={close} />
-      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0" style={{ height: step === "review" ? "90%" : undefined, backgroundColor: t.bg }}>
+      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0" style={{ height: step === "review" ? "90%" : undefined, backgroundColor: t.bg, paddingBottom: kb }}>
         <View className="flex-row items-center justify-between px-5 py-3" style={{ borderBottomWidth: 0.5, borderBottomColor: t.separator }}>
           <Pressable onPress={close} hitSlop={8}><Text className="text-base text-accent">Cerrar</Text></Pressable>
           <Text className="text-[17px] font-semibold text-label">{step === "review" ? "Ticket detectado" : "Escanear ticket"}</Text>
@@ -385,6 +387,7 @@ export function ScanModal({
 
 function MetaRow({ label, children, last }: { label: string; children: React.ReactNode; last?: boolean }) {
   const t = useTheme();
+  const kb = useKeyboardHeight();
   return (
     <View
       className="flex-row items-center justify-between"

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/theme/theme";
+import { useKeyboardHeight } from "@/lib/useKeyboard";
 import {
   deleteProduct,
   latestByStore,
@@ -25,6 +26,7 @@ export function ProductsModal({
   onClose: () => void;
 }) {
   const t = useTheme();
+  const kb = useKeyboardHeight();
   const [products, setProducts] = useState<Product[] | null>(null);
   const [selected, setSelected] = useState<Product | null>(null);
   const [points, setPoints] = useState<PricePoint[] | null>(null);
@@ -67,7 +69,7 @@ export function ProductsModal({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
-      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0" style={{ height: "82%", backgroundColor: t.bg }}>
+      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0" style={{ height: "82%", backgroundColor: t.bg, paddingBottom: kb }}>
         <View className="items-center pt-2 pb-1">
           <View style={{ width: 36, height: 5, borderRadius: 999, backgroundColor: t.separator }} />
         </View>
@@ -149,6 +151,7 @@ export function ProductsModal({
 
 function ProductDetail({ points }: { points: PricePoint[] }) {
   const t = useTheme();
+  const kb = useKeyboardHeight();
   const byStore = latestByStore(points);
   return (
     <>

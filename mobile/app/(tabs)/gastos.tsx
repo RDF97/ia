@@ -19,6 +19,7 @@ import { appwriteConfigured } from "@/lib/appwrite";
 import { useExpenses } from "@/lib/useExpenses";
 import { useCategories } from "@/lib/useCategories";
 import { useSettlements } from "@/lib/useSettlements";
+import { useMembers } from "@/lib/useMembers";
 import { accountTotals, addExpense, balances, deleteExpense, effectiveAccount, expenseDate, parseExpenseItems, updateExpense, type Account, type Expense } from "@/lib/expenses";
 import {
   budgetStatus,
@@ -29,6 +30,7 @@ import {
   type CategorySpend,
 } from "@/lib/categories";
 import { useTheme } from "@/theme/theme";
+import { useKeyboardHeight } from "@/lib/useKeyboard";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 const eur = (v: number) => `${v.toFixed(2).replace(".", ",")} €`;
@@ -53,10 +55,12 @@ export default function Gastos() {
 
 function GastosView({ hogarId, members, userName }: { hogarId: string; members: number; userName: string }) {
   const t = useTheme();
+  const kb = useKeyboardHeight();
   const qc = useQueryClient();
   const { data: expenses, isLoading, isError } = useExpenses(hogarId);
   const { data: categories } = useCategories(hogarId);
   const { data: settlements } = useSettlements(hogarId);
+  const memberNames = (useMembers(hogarId).data ?? []).map((m) => m.name);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [budgetOpen, setBudgetOpen] = useState(false);
@@ -64,6 +68,7 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
   const [csvOpen, setCsvOpen] = useState(false);
   const [scanSource, setScanSource] = useState<"camera" | "library" | "pdf" | null>(null);
   const [filter, setFilter] = useState<"all" | Account>("all");
+  const [catFilter, setCatFilter] = useState<string | null>(null);
   // Mes que se está viendo (se puede retroceder/avanzar).
   const [month, setMonth] = useState(() => {
     const n = new Date();
@@ -94,9 +99,18 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
     return d.getFullYear() === month.y && d.getMonth() === month.m;
   });
   const total = list.reduce((s, e) => s + e.amount, 0);
-  const bal = balances(all, members, settlements ?? []);
+  const bal = balances(all, members, settlements ?? [], memberNames);
   const accTotals = accountTotals(list, monthDate);
-  const movements = filter === "all" ? list : list.filter((e) => effectiveAccount(e) === filter);
+  // "Gasto individual" = mi parte de la conjunta + lo que he puesto de mi bolsillo.
+  const myOwn = list
+    .filter((e) => effectiveAccount(e) === "individual" && e.paidByName === userName)
+    .reduce((s, e) => s + e.amount, 0);
+  const myTotals = {
+    joint: accTotals.joint,
+    individual: myOwn + (members > 0 ? accTotals.joint / members : 0),
+  };
+  const byAccount = filter === "all" ? list : list.filter((e) => effectiveAccount(e) === filter);
+  const movements = catFilter ? byAccount.filter((e) => e.category === catFilter) : byAccount;
 
   const rows = budgetStatus(cats, list, monthDate);
   const budgeted = rows.filter((r) => r.hasBudget);
@@ -199,15 +213,25 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
         </Text>
         {total > 0 && (
           <View className="flex-row mt-3 pt-3" style={{ gap: 16, borderTopWidth: 0.5, borderTopColor: t.separator }}>
-            <View className="flex-row items-center" style={{ gap: 7 }}>
-              <View style={{ width: 9, height: 9, borderRadius: 3, backgroundColor: t.accent }} />
-              <Text className="text-[13px] text-secondary">Conjunta</Text>
-              <Text className="text-[13px] font-semibold text-label" style={{ fontVariant: ["tabular-nums"] }}>{eur(accTotals.joint)}</Text>
+            <View className="flex-1">
+              <View className="flex-row items-center mb-0.5" style={{ gap: 7 }}>
+                <View style={{ width: 9, height: 9, borderRadius: 3, backgroundColor: t.purple }} />
+                <Text className="text-[13px] text-secondary">Gasto individual</Text>
+              </View>
+              <Text className="text-[17px] font-semibold text-label" style={{ fontVariant: ["tabular-nums"] }}>
+                {eur(myTotals.individual)}
+              </Text>
+              <Text className="text-[11px] text-tertiary">mi parte de la conjunta + lo mío</Text>
             </View>
-            <View className="flex-row items-center" style={{ gap: 7 }}>
-              <View style={{ width: 9, height: 9, borderRadius: 3, backgroundColor: t.purple }} />
-              <Text className="text-[13px] text-secondary">Individual</Text>
-              <Text className="text-[13px] font-semibold text-label" style={{ fontVariant: ["tabular-nums"] }}>{eur(accTotals.individual)}</Text>
+            <View className="flex-1">
+              <View className="flex-row items-center mb-0.5" style={{ gap: 7 }}>
+                <View style={{ width: 9, height: 9, borderRadius: 3, backgroundColor: t.accent }} />
+                <Text className="text-[13px] text-secondary">Gasto conjunto</Text>
+              </View>
+              <Text className="text-[17px] font-semibold text-label" style={{ fontVariant: ["tabular-nums"] }}>
+                {eur(myTotals.joint)}
+              </Text>
+              <Text className="text-[11px] text-tertiary">solo cuenta conjunta</Text>
             </View>
           </View>
         )}
@@ -220,6 +244,8 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
           monthLabel={monthLabel}
           hasCategories={cats.length > 0}
           onManage={() => setBudgetOpen(true)}
+          selected={catFilter}
+          onSelect={setCatFilter}
         />
       )}
 
@@ -326,14 +352,20 @@ function BudgetSection({
   monthLabel,
   hasCategories,
   onManage,
+  selected,
+  onSelect,
 }: {
   rows: CategorySpend[];
   totals: { budget: number; spent: number };
   monthLabel: string;
   hasCategories: boolean;
   onManage: () => void;
+  /** Categoría por la que se están filtrando los movimientos. */
+  selected: string | null;
+  onSelect: (name: string | null) => void;
 }) {
   const t = useTheme();
+  const kb = useKeyboardHeight();
   const stateColor = (s: CategorySpend["state"]) => (s === "over" ? t.red : s === "warn" ? t.orange : t.accent);
 
   if (rows.length === 0) {
@@ -396,8 +428,20 @@ function BudgetSection({
       <View className="flex-row flex-wrap mx-4 mb-2" style={{ gap: 8 }}>
         {rows.map((r) => {
           const col = stateColor(r.state);
+          const on = selected === r.name;
           return (
-            <View key={r.$id} className="bg-card rounded-lg2 p-3" style={{ flexGrow: 1, flexBasis: "46%", ...cardShadow(t.dark) }}>
+            <Pressable
+              key={r.$id}
+              onPress={() => onSelect(on ? null : r.name)}
+              className="bg-card rounded-lg2 p-3"
+              style={{
+                flexGrow: 1,
+                flexBasis: "46%",
+                borderWidth: on ? 1.5 : 0,
+                borderColor: on ? r.color : "transparent",
+                ...cardShadow(t.dark),
+              }}
+            >
               <View className="flex-row items-center mb-2" style={{ gap: 8 }}>
                 <View className="rounded-md items-center justify-center" style={{ width: 24, height: 24, backgroundColor: r.color }}>
                   <Ionicons name={r.icon as IoniconName} size={13} color="#fff" />
@@ -408,7 +452,7 @@ function BudgetSection({
                 {eur(r.spent)} <Text className="text-[12px] text-secondary font-normal">/ {eur(r.budget)}</Text>
               </Text>
               <ProgressBar pct={r.pct} color={col} />
-            </View>
+            </Pressable>
           );
         })}
       </View>
@@ -419,6 +463,7 @@ function BudgetSection({
 /** Barra de progreso 6px con relleno de color (como .progress del mockup). */
 function ProgressBar({ pct, color }: { pct: number; color: string }) {
   const t = useTheme();
+  const kb = useKeyboardHeight();
   const w = `${Math.max(0, Math.min(100, Math.round(pct * 100)))}%` as `${number}%`;
   return (
     <View style={{ height: 6, borderRadius: 3, backgroundColor: t.fill, overflow: "hidden" }}>
@@ -448,6 +493,7 @@ function AddExpense({
   onDelete?: (id: string) => void;
 }) {
   const t = useTheme();
+  const kb = useKeyboardHeight();
   const [amount, setAmount] = useState("");
   const [concept, setConcept] = useState("");
   const [shared, setShared] = useState(true);
@@ -510,7 +556,7 @@ function AddExpense({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
-      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32, backgroundColor: t.bg }}>
+      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
         <Text className="text-[17px] font-semibold mb-4 text-label">{expense ? "Editar gasto" : "Nuevo gasto"}</Text>
 
         {items.length > 0 && (

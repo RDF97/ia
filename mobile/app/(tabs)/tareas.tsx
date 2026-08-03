@@ -13,7 +13,8 @@ import { useHogar } from "@/lib/hogar";
 import { useAuth } from "@/lib/auth";
 import { appwriteConfigured } from "@/lib/appwrite";
 import { useTasks } from "@/lib/useTasks";
-import { completeTask, createTask, deleteTask, listMemberNames, setTaskDone, type Task } from "@/lib/tasks";
+import { completeTask, createTask, deleteTask, setTaskDone, type Task } from "@/lib/tasks";
+import { useMembers } from "@/lib/useMembers";
 import { dueInfo, groupTasks, repeatLabel, type TaskFilter } from "@/lib/taskLogic";
 import { syncTaskReminders } from "@/lib/taskReminders";
 import { useTheme } from "@/theme/theme";
@@ -45,14 +46,11 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
   const [title, setTitle] = useState("");
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<Task | "new" | null>(null);
-  const [members, setMembers] = useState<string[]>([]);
+
   const [filter, setFilter] = useState<TaskFilter>("today");
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["tasks", hogarId] });
-
-  useEffect(() => {
-    listMemberNames(hogarId).then(setMembers).catch(() => setMembers([]));
-  }, [hogarId]);
+  const members = (useMembers(hogarId).data ?? []).map((m) => m.name);
 
   // Programa/actualiza los recordatorios locales según las tareas.
   useEffect(() => {
