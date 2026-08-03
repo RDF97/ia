@@ -57,14 +57,14 @@ export function DebtCard({
     <View className="rounded-card mx-4 mb-3 px-4 py-3.5 flex-row items-center" style={{ backgroundColor: t.accentSoft, gap: 12 }}>
       <Avatar name={name} size={38} />
       <View className="flex-1">
-        <Text className="text-[15px] text-label">
+        <Text className="text-subhead text-label">
           {owesYou ? `${name} te debe ` : `Debes a ${name} `}
           <Money size={15} weight="700" color={owesYou ? t.accent : t.red}>{eur(amount)}</Money>
         </Text>
-        <Text className="text-[12px] text-secondary mt-0.5">Gastos compartidos</Text>
+        <Text className="text-caption1 text-secondary mt-0.5">Gastos compartidos</Text>
       </View>
       <Pressable onPress={liquidar} className="rounded-pill px-4 py-2" style={{ backgroundColor: t.accent }}>
-        <Text className="text-white text-[14px] font-semibold">Liquidar</Text>
+        <Text className="text-white text-subhead font-semibold">Liquidar</Text>
       </Pressable>
     </View>
   );

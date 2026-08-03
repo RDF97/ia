@@ -85,14 +85,14 @@ export function Planner({
           <Pressable onPress={onClose}>
             <Text className="text-base text-accent">Cancelar</Text>
           </Pressable>
-          <Text className="text-[17px] font-semibold text-label">Programar consumo</Text>
+          <Text className="text-headline font-semibold text-label">Programar consumo</Text>
           <Pressable onPress={confirm}>
             <Text className="text-base font-semibold text-accent">Listo</Text>
           </Pressable>
         </View>
 
         <ScrollView contentContainerStyle={{ paddingBottom: 28 }}>
-          <Text className="px-5 pt-3 pb-2 text-xs font-medium uppercase tracking-wide text-secondary">
+          <Text className="px-4 pt-3 pb-2 text-xs font-medium uppercase tracking-wide text-secondary">
             ¿Qué quieres poner?
           </Text>
           <View className="flex-row flex-wrap px-3">
@@ -114,17 +114,17 @@ export function Planner({
                     >
                       <Ionicons name={ap.icon as IoniconName} size={20} color="#fff" />
                     </View>
-                    <Text className="text-[13px] mt-2 text-label">{ap.name}</Text>
+                    <Text className="text-footnote mt-2 text-label">{ap.name}</Text>
                   </Pressable>
                 </View>
               );
             })}
           </View>
 
-          <Text className="px-5 pt-4 pb-2 text-xs font-medium uppercase tracking-wide text-secondary">
+          <Text className="px-4 pt-4 pb-2 text-footnote font-medium uppercase tracking-wide text-secondary">
             Mejores horas para ponerlo
           </Text>
-          <Text className="px-5 pb-2 text-[13px] text-secondary">
+          <Text className="px-4 pb-2 text-footnote text-secondary">
             {a.name} · {a.dur} h · {a.kwh.toFixed(1).replace(".", ",")} kWh por ciclo
           </Text>
           {opts.map((o, i) => {
@@ -162,7 +162,7 @@ export function Planner({
           })}
 
           <View className="flex-row items-center bg-card rounded-lg2 mx-4 mt-2 px-4 py-3" style={{ gap: 12 }}>
-            <Text className="flex-1 text-[14px] text-label">Avisarme 10 min antes de empezar</Text>
+            <Text className="flex-1 text-subhead text-label">Avisarme 10 min antes de empezar</Text>
             <Toggle value={notify} onChange={setNotify} />
           </View>
 

@@ -25,7 +25,7 @@ export function PhaseCard({ phase, children }: { phase: string; children: ReactN
   const t = useTheme();
   return (
     <Card>
-      <Text className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: t.accent }}>
+      <Text className="text-caption2 font-semibold uppercase tracking-wide mb-1" style={{ color: t.accent }}>
         {phase}
       </Text>
       <Text className="text-base leading-5" style={{ color: t.label }}>{children}</Text>

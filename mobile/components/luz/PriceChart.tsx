@@ -31,9 +31,9 @@ export function PriceChart({ prices, isToday }: { prices: number[]; isToday: boo
   return (
     <View className="bg-card rounded-card mx-4 mb-3 p-4" style={cardShadow(theme.dark)}>
       <View className="flex-row items-center justify-between pb-3 mb-3" style={{ borderBottomWidth: 0.5, borderBottomColor: theme.separator }}>
-        <Text className="text-[15px] font-semibold text-secondary">{rangeLabel(sel, 1)}</Text>
+        <Text className="text-subhead font-semibold text-secondary">{rangeLabel(sel, 1)}</Text>
         <View className="flex-row items-center" style={{ gap: 10 }}>
-          <Text className="text-[22px] font-bold text-label" style={{ lineHeight: 27, fontVariant: ["tabular-nums"] }}>
+          <Text className="text-title2 font-bold text-label" style={{ lineHeight: 27, fontVariant: ["tabular-nums"] }}>
             {fmtKwh(prices[sel])} €/kWh
           </Text>
           <Text className="text-xs font-bold text-white rounded-pill px-2.5 py-1" style={{ backgroundColor: tierColor(tier) }}>
@@ -74,7 +74,7 @@ export function PriceChart({ prices, isToday }: { prices: number[]; isToday: boo
       </View>
       <View className="flex-row justify-between mt-2">
         {["00", "06", "12", "18", "23"].map((l) => (
-          <Text key={l} className="text-[10px] text-tertiary">
+          <Text key={l} className="text-caption2 text-tertiary">
             {l}
           </Text>
         ))}

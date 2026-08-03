@@ -36,16 +36,16 @@ export function PressableScale({
 export function SectionTitle({ children, action, onAction }: { children: ReactNode; action?: string; onAction?: () => void }) {
   const t = useTheme();
   return (
-    <View className="flex-row items-baseline justify-between pr-5">
+    <View className="flex-row items-baseline justify-between pr-4">
       <Text
-        className="px-5 pt-4 pb-2 text-[13px] font-medium"
-        style={{ color: t.labelSecondary, textTransform: "uppercase", letterSpacing: 0.5 }}
+        className="px-4 pt-4 pb-2 text-footnote font-medium"
+        style={{ color: t.labelSecondary, textTransform: "uppercase", letterSpacing: 0.06 }}
       >
         {children}
       </Text>
       {action ? (
         <Pressable onPress={onAction} hitSlop={6}>
-          <Text className="text-[14px] font-medium" style={{ color: t.accent }}>{action}</Text>
+          <Text className="text-subhead font-medium" style={{ color: t.accent }}>{action}</Text>
         </Pressable>
       ) : null}
     </View>

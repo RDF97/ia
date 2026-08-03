@@ -53,8 +53,8 @@ export function UploadCard({
             <Ionicons name={icon} size={18} color="#fff" />
           </View>
           <View className="flex-1">
-            <Text className="text-white text-[15px] font-semibold">{title}</Text>
-            <Text className="text-[12px]" style={{ color: "rgba(255,255,255,0.85)" }}>
+            <Text className="text-white text-subhead font-semibold">{title}</Text>
+            <Text className="text-caption1" style={{ color: "rgba(255,255,255,0.85)" }}>
               {subtitle}
             </Text>
           </View>

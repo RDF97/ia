@@ -126,8 +126,8 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
   return (
     <Screen title="Calendario" subtitle={upcomingLabel(list)} onRefresh={refresh}>
       {/* Cabecera de mes */}
-      <View className="flex-row items-center justify-between px-5 pb-2">
-        <Text className="text-[22px] font-bold text-label">
+      <View className="flex-row items-center justify-between px-4 pb-2">
+        <Text className="text-title2 font-bold text-label">
           {MONTHS[view.m]} {view.y}
         </Text>
         <View className="flex-row items-center" style={{ gap: 18 }}>
@@ -146,7 +146,7 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
       {/* Días de la semana */}
       <View className="flex-row px-3">
         {WEEK.map((w) => (
-          <Text key={w} className="text-center text-[11px] font-semibold text-secondary" style={{ width: `${100 / 7}%` }}>
+          <Text key={w} className="text-center text-caption2 font-semibold text-secondary" style={{ width: `${100 / 7}%` }}>
             {w}
           </Text>
         ))}
@@ -186,7 +186,7 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
       </View>
 
       {/* Agenda del día seleccionado */}
-      <Text className="px-5 pt-3 pb-2 text-[15px] font-semibold text-label">
+      <Text className="px-4 pt-3 pb-2 text-headline text-label">
         {selected.getDate()} de {MONTHS[selected.getMonth()].toLowerCase()}
       </Text>
       {isLoading ? (
@@ -201,13 +201,13 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
                 className="flex-row items-center px-4 py-3"
                 style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}
               >
-                <Text className="text-[14px] font-semibold text-secondary" style={{ width: 48 }}>
+                <Text className="text-subhead font-semibold text-secondary" style={{ width: 48 }}>
                   {hhmm(e.startAt)}
                 </Text>
                 <View style={{ width: 3, height: 34, borderRadius: 2, backgroundColor: t.accent }} />
                 <View className="flex-1">
-                  <Text className="text-[15px] font-medium text-label">{e.title}</Text>
-                  <Text className="text-[12px] text-secondary mt-0.5">
+                  <Text className="text-body text-label">{e.title}</Text>
+                  <Text className="text-caption1 text-secondary mt-0.5">
                     {e.ownerName}{e.place ? ` · ${e.place}` : ""}
                   </Text>
                 </View>
@@ -215,7 +215,7 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
                   onPress={() => addToGoogleCalendar(e).catch(() => undefined)}
                   hitSlop={8}
                   className="rounded-pill items-center justify-center"
-                  style={{ width: 32, height: 32, backgroundColor: t.fill }}
+                  style={{ width: 44, height: 44, backgroundColor: t.fill }}
                 >
                   <Ionicons name="logo-google" size={15} color={t.accent} />
                 </Pressable>
@@ -234,7 +234,7 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
         <Text className="text-white text-base font-semibold">Añadir evento</Text>
       </Pressable>
 
-      <Text className="px-5 pt-5 pb-2 text-[13px] font-medium uppercase tracking-wide text-secondary">
+      <Text className="px-4 pt-5 pb-2 text-footnote font-medium uppercase tracking-wide text-secondary">
         Avisarme
       </Text>
       <Segmented
@@ -242,7 +242,7 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
         onChange={(k) => changeLead(parseInt(k, 10))}
         options={LEAD_OPTIONS.map((o) => ({ key: String(o.key), label: o.label }))}
       />
-      <Text className="px-5 pb-2 text-[12px] text-tertiary">
+      <Text className="px-4 pb-2 text-caption1 text-tertiary">
         Aviso en este móvil antes de cada evento. Desliza un evento para borrarlo; el botón de
         Google lo añade a tu Google Calendar.
       </Text>
@@ -330,14 +330,14 @@ function AddEvent({
         />
         <View className="p-5">
         <TextInput
-          className="bg-card rounded-lg2 px-4 py-3 mb-3 text-[16px] text-label"
+          className="bg-card rounded-lg2 px-4 py-3 mb-3 text-callout text-label"
           placeholder="Título"
           placeholderTextColor={t.labelTertiary}
           value={title}
           onChangeText={setTitle}
         />
         <TextInput
-          className="bg-card rounded-lg2 px-4 py-3 mb-3 text-[16px] text-label"
+          className="bg-card rounded-lg2 px-4 py-3 mb-3 text-callout text-label"
           placeholder="Lugar (opcional)"
           placeholderTextColor={t.labelTertiary}
           value={place}
@@ -346,11 +346,11 @@ function AddEvent({
         <View className="flex-row mb-4" style={{ gap: 8 }}>
           <Pressable onPress={() => setPicker("date")} className="flex-1 bg-card rounded-lg2 px-4 py-3 flex-row items-center" style={{ gap: 8 }}>
             <Ionicons name="calendar-outline" size={18} color={t.accent} />
-            <Text className="text-[15px] text-label">{dateLabel}</Text>
+            <Text className="text-subhead text-label">{dateLabel}</Text>
           </Pressable>
           <Pressable onPress={() => setPicker("time")} className="flex-1 bg-card rounded-lg2 px-4 py-3 flex-row items-center" style={{ gap: 8 }}>
             <Ionicons name="time-outline" size={18} color={t.accent} />
-            <Text className="text-[15px] text-label">{timeLabel}</Text>
+            <Text className="text-subhead text-label">{timeLabel}</Text>
           </Pressable>
         </View>
 

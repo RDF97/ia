@@ -151,7 +151,7 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
         <Pressable
           onPress={() => setBudgetOpen(true)}
           className="rounded-pill items-center justify-center"
-          style={{ width: 36, height: 36, backgroundColor: t.fill, marginBottom: 4 }}
+          style={{ width: 44, height: 44, backgroundColor: t.fill, marginBottom: 4 }}
         >
           <Ionicons name="pie-chart-outline" size={17} color={t.accent} />
         </Pressable>
@@ -164,12 +164,12 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
           onPress={() => shiftMonth(-1)}
           hitSlop={8}
           className="rounded-pill items-center justify-center"
-          style={{ width: 32, height: 32, backgroundColor: t.fill }}
+          style={{ width: 44, height: 44, backgroundColor: t.fill }}
         >
           <Ionicons name="chevron-back" size={16} color={t.accent} />
         </Pressable>
         <View className="rounded-pill px-4 py-1.5" style={{ backgroundColor: t.fill }}>
-          <Text className="text-[14px] font-medium text-label">
+          <Text className="text-subhead font-medium text-label">
             {monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1)} {month.y}
           </Text>
         </View>
@@ -184,7 +184,7 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
         </Pressable>
         {!isCurrentMonth && (
           <Pressable onPress={() => setMonth({ y: new Date().getFullYear(), m: new Date().getMonth() })} hitSlop={8}>
-            <Text className="text-[13px] font-medium" style={{ color: t.accent }}>Hoy</Text>
+            <Text className="text-footnote font-medium" style={{ color: t.accent }}>Hoy</Text>
           </Pressable>
         )}
       </View>
@@ -201,15 +201,15 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
       />
 
       {isError && (
-        <Text className="text-center text-[13px] mb-2" style={{ color: t.red }}>
+        <Text className="text-center text-footnote mb-2" style={{ color: t.red }}>
           No se pudieron cargar los gastos. Desliza hacia abajo para reintentar.
         </Text>
       )}
       <Card>
-        <Text className="text-[12px] text-secondary mb-1" style={{ textTransform: "uppercase", letterSpacing: 0.4 }}>
+        <Text className="text-caption1 text-secondary mb-1" style={{ textTransform: "uppercase", letterSpacing: 0.4 }}>
           Gastado · {monthLabel}
         </Text>
-        <Text className="text-[36px] font-bold text-label" style={{ lineHeight: 42, letterSpacing: -1, fontVariant: ["tabular-nums"] }}>
+        <Text className="text-largeTitle text-label" style={{ fontVariant: ["tabular-nums"] }}>
           {eur(total)}
         </Text>
         {total > 0 && (
@@ -217,22 +217,22 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
             <View className="flex-1">
               <View className="flex-row items-center mb-0.5" style={{ gap: 7 }}>
                 <View style={{ width: 9, height: 9, borderRadius: 3, backgroundColor: t.purple }} />
-                <Text className="text-[13px] text-secondary">Gasto individual</Text>
+                <Text className="text-footnote text-secondary">Gasto individual</Text>
               </View>
-              <Text className="text-[17px] font-semibold text-label" style={{ fontVariant: ["tabular-nums"] }}>
+              <Text className="text-headline font-semibold text-label" style={{ fontVariant: ["tabular-nums"] }}>
                 {eur(myTotals.individual)}
               </Text>
-              <Text className="text-[11px] text-tertiary">mi parte de la conjunta + lo mío</Text>
+              <Text className="text-caption2 text-tertiary">mi parte de la conjunta + lo mío</Text>
             </View>
             <View className="flex-1">
               <View className="flex-row items-center mb-0.5" style={{ gap: 7 }}>
                 <View style={{ width: 9, height: 9, borderRadius: 3, backgroundColor: t.accent }} />
-                <Text className="text-[13px] text-secondary">Gasto conjunto</Text>
+                <Text className="text-footnote text-secondary">Gasto conjunto</Text>
               </View>
-              <Text className="text-[17px] font-semibold text-label" style={{ fontVariant: ["tabular-nums"] }}>
+              <Text className="text-headline font-semibold text-label" style={{ fontVariant: ["tabular-nums"] }}>
                 {eur(myTotals.joint)}
               </Text>
-              <Text className="text-[11px] text-tertiary">solo cuenta conjunta</Text>
+              <Text className="text-caption2 text-tertiary">solo cuenta conjunta</Text>
             </View>
           </View>
         )}
@@ -295,8 +295,8 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
               >
                 <IconTile icon={icon} color={color} />
                 <View className="flex-1">
-                  <Text className="text-[16px] text-label">{e.concept}</Text>
-                  <Text className="text-[13px] text-secondary mt-0.5">
+                  <Text className="text-callout text-label">{e.concept}</Text>
+                  <Text className="text-footnote text-secondary mt-0.5">
                     {e.paidByName} · {source}
                     {e.category ? ` · ${e.category}` : ""}
                   </Text>
@@ -310,7 +310,7 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
           })}
         </View>
       )}
-      <Text className="text-center text-[12px] text-tertiary mb-2">Toca un gasto para editarlo · desliza para borrarlo</Text>
+      <Text className="text-center text-caption1 text-tertiary mb-2">Toca un gasto para editarlo · desliza para borrarlo</Text>
 
       <AddExpense visible={open} onClose={() => setOpen(false)} hogarId={hogarId} userName={userName} categories={cats} onAdded={refresh} />
       <BudgetModal visible={budgetOpen} hogarId={hogarId} enabled={budgetOn} onToggle={toggleBudget} onClose={() => setBudgetOpen(false)} />
@@ -377,7 +377,7 @@ function BudgetSection({
           <View className="rounded-lg items-center justify-center" style={{ width: 30, height: 30, backgroundColor: t.accent }}>
             <Ionicons name="pie-chart" size={16} color="#fff" />
           </View>
-          <Text className="flex-1 text-[14px] text-secondary">
+          <Text className="flex-1 text-subhead text-secondary">
             {hasCategories ? "Ponle un límite mensual a tus categorías" : "Crea categorías para empezar a presupuestar"}
           </Text>
           <Ionicons name="chevron-forward" size={16} color={t.tabInactive} />
@@ -396,23 +396,23 @@ function BudgetSection({
       <View className="bg-card rounded-card mx-4 mb-3 p-4" style={cardShadow(t.dark)}>
         <View className="flex-row items-end justify-between mb-3.5">
           <View>
-            <Text className="text-[12px] text-secondary mb-1" style={{ textTransform: "uppercase", letterSpacing: 0.4 }}>Presupuesto · {monthLabel}</Text>
-            <Text className="text-[34px] font-bold text-label" style={{ lineHeight: 36, letterSpacing: -1, fontVariant: ["tabular-nums"] }}>{eur(totals.spent)}</Text>
+            <Text className="text-caption1 text-secondary mb-1" style={{ textTransform: "uppercase", letterSpacing: 0.4 }}>Presupuesto · {monthLabel}</Text>
+            <Text className="text-largeTitle font-bold text-label" style={{ lineHeight: 36, letterSpacing: -1, fontVariant: ["tabular-nums"] }}>{eur(totals.spent)}</Text>
           </View>
-          <Text className="text-[14px] text-secondary mb-1">de {eur(totals.budget)}</Text>
+          <Text className="text-subhead text-secondary mb-1">de {eur(totals.budget)}</Text>
         </View>
         <ProgressBar pct={totalPct} color={totalCol} />
         <View className="flex-row justify-between mt-2">
-          <Text className="text-[12px] text-secondary">{Math.round(totalPct * 100)}% usado</Text>
-          <Text className="text-[12px]" style={{ color: remaining < 0 ? t.red : t.labelSecondary }}>
+          <Text className="text-caption1 text-secondary">{Math.round(totalPct * 100)}% usado</Text>
+          <Text className="text-caption1" style={{ color: remaining < 0 ? t.red : t.labelSecondary }}>
             {remaining >= 0 ? `${eur(remaining)} restantes` : `${eur(-remaining)} de más`}
           </Text>
         </View>
       </View>
 
-      <View className="flex-row items-center justify-between px-5 pt-4 pb-2">
+      <View className="flex-row items-center justify-between px-4 pt-4 pb-2">
         <Text
-          className="text-[13px] font-medium"
+          className="text-footnote font-medium"
           style={{ color: t.labelSecondary, textTransform: "uppercase", letterSpacing: 0.5 }}
         >
           Por categoría
@@ -423,7 +423,7 @@ function BudgetSection({
           style={{ gap: 4, backgroundColor: t.accentSoft }}
         >
           <Ionicons name="add" size={13} color={t.accent} />
-          <Text className="text-[13px] font-semibold" style={{ color: t.accent }}>Editar</Text>
+          <Text className="text-footnote font-semibold" style={{ color: t.accent }}>Editar</Text>
         </Pressable>
       </View>
       <View className="flex-row flex-wrap mx-4 mb-2" style={{ gap: 8 }}>
@@ -447,10 +447,10 @@ function BudgetSection({
                 <View className="rounded-md items-center justify-center" style={{ width: 24, height: 24, backgroundColor: r.color }}>
                   <Ionicons name={r.icon as IoniconName} size={13} color="#fff" />
                 </View>
-                <Text className="text-[13px] font-medium text-label" numberOfLines={1} style={{ flex: 1 }}>{r.name}</Text>
+                <Text className="text-footnote font-medium text-label" numberOfLines={1} style={{ flex: 1 }}>{r.name}</Text>
               </View>
-              <Text className="text-[15px] font-semibold text-label mb-1.5" style={{ fontVariant: ["tabular-nums"], letterSpacing: -0.2 }}>
-                {eur(r.spent)} <Text className="text-[12px] text-secondary font-normal">/ {eur(r.budget)}</Text>
+              <Text className="text-subhead font-semibold text-label mb-1.5" style={{ fontVariant: ["tabular-nums"], letterSpacing: -0.2 }}>
+                {eur(r.spent)} <Text className="text-caption1 text-secondary font-normal">/ {eur(r.budget)}</Text>
               </Text>
               <ProgressBar pct={r.pct} color={col} />
             </Pressable>
@@ -578,7 +578,7 @@ function AddExpense({
 
         {items.length > 0 && (
           <>
-            <Text className="text-[12px] font-medium uppercase tracking-wide text-secondary mb-2">
+            <Text className="text-caption1 font-medium uppercase tracking-wide text-secondary mb-2">
               Artículos del ticket ({items.length})
             </Text>
             <ScrollView className="bg-card rounded-lg2 mb-3" style={{ maxHeight: 170 }}>
@@ -589,14 +589,14 @@ function AddExpense({
                   style={{ gap: 10, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}
                 >
                   <View className="flex-1">
-                    <Text className="text-[14px] text-label" numberOfLines={1}>{it.description}</Text>
+                    <Text className="text-subhead text-label" numberOfLines={1}>{it.description}</Text>
                     {it.qty != null && it.qty > 1 && it.unitPrice != null && (
-                      <Text className="text-[12px] text-secondary mt-0.5">
+                      <Text className="text-caption1 text-secondary mt-0.5">
                         {it.qty} × {eur(it.unitPrice)}
                       </Text>
                     )}
                   </View>
-                  <Text className="text-[14px] font-semibold text-label" style={{ fontVariant: ["tabular-nums"] }}>
+                  <Text className="text-subhead font-semibold text-label" style={{ fontVariant: ["tabular-nums"] }}>
                     {it.total != null ? eur(it.total) : it.unitPrice != null ? eur(it.unitPrice) : "—"}
                   </Text>
                 </View>
@@ -605,7 +605,7 @@ function AddExpense({
           </>
         )}
         <TextInput
-          className="bg-card rounded-lg2 px-4 py-3 mb-3 text-[16px] text-label"
+          className="bg-card rounded-lg2 px-4 py-3 mb-3 text-callout text-label"
           placeholder="Importe (€)"
           placeholderTextColor={t.labelTertiary}
           value={amount}
@@ -613,7 +613,7 @@ function AddExpense({
           keyboardType="decimal-pad"
         />
         <TextInput
-          className="bg-card rounded-lg2 px-4 py-3 mb-3 text-[16px] text-label"
+          className="bg-card rounded-lg2 px-4 py-3 mb-3 text-callout text-label"
           placeholder="Concepto"
           placeholderTextColor={t.labelTertiary}
           value={concept}
@@ -622,8 +622,8 @@ function AddExpense({
 
         <Pressable onPress={() => setShowDate(true)} className="bg-card rounded-lg2 px-4 py-3 mb-3 flex-row items-center" style={{ gap: 10 }}>
           <Ionicons name="calendar-outline" size={18} color={t.accent} />
-          <Text className="flex-1 text-[16px] text-label">Fecha</Text>
-          <Text className="text-[15px] text-secondary">
+          <Text className="flex-1 text-callout text-label">Fecha</Text>
+          <Text className="text-subhead text-secondary">
             {`${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`}
           </Text>
         </Pressable>
@@ -633,7 +633,7 @@ function AddExpense({
 
         {categories.length > 0 && (
           <>
-            <Text className="text-[12px] font-medium uppercase tracking-wide text-secondary mb-2">Categoría</Text>
+            <Text className="text-caption1 font-medium uppercase tracking-wide text-secondary mb-2">Categoría</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4" contentContainerStyle={{ gap: 8, paddingRight: 8 }}>
               {categories.map((c) => {
                 const on = category === c.name;
@@ -645,7 +645,7 @@ function AddExpense({
                     style={{ gap: 6, backgroundColor: on ? c.color : t.fill }}
                   >
                     <Ionicons name={c.icon as IoniconName} size={14} color={on ? "#fff" : c.color} />
-                    <Text className="text-[13px] font-medium" style={{ color: on ? "#fff" : t.label }}>{c.name}</Text>
+                    <Text className="text-footnote font-medium" style={{ color: on ? "#fff" : t.label }}>{c.name}</Text>
                   </Pressable>
                 );
               })}
@@ -653,7 +653,7 @@ function AddExpense({
           </>
         )}
 
-        <Text className="text-[12px] font-medium uppercase tracking-wide text-secondary mb-2">Cuenta</Text>
+        <Text className="text-caption1 font-medium uppercase tracking-wide text-secondary mb-2">Cuenta</Text>
         <View className="flex-row mb-4" style={{ gap: 8 }}>
           {([
             { key: "joint", label: "Conjunta", icon: "wallet" },
@@ -668,7 +668,7 @@ function AddExpense({
                 style={{ gap: 7, backgroundColor: on ? t.accent : t.card, borderWidth: 1, borderColor: on ? t.accent : t.separator }}
               >
                 <Ionicons name={o.icon} size={16} color={on ? "#fff" : t.labelSecondary} />
-                <Text className="text-[15px] font-medium" style={{ color: on ? "#fff" : t.label }}>{o.label}</Text>
+                <Text className="text-subhead font-medium" style={{ color: on ? "#fff" : t.label }}>{o.label}</Text>
               </Pressable>
             );
           })}
@@ -677,15 +677,15 @@ function AddExpense({
         {account === "individual" && (
           <View className="flex-row items-center justify-between bg-card rounded-lg2 px-4 py-3 mb-4">
             <View className="flex-1 pr-3">
-              <Text className="text-[15px] text-label">Compartido con el hogar</Text>
-              <Text className="text-[12px] text-secondary mt-0.5">Los demás te devuelven su parte</Text>
+              <Text className="text-subhead text-label">Compartido con el hogar</Text>
+              <Text className="text-caption1 text-secondary mt-0.5">Los demás te devuelven su parte</Text>
             </View>
             <Switch value={shared} onValueChange={setShared} trackColor={{ true: t.accent, false: t.separator }} />
           </View>
         )}
         {expense && onDelete && (
           <Pressable onPress={() => onDelete(expense.$id)} disabled={busy} className="mt-2 items-center py-2">
-            <Text className="text-[15px] font-medium" style={{ color: t.red }}>Borrar gasto</Text>
+            <Text className="text-subhead font-medium" style={{ color: t.red }}>Borrar gasto</Text>
           </Pressable>
         )}
         </ScrollView>

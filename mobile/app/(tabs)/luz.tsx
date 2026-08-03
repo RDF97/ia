@@ -42,7 +42,7 @@ const sourceLabel = (s: LuzSource) =>
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <Text className="px-5 pt-4 pb-2 text-[13px] font-medium uppercase tracking-wide text-secondary">
+    <Text className="px-4 pt-4 pb-2 text-footnote font-medium uppercase tracking-wide text-secondary">
       {children}
     </Text>
   );
@@ -101,11 +101,11 @@ export default function Luz() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={t.accent} />}
       >
-        <View className="px-5 pt-2 pb-1">
-          <Text className="text-[34px] font-bold text-label" style={{ lineHeight: 41, letterSpacing: -0.5 }}>
+        <View className="px-4 pt-2 pb-1">
+          <Text className="text-largeTitle font-bold text-label" style={{ lineHeight: 41, letterSpacing: -0.5 }}>
             Luz
           </Text>
-          <Text className="text-[13px] text-secondary mt-1">{sourceLabel(source)}</Text>
+          <Text className="text-footnote text-secondary mt-1">{sourceLabel(source)}</Text>
         </View>
 
         {/* Precio ahora */}
@@ -127,21 +127,21 @@ export default function Luz() {
         >
           <View className="flex-row items-start justify-between">
             <View>
-              <Text className="text-[11px] font-medium text-white/90" style={{ textTransform: "uppercase", letterSpacing: 0.6 }}>
+              <Text className="text-caption2 font-medium text-white/90" style={{ textTransform: "uppercase", letterSpacing: 0.6 }}>
                 Precio ahora · {rangeLabel(nowHour, 1)}
               </Text>
               <Text
-                className="text-[34px] font-bold text-white mt-1"
+                className="text-largeTitle font-bold text-white mt-1"
                 style={{ lineHeight: 42, includeFontPadding: false, fontVariant: ["tabular-nums"], letterSpacing: -0.6 }}
               >
                 {fmtKwh(now)} <Text className="text-base text-white/90">€/kWh</Text>
               </Text>
             </View>
-            <Text className="text-[13px] font-bold text-white rounded-pill px-3 py-1.5" style={{ backgroundColor: "#ffffff38" }}>
+            <Text className="text-footnote font-bold text-white rounded-pill px-3 py-1.5" style={{ backgroundColor: "#ffffff38" }}>
               {nowLabel}
             </Text>
           </View>
-          <Text className="text-[13px] text-white/90 mt-3 pt-3 border-t border-white/20" style={{ fontVariant: ["tabular-nums"] }}>
+          <Text className="text-footnote text-white/90 mt-3 pt-3 border-t border-white/20" style={{ fontVariant: ["tabular-nums"] }}>
             {vs >= 0 ? "+" : ""}
             {vs}% vs media de hoy
           </Text>
@@ -150,18 +150,18 @@ export default function Luz() {
         {/* Más barata / más cara */}
         <View className="flex-row mx-4 mb-1" style={{ gap: 8 }}>
           <View className="flex-1 bg-card rounded-lg2 p-3" style={cardShadow(t.dark)}>
-            <Text className="text-[11px] uppercase tracking-wide text-secondary">Hora más barata</Text>
-            <Text className="text-[20px] font-bold" style={{ color: t.green, fontVariant: ["tabular-nums"] }}>
+            <Text className="text-caption2 uppercase tracking-wide text-secondary">Hora más barata</Text>
+            <Text className="text-title3 font-bold" style={{ color: t.green, fontVariant: ["tabular-nums"] }}>
               {hourLabel(dayPrices.indexOf(dMin))}
             </Text>
-            <Text className="text-[13px]" style={{ color: t.green, fontVariant: ["tabular-nums"] }}>{fmtKwh(dMin)} €</Text>
+            <Text className="text-footnote" style={{ color: t.green, fontVariant: ["tabular-nums"] }}>{fmtKwh(dMin)} €</Text>
           </View>
           <View className="flex-1 bg-card rounded-lg2 p-3" style={cardShadow(t.dark)}>
-            <Text className="text-[11px] uppercase tracking-wide text-secondary">Hora más cara</Text>
-            <Text className="text-[20px] font-bold" style={{ color: t.red, fontVariant: ["tabular-nums"] }}>
+            <Text className="text-caption2 uppercase tracking-wide text-secondary">Hora más cara</Text>
+            <Text className="text-title3 font-bold" style={{ color: t.red, fontVariant: ["tabular-nums"] }}>
               {hourLabel(dayPrices.indexOf(dMax))}
             </Text>
-            <Text className="text-[13px]" style={{ color: t.red, fontVariant: ["tabular-nums"] }}>{fmtKwh(dMax)} €</Text>
+            <Text className="text-footnote" style={{ color: t.red, fontVariant: ["tabular-nums"] }}>{fmtKwh(dMax)} €</Text>
           </View>
         </View>
 
@@ -176,9 +176,9 @@ export default function Luz() {
           />
         </View>
 
-        <View className="flex-row items-center justify-between px-5 pt-4 pb-2">
+        <View className="flex-row items-center justify-between px-4 pt-4 pb-2">
           <Text
-            className="text-[13px] font-medium"
+            className="text-footnote font-medium"
             style={{ color: t.labelSecondary, textTransform: "uppercase", letterSpacing: 0.5 }}
           >
             Precio por horas · {day === "today" ? "Hoy" : "Mañana"}
@@ -210,7 +210,7 @@ export default function Luz() {
 
         {/* Mejores tramos */}
         <SectionTitle>Mejores tramos para consumir</SectionTitle>
-        <Text className="px-5 pb-2 text-[13px] text-secondary">
+        <Text className="px-4 pb-2 text-footnote text-secondary">
           Franjas seguidas con el precio por debajo de la media. Ideales para concentrar el consumo.
         </Text>
         <View className="bg-card rounded-lg2 mx-4 mb-3 overflow-hidden" style={cardShadow(t.dark)}>
@@ -223,11 +223,11 @@ export default function Luz() {
                 <Text className="text-base text-label">
                   {dayPart(r.start)} · {hourLabel(r.start)}–{hourLabel(r.end + 1)}
                 </Text>
-                <Text className="text-[13px] text-secondary mt-0.5">
+                <Text className="text-footnote text-secondary mt-0.5">
                   {r.n} {r.n === 1 ? "hora" : "horas"} baratas{i === 0 ? " · el más barato" : ""}
                 </Text>
               </View>
-              <Text className="text-[15px] font-semibold" style={{ color: t.green, fontVariant: ["tabular-nums"] }}>
+              <Text className="text-subhead font-semibold" style={{ color: t.green, fontVariant: ["tabular-nums"] }}>
                 {fmtKwh(r.avg)} €/kWh
               </Text>
             </View>
@@ -249,9 +249,9 @@ export default function Luz() {
                     <View className="rounded-[7px] items-center justify-center" style={{ width: 26, height: 26, backgroundColor: a.color }}>
                       <Ionicons name={a.icon as IoniconName} size={15} color="#fff" />
                     </View>
-                    <Text className="text-[14px] font-semibold text-label">{a.name}</Text>
+                    <Text className="text-subhead font-semibold text-label">{a.name}</Text>
                   </View>
-                  <Text className="text-[15px] font-bold mt-1.5" style={{ color: t.accent, fontVariant: ["tabular-nums"] }}>
+                  <Text className="text-subhead font-bold mt-1.5" style={{ color: t.accent, fontVariant: ["tabular-nums"] }}>
                     {rangeLabel(best.start, a.dur)}
                   </Text>
                   <Text className="text-xs text-secondary mt-0.5">
@@ -303,7 +303,7 @@ function AlertRow({
       <View className="rounded-lg items-center justify-center" style={{ width: 28, height: 28, backgroundColor: color }}>
         <Ionicons name={icon} size={14} color="#fff" />
       </View>
-      <Text className="flex-1 text-[14px] text-label">{label}</Text>
+      <Text className="flex-1 text-subhead text-label">{label}</Text>
       <Toggle value={value} onChange={onChange} />
     </View>
   );

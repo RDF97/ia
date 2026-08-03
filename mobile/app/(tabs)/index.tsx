@@ -81,20 +81,20 @@ function Tile({
   const t = useTheme();
   return (
     <Pressable onPress={onPress} className="flex-1 bg-card p-3 justify-between" style={{ minHeight: 80, borderRadius: 14, ...cardShadow(t.dark) }}>
-      <Text className="text-[11px] text-secondary font-medium" style={{ textTransform: "uppercase", letterSpacing: 0.4 }}>
+      <Text className="text-caption2 text-secondary font-medium" style={{ textTransform: "uppercase", letterSpacing: 0.4 }}>
         {label}
       </Text>
       <View>
-        <Text className="text-[18px] font-semibold" style={{ color: color ?? t.label, fontVariant: ["tabular-nums"], letterSpacing: -0.3 }}>
+        <Text className="text-title3" style={{ color: color ?? t.label, fontVariant: ["tabular-nums"] }}>
           {value}
         </Text>
         {trend ? (
           // Subir el gasto es "malo" → rojo; bajarlo → verde (como el mockup).
-          <Text className="text-[11px] font-medium mt-0.5" style={{ color: trend.dir === "up" ? t.red : t.green }}>
+          <Text className="text-caption2 font-medium mt-0.5" style={{ color: trend.dir === "up" ? t.red : t.green }}>
             {trend.text}
           </Text>
         ) : sub ? (
-          <Text className="text-[11px] font-medium text-secondary mt-0.5" numberOfLines={1}>{sub}</Text>
+          <Text className="text-caption2 font-medium text-secondary mt-0.5" numberOfLines={1}>{sub}</Text>
         ) : null}
       </View>
     </Pressable>
@@ -180,15 +180,15 @@ function Dashboard({
               <Ionicons name="home" size={20} color="#fff" />
             </View>
             <View>
-              <Text className="text-[16px] font-semibold text-label">{hogarName}</Text>
-              <Text className="text-[13px] text-secondary">
+              <Text className="text-callout font-semibold text-label">{hogarName}</Text>
+              <Text className="text-footnote text-secondary">
                 {members} {members === 1 ? "miembro" : "miembros"}
               </Text>
             </View>
           </View>
           <Pressable onPress={onInvite} className="rounded-pill px-3 py-2 flex-row items-center" style={{ backgroundColor: t.accent, gap: 6 }}>
             <Ionicons name="person-add-outline" size={15} color="#fff" />
-            <Text className="text-white text-[13px] font-semibold">Invitar</Text>
+            <Text className="text-white text-footnote font-semibold">Invitar</Text>
           </Pressable>
         </View>
       </Card>
@@ -202,11 +202,11 @@ function Dashboard({
       {/* Agenda de hoy (cabecera dentro de la tarjeta + barra de color por evento) */}
       <Card>
         <View className="flex-row items-center justify-between mb-3">
-          <Text className="text-[17px] font-semibold text-label" style={{ letterSpacing: -0.2 }}>
+          <Text className="text-headline font-semibold text-label" style={{ letterSpacing: -0.2 }}>
             Hoy · {todayLabel}
           </Text>
           <Pressable onPress={() => router.navigate("/calendario")} hitSlop={6}>
-            <Text className="text-[14px] font-medium text-accent">Ver todo</Text>
+            <Text className="text-subhead font-medium text-accent">Ver todo</Text>
           </Pressable>
         </View>
         {todayEvents.length === 0 ? (
@@ -222,10 +222,10 @@ function Dashboard({
               style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}
             >
               <View style={{ width: 3, height: 32, borderRadius: 2, backgroundColor: stripeColor(t, e.ownerName) }} />
-              <Text className="text-[13px] font-semibold text-secondary" style={{ width: 46, fontVariant: ["tabular-nums"] }}>{hhmm(e.startAt)}</Text>
+              <Text className="text-footnote font-semibold text-secondary" style={{ width: 46, fontVariant: ["tabular-nums"] }}>{hhmm(e.startAt)}</Text>
               <View className="flex-1">
-                <Text className="text-[15px] text-label">{e.title}</Text>
-                <Text className="text-[12px] text-secondary mt-0.5" numberOfLines={1}>
+                <Text className="text-body text-label">{e.title}</Text>
+                <Text className="text-caption1 text-secondary mt-0.5" numberOfLines={1}>
                   {e.ownerName}{e.place ? ` · ${e.place}` : ""}
                 </Text>
               </View>
@@ -238,16 +238,16 @@ function Dashboard({
       <Pressable onPress={() => router.navigate("/compra")}>
         <Card>
           <View className="flex-row items-center justify-between mb-3">
-            <Text className="text-[17px] font-semibold text-label" style={{ letterSpacing: -0.2 }}>Pendientes de compra</Text>
-            <Text className="text-[14px] font-medium text-accent">Ver lista</Text>
+            <Text className="text-headline font-semibold text-label" style={{ letterSpacing: -0.2 }}>Pendientes de compra</Text>
+            <Text className="text-subhead font-medium text-accent">Ver lista</Text>
           </View>
           <View className="flex-row items-center" style={{ gap: 12 }}>
             <IconTile icon="cart" color={t.gray} size={34} />
             <View className="flex-1">
-              <Text className="text-[15px] text-label" numberOfLines={1}>
+              <Text className="text-subhead text-label" numberOfLines={1}>
                 {pendingShop > 0 ? shopPreview : "Lista al día"}
               </Text>
-              <Text className="text-[12px] text-secondary mt-0.5">
+              <Text className="text-caption1 text-secondary mt-0.5">
                 {pendingShop > 0
                   ? `${pendingShop} ${pendingShop === 1 ? "producto" : "productos"}${shopStore ? ` en ${shopStore}` : ""}`
                   : "Nada pendiente"}

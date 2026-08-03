@@ -71,13 +71,13 @@ export function BudgetModal({
               <Ionicons name="pie-chart" size={16} color="#fff" />
             </View>
             <View className="flex-1">
-              <Text className="text-[15px] text-label">Presupuesto mensual</Text>
-              <Text className="text-[12px] text-secondary mt-0.5">Muestra cuánto llevas gastado de cada límite</Text>
+              <Text className="text-subhead text-label">Presupuesto mensual</Text>
+              <Text className="text-caption1 text-secondary mt-0.5">Muestra cuánto llevas gastado de cada límite</Text>
             </View>
             <Toggle value={enabled} onChange={onToggle} />
           </View>
 
-          <Text className="px-5 pt-4 pb-2 text-xs font-medium uppercase tracking-wide text-secondary">
+          <Text className="px-4 pt-4 pb-2 text-footnote font-medium uppercase tracking-wide text-secondary">
             Categorías
           </Text>
 
@@ -109,8 +109,8 @@ export function BudgetModal({
                   <View className="rounded-lg items-center justify-center" style={{ width: 30, height: 30, backgroundColor: c.color }}>
                     <Ionicons name={c.icon as IoniconName} size={16} color="#fff" />
                   </View>
-                  <Text className="flex-1 text-[15px] text-label">{c.name}</Text>
-                  <Text className="text-[13px]" style={{ color: c.budget > 0 ? t.labelSecondary : t.labelTertiary }}>
+                  <Text className="flex-1 text-subhead text-label">{c.name}</Text>
+                  <Text className="text-footnote" style={{ color: c.budget > 0 ? t.labelSecondary : t.labelTertiary }}>
                     {c.budget > 0 ? `${eur(c.budget)}/mes` : "Sin límite"}
                   </Text>
                   <Ionicons name="chevron-forward" size={16} color={t.tabInactive} />
@@ -126,7 +126,7 @@ export function BudgetModal({
               style={{ gap: 8, borderWidth: 1, borderColor: t.separator }}
             >
               <Ionicons name="add" size={20} color={t.accent} />
-              <Text className="text-[15px] font-semibold text-accent">Nueva categoría</Text>
+              <Text className="text-subhead font-semibold text-accent">Nueva categoría</Text>
             </Pressable>
           )}
         </ScrollView>
@@ -242,11 +242,11 @@ function CategoryEditor({
           <View className="rounded-lg items-center justify-center" style={{ width: 34, height: 34, backgroundColor: color }}>
             <Ionicons name={icon as IoniconName} size={18} color="#fff" />
           </View>
-          <Text className="text-[15px] text-secondary">Así se verá en tus gastos</Text>
+          <Text className="text-subhead text-secondary">Así se verá en tus gastos</Text>
         </View>
 
         <TextInput
-          className="bg-card rounded-lg2 px-4 py-3 mb-3 text-[16px] text-label"
+          className="bg-card rounded-lg2 px-4 py-3 mb-3 text-callout text-label"
           placeholder="Nombre (p. ej. Alimentación)"
           placeholderTextColor={t.labelTertiary}
           value={name}
@@ -255,9 +255,9 @@ function CategoryEditor({
         />
 
         <View className="flex-row items-center bg-card rounded-lg2 px-4 py-3 mb-4" style={{ gap: 8 }}>
-          <Text className="flex-1 text-[15px] text-label">Límite mensual</Text>
+          <Text className="flex-1 text-subhead text-label">Límite mensual</Text>
           <TextInput
-            className="text-[16px] text-label text-right"
+            className="text-callout text-label text-right"
             style={{ minWidth: 90 }}
             placeholder="Sin límite"
             placeholderTextColor={t.labelTertiary}
@@ -265,7 +265,7 @@ function CategoryEditor({
             onChangeText={setBudget}
             keyboardType="decimal-pad"
           />
-          <Text className="text-[15px] text-secondary">€</Text>
+          <Text className="text-subhead text-secondary">€</Text>
         </View>
 
         <Text className="text-xs font-medium uppercase tracking-wide text-secondary mb-2">Color</Text>
@@ -295,7 +295,7 @@ function CategoryEditor({
 
         {cat && (
           <Pressable onPress={remove} className="mt-2 items-center py-2">
-            <Text className="text-[15px] font-medium" style={{ color: t.red }}>Borrar categoría</Text>
+            <Text className="text-subhead font-medium" style={{ color: t.red }}>Borrar categoría</Text>
           </Pressable>
         )}
         </ScrollView>

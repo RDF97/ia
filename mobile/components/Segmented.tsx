@@ -44,7 +44,7 @@ export function Segmented<T extends string>({
                 : undefined
             }
           >
-            <Text className="text-[13px] font-medium" style={{ color: t.label, opacity: o.disabled ? 0.4 : 1 }}>
+            <Text className="text-footnote font-medium" style={{ color: t.label, opacity: o.disabled ? 0.4 : 1 }}>
               {o.label}
             </Text>
           </Pressable>

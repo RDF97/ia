@@ -166,7 +166,7 @@ export function CsvModal({
               <Text className="text-base text-accent">‹ Atrás</Text>
             </Pressable>
           )}
-          <Text className="text-[17px] font-semibold text-label">Conciliar CSV</Text>
+          <Text className="text-headline font-semibold text-label">Conciliar CSV</Text>
           <View style={{ width: 52 }} />
         </View>
 
@@ -175,8 +175,8 @@ export function CsvModal({
             <View className="rounded-full items-center justify-center mb-4" style={{ width: 64, height: 64, backgroundColor: t.accentSoft }}>
               <Ionicons name="document-text-outline" size={30} color={t.accent} />
             </View>
-            <Text className="text-[17px] font-semibold text-label text-center mb-2">Importa el CSV de tu banco</Text>
-            <Text className="text-[14px] text-secondary text-center mb-6">
+            <Text className="text-headline font-semibold text-label text-center mb-2">Importa el CSV de tu banco</Text>
+            <Text className="text-subhead text-secondary text-center mb-6">
               Casamos cada movimiento con tus gastos por importe y fecha, te marcamos los que faltan por
               registrar y los añades de un toque.
             </Text>
@@ -190,10 +190,10 @@ export function CsvModal({
         {step === "map" && (
           <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 32 }}>
             <View className="bg-card rounded-lg2 px-4 py-3 mb-4 flex-row items-center" style={{ gap: 12 }}>
-              <Text className="flex-1 text-[15px] text-label">La primera fila es cabecera</Text>
+              <Text className="flex-1 text-subhead text-label">La primera fila es cabecera</Text>
               <Toggle value={hasHeader} onChange={setHasHeader} />
             </View>
-            <Text className="text-[13px] text-secondary mb-4">
+            <Text className="text-footnote text-secondary mb-4">
               Elige qué columna es cada una ({rows.length - (hasHeader ? 1 : 0)} filas de datos).
             </Text>
             {([
@@ -204,7 +204,7 @@ export function CsvModal({
               <View key={f.key} className="mb-4">
                 <View className="flex-row items-center mb-2" style={{ gap: 6 }}>
                   <Ionicons name={f.icon as IoniconName} size={15} color={t.accent} />
-                  <Text className="text-[13px] font-medium uppercase tracking-wide text-secondary">{f.label}</Text>
+                  <Text className="text-footnote font-medium uppercase tracking-wide text-secondary">{f.label}</Text>
                 </View>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 8 }}>
                   {Array.from({ length: cols }).map((_, i) => {
@@ -216,10 +216,10 @@ export function CsvModal({
                         className="rounded-lg2 px-3 py-2"
                         style={{ backgroundColor: on ? t.accent : t.card, borderWidth: 1, borderColor: on ? t.accent : t.separator, minWidth: 92 }}
                       >
-                        <Text className="text-[12px] font-medium" numberOfLines={1} style={{ color: on ? "#fff" : t.label }}>
+                        <Text className="text-caption1 font-medium" numberOfLines={1} style={{ color: on ? "#fff" : t.label }}>
                           {headerLabel(i)}
                         </Text>
-                        <Text className="text-[11px]" numberOfLines={1} style={{ color: on ? "#ffffffcc" : t.labelTertiary }}>
+                        <Text className="text-caption2" numberOfLines={1} style={{ color: on ? "#ffffffcc" : t.labelTertiary }}>
                           {sampleRow?.[i] ?? ""}
                         </Text>
                       </Pressable>
@@ -267,12 +267,12 @@ export function CsvModal({
                       />
                     )}
                     <View className="flex-1">
-                      <Text className="text-[15px] text-label" numberOfLines={1}>{m.concept}</Text>
-                      <Text className="text-[12px] text-secondary">
+                      <Text className="text-subhead text-label" numberOfLines={1}>{m.concept}</Text>
+                      <Text className="text-caption1 text-secondary">
                         {shortDate(m.date)} · {status === "matched" ? "ya registrado" : status === "income" ? "abono (ignorado)" : "falta por registrar"}
                       </Text>
                     </View>
-                    <Text className="text-[14px] font-semibold" style={{ color: m.income ? t.green : t.label, fontVariant: ["tabular-nums"] }}>
+                    <Text className="text-subhead font-semibold" style={{ color: m.income ? t.green : t.label, fontVariant: ["tabular-nums"] }}>
                       {m.income ? "+" : "−"}{eur(Math.abs(m.amount))}
                     </Text>
                   </Pressable>
@@ -290,7 +290,7 @@ export function CsvModal({
                   return (
                     <Pressable key={o.key} onPress={() => setAccount(o.key)} className="flex-1 flex-row items-center justify-center rounded-lg2 py-2.5" style={{ gap: 6, backgroundColor: on ? t.accent : t.card, borderWidth: 1, borderColor: on ? t.accent : t.separator }}>
                       <Ionicons name={o.icon} size={15} color={on ? "#fff" : t.labelSecondary} />
-                      <Text className="text-[14px] font-medium" style={{ color: on ? "#fff" : t.label }}>{o.label}</Text>
+                      <Text className="text-subhead font-medium" style={{ color: on ? "#fff" : t.label }}>{o.label}</Text>
                     </Pressable>
                   );
                 })}
@@ -315,7 +315,7 @@ function Pill({ color, label }: { color: string; label: string }) {
   return (
     <View className="flex-row items-center rounded-pill px-2.5 py-1" style={{ gap: 5, backgroundColor: color + "22" }}>
       <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: color }} />
-      <Text className="text-[12px] font-medium" style={{ color }}>{label}</Text>
+      <Text className="text-caption1 font-medium" style={{ color }}>{label}</Text>
     </View>
   );
 }

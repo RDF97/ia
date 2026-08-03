@@ -26,6 +26,21 @@ module.exports = {
         pink: "#FF2D55",
       },
       borderRadius: { card: "18px", lg2: "14px", pill: "999px" },
+      // Escala tipográfica de Apple (HIG). Cada tamaño lleva SU interlineado y
+      // tracking: usarlos juntos es lo que da el aspecto de app de sistema.
+      fontSize: {
+        largeTitle: ["34px", { lineHeight: "41px", letterSpacing: "0.37px" }],
+        title1: ["28px", { lineHeight: "34px", letterSpacing: "0.36px" }],
+        title2: ["22px", { lineHeight: "28px", letterSpacing: "0.35px" }],
+        title3: ["20px", { lineHeight: "25px", letterSpacing: "0.38px" }],
+        headline: ["17px", { lineHeight: "22px", letterSpacing: "-0.41px" }],
+        body: ["17px", { lineHeight: "22px", letterSpacing: "-0.41px" }],
+        callout: ["16px", { lineHeight: "21px", letterSpacing: "-0.32px" }],
+        subhead: ["15px", { lineHeight: "20px", letterSpacing: "-0.24px" }],
+        footnote: ["13px", { lineHeight: "18px", letterSpacing: "-0.08px" }],
+        caption1: ["12px", { lineHeight: "16px" }],
+        caption2: ["11px", { lineHeight: "13px", letterSpacing: "0.07px" }],
+      },
     },
   },
   plugins: [],

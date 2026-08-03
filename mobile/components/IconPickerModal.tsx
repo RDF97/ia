@@ -87,7 +87,7 @@ export function IconPickerModal({
             </View>
           </View>
 
-          <Text className="text-[12px] font-medium uppercase tracking-wide text-secondary mb-2">Icono</Text>
+          <Text className="text-caption1 font-medium uppercase tracking-wide text-secondary mb-2">Icono</Text>
           <View className="flex-row flex-wrap mb-5" style={{ gap: 10 }}>
             {icons.map((ic) => {
               const on = ic === icon;
@@ -115,7 +115,7 @@ export function IconPickerModal({
             })}
           </View>
 
-          <Text className="text-[12px] font-medium uppercase tracking-wide text-secondary mb-2">Color</Text>
+          <Text className="text-caption1 font-medium uppercase tracking-wide text-secondary mb-2">Color</Text>
           <View className="flex-row flex-wrap mb-6" style={{ gap: 10 }}>
             {ICON_COLORS.map((c) => {
               const on = c === color;
@@ -145,7 +145,7 @@ export function IconPickerModal({
 
           {onReset && (
             <Pressable onPress={() => run(onReset)} disabled={busy} className="mt-3 items-center py-1">
-              <Text className="text-[14px]" style={{ color: t.accent }}>Quitar icono · usar mis iniciales</Text>
+              <Text className="text-subhead" style={{ color: t.accent }}>Quitar icono · usar mis iniciales</Text>
             </Pressable>
           )}
         </ScrollView>

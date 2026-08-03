@@ -39,7 +39,7 @@ export function PriceList({ prices, isToday }: { prices: number[]; isToday: bool
             }}
           >
             <Text
-              className="text-[14px]"
+              className="text-subhead"
               style={{
                 width: 52,
                 color: isNow ? t.accent : t.labelSecondary,
@@ -53,10 +53,10 @@ export function PriceList({ prices, isToday }: { prices: number[]; isToday: bool
             <View className="flex-1 flex-row items-center" style={{ gap: 6 }}>
               {h === cheapest && <Ionicons name="trophy" size={13} color={t.green} />}
               {h === dearest && <Ionicons name="warning" size={13} color={t.red} />}
-              {isNow && <Text className="text-[12px] font-semibold" style={{ color: t.accent }}>ahora</Text>}
+              {isNow && <Text className="text-caption1 font-semibold" style={{ color: t.accent }}>ahora</Text>}
             </View>
             <Text
-              className="text-[15px] font-semibold"
+              className="text-subhead font-semibold"
               style={{ color, fontVariant: ["tabular-nums"] }}
             >
               {fmtKwh(v)} €

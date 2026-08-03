@@ -186,7 +186,7 @@ function CompraList({ hogarId, userName }: { hogarId: string; userName: string }
         <Pressable
           onPress={() => setDbOpen(true)}
           className="rounded-pill items-center justify-center"
-          style={{ width: 36, height: 36, backgroundColor: t.fill, marginBottom: 4 }}
+          style={{ width: 44, height: 44, backgroundColor: t.fill, marginBottom: 4 }}
         >
           <Ionicons name="server-outline" size={17} color={t.accent} />
         </Pressable>
@@ -216,7 +216,7 @@ function CompraList({ hogarId, userName }: { hogarId: string; userName: string }
       />
 
       {isError && (
-        <Text className="text-center text-[13px] mb-2" style={{ color: t.red }}>
+        <Text className="text-center text-footnote mb-2" style={{ color: t.red }}>
           No se pudo cargar la lista. Desliza hacia abajo para reintentar.
         </Text>
       )}
@@ -283,8 +283,8 @@ function ShopSection({
   return (
     <View className="mx-4 mb-4">
       <View className="flex-row items-center justify-between px-1 pb-2">
-        <Text className="text-[14px] font-semibold text-label" style={{ letterSpacing: -0.2 }}>{group.store}</Text>
-        <Text className="text-[12px] text-secondary">
+        <Text className="text-subhead font-semibold text-label" style={{ letterSpacing: -0.2 }}>{group.store}</Text>
+        <Text className="text-caption1 text-secondary">
           {pending > 0 ? `${pending} por comprar` : `${group.items.length} ${group.items.length === 1 ? "producto" : "productos"}`}
         </Text>
       </View>
@@ -349,15 +349,15 @@ function ShopRow({
       </Pressable>
       <Pressable className="flex-1" onPress={onToggle} onLongPress={onDelete}>
         <Text
-          className="text-[15px]"
+          className="text-body"
           numberOfLines={1}
           style={{ color: item.done ? t.labelTertiary : t.label, textDecorationLine: item.done ? "line-through" : "none" }}
         >
           {item.name}
         </Text>
-        <Text className="text-[12px] text-secondary mt-0.5" numberOfLines={1}>{meta}</Text>
+        <Text className="text-caption1 text-secondary mt-0.5" numberOfLines={1}>{meta}</Text>
       </Pressable>
-      <Text className="text-[13px] text-secondary" style={{ fontVariant: ["tabular-nums"] }}>{qtyLabel}</Text>
+      <Text className="text-footnote text-secondary" style={{ fontVariant: ["tabular-nums"] }}>{qtyLabel}</Text>
     </View>
     </SwipeToDelete>
   );
@@ -408,13 +408,13 @@ function PricePrompt({
     <Modal visible={item !== null} transparent animationType="slide" onRequestClose={onCancel}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onCancel} />
       <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
-        <Text className="text-[17px] font-semibold mb-1 text-label">¿A cuánto lo has comprado?</Text>
-        <Text className="text-[13px] text-secondary mb-4">
+        <Text className="text-headline font-semibold mb-1 text-label">¿A cuánto lo has comprado?</Text>
+        <Text className="text-footnote text-secondary mb-4">
           {item?.name} · alimenta la base de precios para comparar supermercados.
         </Text>
         <View className="flex-row mb-3" style={{ gap: 8 }}>
           <TextInput
-            className="bg-card rounded-lg2 px-4 py-3 text-[16px] text-label"
+            className="bg-card rounded-lg2 px-4 py-3 text-callout text-label"
             style={{ width: 110 }}
             placeholder="Precio €"
             placeholderTextColor={t.labelTertiary}
@@ -423,7 +423,7 @@ function PricePrompt({
             keyboardType="decimal-pad"
           />
           <TextInput
-            className="flex-1 bg-card rounded-lg2 px-4 py-3 text-[16px] text-label"
+            className="flex-1 bg-card rounded-lg2 px-4 py-3 text-callout text-label"
             placeholder="Supermercado (Mercadona, Día…)"
             placeholderTextColor={t.labelTertiary}
             value={store}
@@ -439,7 +439,7 @@ function PricePrompt({
           {busy ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-base font-semibold">Guardar precio</Text>}
         </Pressable>
         <Pressable onPress={() => finish(false)} disabled={busy} className="mt-3 items-center py-1">
-          <Text className="text-[14px]" style={{ color: t.accent }}>Omitir · solo marcar comprado</Text>
+          <Text className="text-subhead" style={{ color: t.accent }}>Omitir · solo marcar comprado</Text>
         </Pressable>
       </View>
     </Modal>
