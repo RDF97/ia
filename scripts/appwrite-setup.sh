@@ -17,6 +17,18 @@ DB="${DB:-homie}"
 : "${PID:?Falta PID (Project ID). Ej: PID=6a552b8f0019ea6d2787 KEY=... bash scripts/appwrite-setup.sh}"
 : "${KEY:?Falta KEY (API key de Appwrite con permisos de Databases).}"
 
+# Limpia espacios, saltos y retornos de carro. Al pegar desde Windows/PowerShell
+# suele colarse un \r al final: la cabecera HTTP queda corrupta y Appwrite te
+# trata como invitado ("role: guests"), que parece un problema de permisos y no lo es.
+KEY="$(printf '%s' "$KEY" | tr -d '[:space:]')"
+PID="$(printf '%s' "$PID" | tr -d '[:space:]')"
+
+if [ ${#KEY} -lt 50 ]; then
+  echo "✗ La API key parece incompleta (${#KEY} caracteres; las de Appwrite pasan de 100)."
+  echo "  Seguramente se cortó al pegar. Mira más abajo cómo pegarla sin que se rompa."
+  exit 1
+fi
+
 H=(-H "X-Appwrite-Project: $PID" -H "X-Appwrite-Key: $KEY" -H "Content-Type: application/json")
 
 post() { curl -sS -X POST "$EP$1" "${H[@]}" -d "$2"; echo; }
