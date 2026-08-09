@@ -81,13 +81,13 @@ attr tasks boolean  '{"key":"notify","required":false,"default":false}'
 echo "== expenses (atributos nuevos) =="
 attr expenses string   '{"key":"account","size":20,"required":false,"default":"individual"}'
 attr expenses datetime '{"key":"spentAt","required":false}'
-# Artículos del ticket escaneado (JSON), para ver el detalle del gasto.
-# OJO con el tamaño: por debajo de ~16 KB Appwrite crea un VARCHAR, y en utf8mb4
-# eso son 4 bytes por carácter (16000 -> 64 000 bytes). Sumado al resto de
+# Artículos del ticket escaneado (JSON).
+# OJO con el tamaño: Appwrite crea un VARCHAR y en utf8mb4 son 4 bytes por
+# carácter, así que 16000 caracteres = 64 000 bytes. Sumados al resto de
 # columnas se pasa del límite de 65 535 bytes por fila de MySQL y el atributo
-# se queda en "processing" o falla. Pidiendo más, se crea como TEXT (fuera de
-# la fila) y no hay problema.
-attr expenses string   '{"key":"items","size":100000,"required":false}'
+# se queda colgado. Con 8000 (32 000 bytes) entra de sobra, y para un ticket
+# es muchísimo: 30 artículos ocupan ~3 000 caracteres.
+attr expenses string   '{"key":"items","size":8000,"required":false}'
 # reparto por porcentajes del gasto (JSON), p. ej. 20 % / 80 %
 attr expenses string   '{"key":"splits","size":2000,"required":false}'
 
