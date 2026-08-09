@@ -17,6 +17,18 @@ DB="${DB:-homie}"
 : "${PID:?Falta PID (Project ID). Ej: PID=6a552b8f0019ea6d2787 KEY=... bash scripts/appwrite-setup.sh}"
 : "${KEY:?Falta KEY (API key de Appwrite con permisos de Databases).}"
 
+# Limpia espacios, saltos y retornos de carro. Al pegar desde Windows/PowerShell
+# suele colarse un \r al final: la cabecera HTTP queda corrupta y Appwrite te
+# trata como invitado ("role: guests"), que parece un problema de permisos y no lo es.
+KEY="$(printf '%s' "$KEY" | tr -d '[:space:]')"
+PID="$(printf '%s' "$PID" | tr -d '[:space:]')"
+
+if [ ${#KEY} -lt 50 ]; then
+  echo "✗ La API key parece incompleta (${#KEY} caracteres; las de Appwrite pasan de 100)."
+  echo "  Seguramente se cortó al pegar. Mira más abajo cómo pegarla sin que se rompa."
+  exit 1
+fi
+
 H=(-H "X-Appwrite-Project: $PID" -H "X-Appwrite-Key: $KEY" -H "Content-Type: application/json")
 
 post() { curl -sS -X POST "$EP$1" "${H[@]}" -d "$2"; echo; }
@@ -36,6 +48,22 @@ coll() {
   put "/databases/$DB/collections/$1" "{\"name\":\"$1\",$CFG}"
 }
 
+# --- Comprobación previa de credenciales ---
+PING="$(curl -sS "$EP/databases/$DB" "${H[@]}" 2>/dev/null)"
+if ! printf '%s' "$PING" | grep -q '"\$id"'; then
+  echo "✗ No se pudo acceder a la base de datos '$DB'."
+  echo "  Respuesta del servidor:"
+  echo "  $(printf '%s' "$PING" | head -c 300)"
+  echo ""
+  echo "  Causas típicas:"
+  echo "   · la API key es incorrecta, caducada o de otro proyecto"
+  echo "   · le faltan scopes de Databases (databases.read/write, collections.*)"
+  echo "   · el PID no es el de este proyecto"
+  exit 1
+fi
+echo "✓ Credenciales correctas."
+echo ""
+
 echo "== permisos de TODAS las colecciones (documentSecurity + create users) =="
 # Se aplica también a las que ya existían: si alguna se creó a mano sin el
 # permiso "create" para users, la app no puede añadir nada en ella (tareas,
@@ -53,8 +81,15 @@ attr tasks boolean  '{"key":"notify","required":false,"default":false}'
 echo "== expenses (atributos nuevos) =="
 attr expenses string   '{"key":"account","size":20,"required":false,"default":"individual"}'
 attr expenses datetime '{"key":"spentAt","required":false}'
-# artículos del ticket escaneado (JSON), para ver el detalle del gasto
-attr expenses string   '{"key":"items","size":16000,"required":false}'
+# Artículos del ticket escaneado (JSON).
+# OJO con el tamaño: por debajo de 16 384 Appwrite crea un VARCHAR, que vive
+# DENTRO de la fila. En utf8mb4 son 4 bytes por carácter, así que 16 000
+# caracteres = 64 000 bytes y, sumados al resto de columnas, se pasa del límite
+# de 65 535 bytes por fila de MySQL: el atributo se queda colgado en
+# "processing" para siempre. Con este tamaño Appwrite usa un LONGTEXT, que se
+# guarda FUERA de la fila (en la fila solo queda un puntero), así que el límite
+# ya no aplica. Es el mismo "Longtext" que ofrece la consola web.
+attr expenses string   '{"key":"items","size":1073741823,"required":false}'
 # reparto por porcentajes del gasto (JSON), p. ej. 20 % / 80 %
 attr expenses string   '{"key":"splits","size":2000,"required":false}'
 
@@ -97,12 +132,36 @@ echo ""
 echo "======================= COMPROBACIÓN ======================="
 echo "(los 'already exists' de arriba son normales; mira solo esto)"
 echo ""
-sleep 3
+
+# Appwrite construye los atributos en segundo plano: recién creados están en
+# "processing" unos segundos. Esperamos a que terminen en vez de dar un falso
+# error por haber mirado demasiado pronto.
+echo -n "Esperando a que los atributos estén listos"
+for _ in $(seq 1 20); do
+  PENDING=0
+  for C in tasks expenses events products price_points settlements; do
+    A="$(curl -sS "$EP/databases/$DB/collections/$C/attributes" "${H[@]}" 2>/dev/null)"
+    N="$(printf '%s' "$A" | tr ',' '\n' | grep '"status"' | grep -c 'processing')"
+    PENDING=$((PENDING + N))
+  done
+  [ "$PENDING" -eq 0 ] && break
+  echo -n "."
+  sleep 3
+done
+echo " listo."
+echo ""
 ALL_OK=1
 for C in tasks shopping_items expenses events products price_points categories settlements invites; do
   BODY="$(curl -sS "$EP/databases/$DB/collections/$C" "${H[@]}" 2>/dev/null)"
   if ! printf '%s' "$BODY" | grep -q '"\$id"'; then
-    echo "  ✗ $C  → NO EXISTE la colección"; ALL_OK=0; continue
+    # Ojo: un 401/403 tampoco trae "$id". Hay que distinguirlo de "no existe",
+    # si no el diagnóstico engaña.
+    if printf '%s' "$BODY" | grep -qi 'not_found\|could not be found'; then
+      echo "  ✗ $C  → NO EXISTE la colección"
+    else
+      echo "  ✗ $C  → no se pudo consultar: $(printf '%s' "$BODY" | head -c 120)"
+    fi
+    ALL_OK=0; continue
   fi
   # OJO: Appwrite devuelve las comillas escapadas -> create(\"users\").
   # Hay que quitar las barras antes de comparar, si no da un falso negativo.
