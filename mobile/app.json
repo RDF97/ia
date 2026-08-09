@@ -81,7 +81,16 @@
       "appwriteInvitesCollectionId": "invites",
       "homieApkUrl": "https://github.com/RDF97/ia/releases/latest/download/homie.apk",
       "appwriteJoinFunctionId": "joinHogar",
-      "appwriteScanFunctionId": "scanReceipt"
+      "appwriteScanFunctionId": "scanReceipt",
+      "eas": {
+        "projectId": "032f3b1e-5187-43c3-a9bf-0ad71e2e5ff7"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/032f3b1e-5187-43c3-a9bf-0ad71e2e5ff7"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
   }
 }
