@@ -55,6 +55,8 @@ attr expenses string   '{"key":"account","size":20,"required":false,"default":"i
 attr expenses datetime '{"key":"spentAt","required":false}'
 # artículos del ticket escaneado (JSON), para ver el detalle del gasto
 attr expenses string   '{"key":"items","size":16000,"required":false}'
+# reparto por porcentajes del gasto (JSON), p. ej. 20 % / 80 %
+attr expenses string   '{"key":"splits","size":2000,"required":false}'
 
 echo "== events =="
 attr events string   '{"key":"title","size":255,"required":true}'

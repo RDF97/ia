@@ -13,6 +13,7 @@ export interface Expense extends Models.Document {
   account?: Account | null; // "joint" = cuenta conjunta; ausente = individual (compat)
   spentAt?: string | null; // fecha real del gasto (ISO); ausente → se usa $createdAt
   items?: string | null; // JSON con los artículos del ticket escaneado
+  splits?: string | null; // JSON con el reparto por porcentajes (si no, a partes iguales)
   hogarId: string;
 }
 
@@ -44,6 +45,47 @@ export function parseExpenseItems(raw: string | null | undefined): ExpenseItem[]
   }
 }
 
+/** Reparto de un gasto: qué porcentaje le toca a cada persona. */
+export interface ExpenseSplit {
+  name: string;
+  pct: number; // 0-100
+}
+
+/** Lee el reparto guardado. Nunca lanza; si no cuadra a 100 %, se descarta. */
+export function parseSplits(raw: string | null | undefined): ExpenseSplit[] {
+  if (!raw) return [];
+  try {
+    const data = JSON.parse(raw);
+    if (!Array.isArray(data)) return [];
+    const out = data
+      .filter((x) => x && typeof x === "object" && typeof x.name === "string")
+      .map((x) => ({ name: String(x.name).trim(), pct: Number(x.pct) }))
+      .filter((x) => x.name.length > 0 && isFinite(x.pct) && x.pct >= 0);
+    if (!out.length) return [];
+    // Un reparto que no suma 100 sería un reparto mal hecho: mejor ignorarlo y
+    // repartir a partes iguales que descuadrar las cuentas en silencio.
+    const total = out.reduce((s, x) => s + x.pct, 0);
+    return Math.abs(total - 100) < 0.01 ? out : [];
+  } catch {
+    return [];
+  }
+}
+
+export function stringifySplits(splits: ExpenseSplit[]): string | null {
+  return splits.length ? JSON.stringify(splits) : null;
+}
+
+/** Reparto a partes iguales entre los miembros (el de por defecto). */
+export function equalSplits(names: string[]): ExpenseSplit[] {
+  if (!names.length) return [];
+  const pct = Math.round((100 / names.length) * 100) / 100;
+  const out = names.map((name) => ({ name, pct }));
+  // El redondeo se corrige en el último para que sume exactamente 100.
+  const diff = 100 - out.reduce((s, x) => s + x.pct, 0);
+  out[out.length - 1].pct = Math.round((out[out.length - 1].pct + diff) * 100) / 100;
+  return out;
+}
+
 /** Serializa los artículos para guardarlos (null si no hay). */
 export function stringifyExpenseItems(items: ExpenseItem[]): string | null {
   return items.length ? JSON.stringify(items) : null;
@@ -67,7 +109,7 @@ export async function listExpenses(hogarId: string): Promise<Expense[]> {
 
 export async function addExpense(
   hogarId: string,
-  data: { amount: number; concept: string; paidByName: string; shared: boolean; category?: string; account?: Account; spentAt?: string; items?: string | null },
+  data: { amount: number; concept: string; paidByName: string; shared: boolean; category?: string; account?: Account; spentAt?: string; items?: string | null; splits?: string | null },
 ): Promise<Expense> {
   const base = {
     amount: data.amount,
@@ -86,19 +128,22 @@ export async function addExpense(
   ];
 
   // Appwrite RECHAZA el documento entero si mandas un atributo que no existe en
-  // la colección. Si `items` aún no está creado, guardamos el gasto sin los
-  // artículos en vez de perderlo: es mejor un gasto sin detalle que ningún gasto.
-  if (data.items) {
+  // la colección. Si `items`/`splits` aún no están creados, guardamos el gasto
+  // sin ellos en vez de perderlo: mejor sin detalle que ningún gasto.
+  const extra: Record<string, string> = {};
+  if (data.items) extra.items = data.items;
+  if (data.splits) extra.splits = data.splits;
+  if (Object.keys(extra).length) {
     try {
       return await databases.createDocument<Expense>(
         DB_ID,
         EXPENSES_COL,
         ID.unique(),
-        { ...base, items: data.items },
+        { ...base, ...extra },
         perms,
       );
     } catch {
-      /* seguimos sin items */
+      /* seguimos sin los campos opcionales */
     }
   }
   return databases.createDocument<Expense>(DB_ID, EXPENSES_COL, ID.unique(), base, perms);
@@ -113,16 +158,28 @@ export async function updateExpense(
     category?: string | null;
     account?: Account;
     spentAt?: string;
+    splits?: string | null;
   },
 ): Promise<Expense> {
-  return databases.updateDocument<Expense>(DB_ID, EXPENSES_COL, id, {
+  const base = {
     amount: data.amount,
     concept: data.concept,
     category: data.category || null,
     shared: data.shared,
     account: data.account ?? "individual",
     ...(data.spentAt ? { spentAt: data.spentAt } : {}),
-  });
+  };
+  if (data.splits !== undefined) {
+    try {
+      return await databases.updateDocument<Expense>(DB_ID, EXPENSES_COL, id, {
+        ...base,
+        splits: data.splits,
+      });
+    } catch {
+      /* el atributo splits aún no existe: guardamos el resto */
+    }
+  }
+  return databases.updateDocument<Expense>(DB_ID, EXPENSES_COL, id, base);
 }
 
 export async function deleteExpense(id: string): Promise<void> {
@@ -193,19 +250,44 @@ export function balances(
   memberNames: string[] = [],
 ): { name: string; net: number }[] {
   const shared = expenses.filter((e) => e.shared && effectiveAccount(e) === "individual");
-  const totalShared = shared.reduce((s, e) => s + e.amount, 0);
-  const share = members > 0 ? totalShared / members : 0;
+
+  // Quién participa: los miembros del hogar y, por si acaso, quien haya pagado
+  // o aparezca en algún reparto (p. ej. alguien que ya se fue del hogar).
+  const people = new Set<string>();
+  for (const n of memberNames) if (n.trim()) people.add(n);
+  for (const e of shared) {
+    people.add(e.paidByName);
+    for (const sp of parseSplits(e.splits)) people.add(sp.name);
+  }
+
   const paid: Record<string, number> = {};
-  // Sembramos con todos los miembros: si alguien no ha pagado nada sigue
-  // debiendo su parte, y antes no aparecía en la lista.
-  for (const n of memberNames) if (n.trim()) paid[n] = 0;
-  for (const e of shared) paid[e.paidByName] = (paid[e.paidByName] ?? 0) + e.amount;
+  const owed: Record<string, number> = {};
+  for (const n of people) {
+    paid[n] = 0;
+    owed[n] = 0;
+  }
+
+  for (const e of shared) {
+    paid[e.paidByName] = (paid[e.paidByName] ?? 0) + e.amount;
+    const splits = parseSplits(e.splits);
+    if (splits.length) {
+      // Reparto explícito (p. ej. 20 % / 80 %).
+      for (const sp of splits) owed[sp.name] = (owed[sp.name] ?? 0) + (e.amount * sp.pct) / 100;
+    } else {
+      // Sin reparto: a partes iguales entre los miembros del hogar.
+      const n = members > 0 ? members : people.size;
+      const part = n > 0 ? e.amount / n : 0;
+      for (const p of people) owed[p] = (owed[p] ?? 0) + part;
+    }
+  }
+
+  // Las liquidaciones saldan deuda: quien paga sube y quien cobra baja.
   for (const s of settlements) {
     paid[s.fromName] = (paid[s.fromName] ?? 0) + s.amount;
     paid[s.toName] = (paid[s.toName] ?? 0) - s.amount;
   }
-  // Descarta balances ya saldados (redondeo a céntimo).
-  return Object.entries(paid)
-    .map(([name, p]) => ({ name, net: p - share }))
+
+  return Object.keys(paid)
+    .map((name) => ({ name, net: (paid[name] ?? 0) - (owed[name] ?? 0) }))
     .filter((b) => Math.abs(b.net) >= 0.005);
 }
