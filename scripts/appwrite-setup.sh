@@ -82,12 +82,14 @@ echo "== expenses (atributos nuevos) =="
 attr expenses string   '{"key":"account","size":20,"required":false,"default":"individual"}'
 attr expenses datetime '{"key":"spentAt","required":false}'
 # Artículos del ticket escaneado (JSON).
-# OJO con el tamaño: Appwrite crea un VARCHAR y en utf8mb4 son 4 bytes por
-# carácter, así que 16000 caracteres = 64 000 bytes. Sumados al resto de
-# columnas se pasa del límite de 65 535 bytes por fila de MySQL y el atributo
-# se queda colgado. Con 8000 (32 000 bytes) entra de sobra, y para un ticket
-# es muchísimo: 30 artículos ocupan ~3 000 caracteres.
-attr expenses string   '{"key":"items","size":8000,"required":false}'
+# OJO con el tamaño: por debajo de 16 384 Appwrite crea un VARCHAR, que vive
+# DENTRO de la fila. En utf8mb4 son 4 bytes por carácter, así que 16 000
+# caracteres = 64 000 bytes y, sumados al resto de columnas, se pasa del límite
+# de 65 535 bytes por fila de MySQL: el atributo se queda colgado en
+# "processing" para siempre. Con este tamaño Appwrite usa un LONGTEXT, que se
+# guarda FUERA de la fila (en la fila solo queda un puntero), así que el límite
+# ya no aplica. Es el mismo "Longtext" que ofrece la consola web.
+attr expenses string   '{"key":"items","size":1073741823,"required":false}'
 # reparto por porcentajes del gasto (JSON), p. ej. 20 % / 80 %
 attr expenses string   '{"key":"splits","size":2000,"required":false}'
 
