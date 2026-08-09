@@ -21,7 +21,7 @@ import { useExpenses } from "@/lib/useExpenses";
 import { useCategories } from "@/lib/useCategories";
 import { useSettlements } from "@/lib/useSettlements";
 import { useMembers } from "@/lib/useMembers";
-import { accountTotals, addExpense, balances, deleteExpense, effectiveAccount, expenseDate, parseExpenseItems, updateExpense, type Account, type Expense } from "@/lib/expenses";
+import { accountTotals, addExpense, balances, deleteExpense, effectiveAccount, equalSplits, expenseDate, parseExpenseItems, parseSplits, stringifySplits, updateExpense, type Account, type Expense, type ExpenseSplit } from "@/lib/expenses";
 import {
   budgetStatus,
   budgetTotals,
@@ -312,7 +312,7 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
       )}
       <Text className="text-center text-caption1 text-tertiary mb-2">Toca un gasto para editarlo · desliza para borrarlo</Text>
 
-      <AddExpense visible={open} onClose={() => setOpen(false)} hogarId={hogarId} userName={userName} categories={cats} onAdded={refresh} />
+      <AddExpense visible={open} onClose={() => setOpen(false)} hogarId={hogarId} userName={userName} categories={cats} memberNames={memberNames} onAdded={refresh} />
       <BudgetModal visible={budgetOpen} hogarId={hogarId} enabled={budgetOn} onToggle={toggleBudget} onClose={() => setBudgetOpen(false)} />
       <CsvModal visible={csvOpen} hogarId={hogarId} userName={userName} expenses={list} onClose={() => setCsvOpen(false)} onImported={refresh} />
       <ScanModal
@@ -334,6 +334,7 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
         hogarId={hogarId}
         userName={userName}
         categories={cats}
+        memberNames={memberNames}
         onAdded={() => {
           setEditing(null);
           refresh();
@@ -480,6 +481,7 @@ function AddExpense({
   userName,
   categories,
   onAdded,
+  memberNames,
   expense = null,
   onDelete,
 }: {
@@ -489,6 +491,8 @@ function AddExpense({
   userName: string;
   categories: Category[];
   onAdded: () => void;
+  /** Nombres de los miembros, para el reparto por porcentajes. */
+  memberNames: string[];
   /** Si viene un gasto, el formulario edita en vez de crear. */
   expense?: Expense | null;
   onDelete?: (id: string) => void;
@@ -503,7 +507,11 @@ function AddExpense({
   const [date, setDate] = useState(new Date());
   const [showDate, setShowDate] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Reparto por porcentajes: null = a partes iguales.
+  const [splits, setSplits] = useState<ExpenseSplit[] | null>(null);
   const items = parseExpenseItems(expense?.items);
+  const splitTotal = (splits ?? []).reduce((s, x) => s + x.pct, 0);
+  const splitsOk = splits === null || Math.abs(splitTotal - 100) < 0.01;
   // ¿Cambió algo respecto a lo que había al abrir?
   const dirty = expense
     ? amount.replace(",", ".") !== String(expense.amount) ||
@@ -528,6 +536,8 @@ function AddExpense({
       setAccount(effectiveAccount(expense));
       setCategory(expense.category ?? null);
       setDate(new Date(expenseDate(expense)));
+      const sp = parseSplits(expense.splits);
+      setSplits(sp.length ? sp : null);
     } else {
       setAmount("");
       setConcept("");
@@ -535,6 +545,7 @@ function AddExpense({
       setAccount("joint");
       setCategory(null);
       setDate(new Date());
+      setSplits(null);
     }
   }, [visible, expense]);
 
@@ -550,6 +561,8 @@ function AddExpense({
         shared: account === "joint" ? true : shared,
         category: category ?? undefined,
         spentAt: date.toISOString(),
+        // Solo tiene sentido repartir un gasto individual compartido.
+        splits: account === "individual" && shared ? stringifySplits(splits ?? []) : null,
       };
       if (expense) await updateExpense(expense.$id, data);
       else await addExpense(hogarId, { ...data, paidByName: userName });
@@ -572,7 +585,7 @@ function AddExpense({
           onSave={submit}
           dirty={dirty}
           saving={busy}
-          saveDisabled={!concept.trim() || !amount.trim()}
+          saveDisabled={!concept.trim() || !amount.trim() || !splitsOk}
         />
         <ScrollView contentContainerStyle={{ padding: 20 }}>
 
@@ -682,6 +695,71 @@ function AddExpense({
             </View>
             <Switch value={shared} onValueChange={setShared} trackColor={{ true: t.accent, false: t.separator }} />
           </View>
+        )}
+
+        {account === "individual" && shared && memberNames.length > 1 && (
+          <>
+            <View className="flex-row items-center justify-between mb-2">
+              <Text className="text-caption1 font-medium uppercase tracking-wide text-secondary">Reparto</Text>
+              <Pressable
+                onPress={() => setSplits(splits ? null : equalSplits(memberNames))}
+                hitSlop={8}
+              >
+                <Text className="text-footnote font-medium" style={{ color: t.accent }}>
+                  {splits ? "A partes iguales" : "Por porcentaje"}
+                </Text>
+              </Pressable>
+            </View>
+
+            {splits ? (
+              <View className="bg-card rounded-lg2 mb-4 overflow-hidden">
+                {splits.map((sp, i) => (
+                  <View
+                    key={sp.name}
+                    className="flex-row items-center px-4 py-2.5"
+                    style={{ gap: 10, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}
+                  >
+                    <Text className="flex-1 text-subhead text-label" numberOfLines={1}>{sp.name}</Text>
+                    <TextInput
+                      className="text-callout text-label text-right"
+                      style={{ minWidth: 54 }}
+                      value={String(sp.pct)}
+                      onChangeText={(v) => {
+                        const n = parseFloat(v.replace(",", "."));
+                        setSplits((prev) =>
+                          (prev ?? []).map((x, j) =>
+                            j === i ? { ...x, pct: isFinite(n) ? n : 0 } : x,
+                          ),
+                        );
+                      }}
+                      keyboardType="decimal-pad"
+                      selectTextOnFocus
+                    />
+                    <Text className="text-subhead text-secondary">%</Text>
+                    <Text className="text-caption1 text-tertiary" style={{ minWidth: 62, textAlign: "right" }}>
+                      {eur((parseFloat(amount.replace(",", ".")) || 0) * sp.pct / 100)}
+                    </Text>
+                  </View>
+                ))}
+                <View
+                  className="flex-row items-center px-4 py-2"
+                  style={{ borderTopWidth: 0.5, borderTopColor: t.separator }}
+                >
+                  <Text className="flex-1 text-caption1 text-secondary">Total</Text>
+                  <Text
+                    className="text-footnote font-semibold"
+                    style={{ color: splitsOk ? t.green : t.red }}
+                  >
+                    {splitTotal.toFixed(0)} % {splitsOk ? "" : "· debe sumar 100"}
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <Text className="text-caption1 text-tertiary mb-4">
+                Se reparte a partes iguales entre {memberNames.length} personas.
+              </Text>
+            )}
+          </>
         )}
         {expense && onDelete && (
           <Pressable onPress={() => onDelete(expense.$id)} disabled={busy} className="mt-2 items-center py-2">

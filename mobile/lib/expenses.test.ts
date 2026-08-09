@@ -1,8 +1,10 @@
 import {
   accountTotals,
   balances,
+  equalSplits,
   monthlyTotal,
   parseExpenseItems,
+  parseSplits,
   stringifyExpenseItems,
   type Expense,
 } from "./expenses";
@@ -142,5 +144,56 @@ describe("balances · con miembros que no han pagado", () => {
 
   test("sin gastos compartidos no aparece nadie", () => {
     expect(balances([], 2, [], ["A", "B"])).toEqual([]);
+  });
+});
+
+describe("reparto por porcentajes", () => {
+  test("parseSplits descarta repartos que no suman 100", () => {
+    const ok = JSON.stringify([{ name: "A", pct: 20 }, { name: "B", pct: 80 }]);
+    expect(parseSplits(ok)).toEqual([{ name: "A", pct: 20 }, { name: "B", pct: 80 }]);
+    // 20+70 = 90 → se ignora y se repartirá a partes iguales
+    expect(parseSplits(JSON.stringify([{ name: "A", pct: 20 }, { name: "B", pct: 70 }]))).toEqual([]);
+    expect(parseSplits("no es json")).toEqual([]);
+    expect(parseSplits(null)).toEqual([]);
+  });
+
+  test("equalSplits reparte a partes iguales y suma exactamente 100", () => {
+    expect(equalSplits(["A", "B"])).toEqual([{ name: "A", pct: 50 }, { name: "B", pct: 50 }]);
+    const three = equalSplits(["A", "B", "C"]);
+    expect(three.reduce((s, x) => s + x.pct, 0)).toBeCloseTo(100, 5);
+  });
+
+  test("un gasto 20/80 reparte según esos porcentajes", () => {
+    const list = [
+      exp({
+        amount: 100,
+        paidByName: "A",
+        shared: true,
+        splits: JSON.stringify([{ name: "A", pct: 20 }, { name: "B", pct: 80 }]),
+      }),
+    ];
+    const res = balances(list, 2, [], ["A", "B"]);
+    // A puso 100 y le tocaba 20 → +80. B no puso nada y le tocaba 80 → -80.
+    expect(res.find((r) => r.name === "A")!.net).toBeCloseTo(80, 5);
+    expect(res.find((r) => r.name === "B")!.net).toBeCloseTo(-80, 5);
+  });
+
+  test("se pueden mezclar gastos con y sin reparto", () => {
+    const list = [
+      exp({ amount: 100, paidByName: "A", shared: true, splits: JSON.stringify([{ name: "A", pct: 20 }, { name: "B", pct: 80 }]) }),
+      exp({ amount: 50, paidByName: "B", shared: true }), // a partes iguales: 25 y 25
+    ];
+    const res = balances(list, 2, [], ["A", "B"]);
+    // A: pagó 100, debe 20+25=45 → +55 · B: pagó 50, debe 80+25=105 → -55
+    expect(res.find((r) => r.name === "A")!.net).toBeCloseTo(55, 5);
+    expect(res.find((r) => r.name === "B")!.net).toBeCloseTo(-55, 5);
+  });
+
+  test("una liquidación salda también un gasto con porcentajes", () => {
+    const list = [
+      exp({ amount: 100, paidByName: "A", shared: true, splits: JSON.stringify([{ name: "A", pct: 20 }, { name: "B", pct: 80 }]) }),
+    ];
+    const res = balances(list, 2, [{ fromName: "B", toName: "A", amount: 80 }], ["A", "B"]);
+    expect(res).toEqual([]);
   });
 });
