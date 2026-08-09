@@ -125,7 +125,24 @@ echo ""
 echo "======================= COMPROBACIÓN ======================="
 echo "(los 'already exists' de arriba son normales; mira solo esto)"
 echo ""
-sleep 3
+
+# Appwrite construye los atributos en segundo plano: recién creados están en
+# "processing" unos segundos. Esperamos a que terminen en vez de dar un falso
+# error por haber mirado demasiado pronto.
+echo -n "Esperando a que los atributos estén listos"
+for _ in $(seq 1 20); do
+  PENDING=0
+  for C in tasks expenses events products price_points settlements; do
+    A="$(curl -sS "$EP/databases/$DB/collections/$C/attributes" "${H[@]}" 2>/dev/null)"
+    N="$(printf '%s' "$A" | tr ',' '\n' | grep '"status"' | grep -c 'processing')"
+    PENDING=$((PENDING + N))
+  done
+  [ "$PENDING" -eq 0 ] && break
+  echo -n "."
+  sleep 3
+done
+echo " listo."
+echo ""
 ALL_OK=1
 for C in tasks shopping_items expenses events products price_points categories settlements invites; do
   BODY="$(curl -sS "$EP/databases/$DB/collections/$C" "${H[@]}" 2>/dev/null)"
