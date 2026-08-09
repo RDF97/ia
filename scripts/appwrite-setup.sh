@@ -36,6 +36,22 @@ coll() {
   put "/databases/$DB/collections/$1" "{\"name\":\"$1\",$CFG}"
 }
 
+# --- Comprobación previa de credenciales ---
+PING="$(curl -sS "$EP/databases/$DB" "${H[@]}" 2>/dev/null)"
+if ! printf '%s' "$PING" | grep -q '"\$id"'; then
+  echo "✗ No se pudo acceder a la base de datos '$DB'."
+  echo "  Respuesta del servidor:"
+  echo "  $(printf '%s' "$PING" | head -c 300)"
+  echo ""
+  echo "  Causas típicas:"
+  echo "   · la API key es incorrecta, caducada o de otro proyecto"
+  echo "   · le faltan scopes de Databases (databases.read/write, collections.*)"
+  echo "   · el PID no es el de este proyecto"
+  exit 1
+fi
+echo "✓ Credenciales correctas."
+echo ""
+
 echo "== permisos de TODAS las colecciones (documentSecurity + create users) =="
 # Se aplica también a las que ya existían: si alguna se creó a mano sin el
 # permiso "create" para users, la app no puede añadir nada en ella (tareas,
@@ -102,7 +118,14 @@ ALL_OK=1
 for C in tasks shopping_items expenses events products price_points categories settlements invites; do
   BODY="$(curl -sS "$EP/databases/$DB/collections/$C" "${H[@]}" 2>/dev/null)"
   if ! printf '%s' "$BODY" | grep -q '"\$id"'; then
-    echo "  ✗ $C  → NO EXISTE la colección"; ALL_OK=0; continue
+    # Ojo: un 401/403 tampoco trae "$id". Hay que distinguirlo de "no existe",
+    # si no el diagnóstico engaña.
+    if printf '%s' "$BODY" | grep -qi 'not_found\|could not be found'; then
+      echo "  ✗ $C  → NO EXISTE la colección"
+    else
+      echo "  ✗ $C  → no se pudo consultar: $(printf '%s' "$BODY" | head -c 120)"
+    fi
+    ALL_OK=0; continue
   fi
   # OJO: Appwrite devuelve las comillas escapadas -> create(\"users\").
   # Hay que quitar las barras antes de comparar, si no da un falso negativo.
