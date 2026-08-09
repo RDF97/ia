@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { Screen } from "@/components/Screen";
 import { PhaseCard, cardShadow } from "@/components/Card";
-import { Avatar, CheckCircle, SectionTitle } from "@/components/ui";
+import { Avatar, AvatarStack, CheckCircle, SectionTitle } from "@/components/ui";
 import { AddBar } from "@/components/AddBar";
 import { SwipeToDelete } from "@/components/SwipeToDelete";
 import { Segmented } from "@/components/Segmented";
@@ -50,7 +50,8 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
   const [filter, setFilter] = useState<TaskFilter>("today");
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["tasks", hogarId] });
-  const members = (useMembers(hogarId).data ?? []).map((m) => m.name);
+  // Siempre me incluyo: si los miembros aún no han cargado, al menos estoy yo.
+  const members = [...new Set([userName, ...(useMembers(hogarId).data ?? []).map((m) => m.name)].filter((n) => n && n.trim()))];
 
   // Programa/actualiza los recordatorios locales según las tareas.
   useEffect(() => {
@@ -116,7 +117,8 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
           onChange={setTitle}
           onSubmit={add}
           busy={adding}
-          actionIcon="options-outline"
+          leadingIcon="checkmark-circle-outline"
+          actionIcon="add"
           onAction={() => setEditing("new")}
         />
       }
@@ -145,7 +147,7 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
         </Text>
       ) : (
         groups.map((g) => (
-          <Section key={g.key} title={g.title} tasks={g.tasks} onToggle={toggle} onEdit={setEditing} onDelete={remove} />
+          <Section key={g.key} title={g.title} tasks={g.tasks} members={members} onToggle={toggle} onEdit={setEditing} onDelete={remove} />
         ))
       )}
 
@@ -167,12 +169,14 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
 function Section({
   title,
   tasks,
+  members,
   onToggle,
   onEdit,
   onDelete,
 }: {
   title: string;
   tasks: Task[];
+  members: string[];
   onToggle: (t: Task) => void;
   onEdit: (t: Task) => void;
   onDelete: (t: Task) => void;
@@ -200,7 +204,7 @@ function Section({
               >
                 {task.title}
               </Text>
-              <TaskMeta task={task} />
+              <TaskMeta task={task} members={members} />
             </Pressable>
             <Ionicons name="chevron-forward" size={16} color={t.tabInactive} />
           </View>
@@ -211,10 +215,13 @@ function Section({
   );
 }
 
-function TaskMeta({ task }: { task: Task }) {
+function TaskMeta({ task, members }: { task: Task; members: string[] }) {
   const t = useTheme();
   const repeat = task.repeat ?? "none";
-  const hasMeta = task.dueAt || task.assignedToName || repeat !== "none" || task.notify;
+  const assignee = (task.assignedToName ?? "").trim();
+  // Sin asignar no es "de nadie": es de todos. Antes se quedaba en blanco.
+  const shared = !assignee && members.length > 0;
+  const hasMeta = task.dueAt || assignee || shared || repeat !== "none" || task.notify;
   if (!hasMeta) return null;
 
   const due = task.dueAt ? dueInfo(task.dueAt) : null;
@@ -231,16 +238,30 @@ function TaskMeta({ task }: { task: Task }) {
       {repeat !== "none" && (
         <View className="flex-row items-center" style={{ gap: 3 }}>
           <Ionicons name="repeat" size={12} color={t.labelSecondary} />
-          <Text className="text-caption2 text-secondary">{repeatLabel(repeat)}</Text>
+          <Text className="text-caption2 text-secondary">
+            {repeatLabel(repeat)}
+            {task.repeatUntil ? ` · hasta ${shortDate(task.repeatUntil)}` : ""}
+          </Text>
         </View>
       )}
       {task.notify && <Ionicons name="notifications" size={11} color={t.labelSecondary} />}
-      {task.assignedToName && (
+      {assignee ? (
         <View className="flex-row items-center" style={{ gap: 4 }}>
-          <Avatar name={task.assignedToName} size={16} />
-          <Text className="text-caption2 text-secondary">{task.assignedToName}</Text>
+          <Avatar name={assignee} size={16} />
+          <Text className="text-caption2 text-secondary">{assignee}</Text>
         </View>
-      )}
+      ) : shared ? (
+        <View className="flex-row items-center" style={{ gap: 4 }}>
+          <AvatarStack names={members} size={16} />
+          <Text className="text-caption2 text-secondary">Todos</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
+
+const MONTHS_SHORT = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+const shortDate = (iso: string): string => {
+  const d = new Date(iso);
+  return isFinite(d.getTime()) ? `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}` : "";
+};

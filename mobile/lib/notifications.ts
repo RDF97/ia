@@ -14,10 +14,20 @@ Notifications.setNotificationHandler({
 
 let channelReady = false;
 
+/** Canal de Android para lo que pasa en el hogar (gastos, tareas, eventos). */
+export const HOGAR_CHANNEL = "hogar";
+
 export async function ensureNotificationPermissions(): Promise<boolean> {
   if (Platform.OS === "android" && !channelReady) {
     await Notifications.setNotificationChannelAsync("luz", {
       name: "Avisos de la luz",
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+    });
+    // Separado del de la luz para que se puedan silenciar por separado desde
+    // los ajustes de Android (y porque "Avisos de la luz" no describe un gasto).
+    await Notifications.setNotificationChannelAsync(HOGAR_CHANNEL, {
+      name: "Avisos del hogar",
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
     });
@@ -43,6 +53,18 @@ export async function scheduleAt(
       date,
       channelId: Platform.OS === "android" ? "luz" : undefined,
     },
+  });
+}
+
+/** Muestra una notificación ya mismo (avisos de cosas que acaban de pasar). */
+export async function notifyNow(title: string, body: string): Promise<void> {
+  if (!(await notificationsGranted())) return;
+  await Notifications.scheduleNotificationAsync({
+    content: { title, body, sound: true },
+    trigger:
+      Platform.OS === "android"
+        ? { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 1, channelId: HOGAR_CHANNEL }
+        : null,
   });
 }
 

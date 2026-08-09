@@ -25,7 +25,7 @@ import { useShopping } from "@/lib/useShopping";
 import { useCategories } from "@/lib/useCategories";
 import { addItem, deleteItem, setItemDone, type ShoppingItem } from "@/lib/shopping";
 import { listProducts, normalizeName, recordPrice, type Product } from "@/lib/products";
-import { startDictation, voiceAvailable, type VoiceSession } from "@/lib/voice";
+import { startDictation, voiceErrorMessage, type VoiceSession } from "@/lib/voice";
 import { useTheme } from "@/theme/theme";
 import { useKeyboardHeight } from "@/lib/useKeyboard";
 
@@ -58,10 +58,17 @@ interface StoreGroup {
   items: ShoppingItem[];
 }
 
+/**
+ * Clave interna del grupo de los productos que aún no tienen supermercado.
+ * Ese grupo va SIN cabecera: poner "Otros" encima de cada cosa que acabas de
+ * añadir es ruido, porque es lo normal hasta que se escanea un ticket.
+ */
+const NO_STORE = "";
+
 function groupByStore(items: ShoppingItem[]): StoreGroup[] {
   const map = new Map<string, ShoppingItem[]>();
   for (const it of items) {
-    const key = (it.store && it.store.trim()) || "Otros";
+    const key = (it.store && it.store.trim()) || NO_STORE;
     if (!map.has(key)) map.set(key, []);
     map.get(key)!.push(it);
   }
@@ -69,17 +76,16 @@ function groupByStore(items: ShoppingItem[]): StoreGroup[] {
     store,
     items: list.sort((a, b) => Number(a.done) - Number(b.done)),
   }));
-  // "Otros" siempre al final; el resto por nombre.
+  // Los que no tienen tienda van primero (son los recién añadidos).
   return groups.sort((a, b) => {
-    if (a.store === "Otros") return 1;
-    if (b.store === "Otros") return -1;
+    if (a.store === NO_STORE) return -1;
+    if (b.store === NO_STORE) return 1;
     return a.store.localeCompare(b.store);
   });
 }
 
 function CompraList({ hogarId, userName }: { hogarId: string; userName: string }) {
   const t = useTheme();
-  const kb = useKeyboardHeight();
   const qc = useQueryClient();
   const { data: items, isLoading, isError } = useShopping(hogarId);
   const { data: cats } = useCategories(hogarId);
@@ -111,23 +117,16 @@ function CompraList({ hogarId, userName }: { hogarId: string; userName: string }
       voiceRef.current?.stop();
       return;
     }
-    if (!voiceAvailable()) {
-      inputRef.current?.focus();
-      Alert.alert(
-        "Añadir por voz",
-        "El dictado dentro de la app está en la versión instalable (APK). Mientras tanto se ha abierto el teclado: usa su micrófono para dictar.",
-      );
-      return;
-    }
     setListening(true);
     const session = await startDictation({
       onResult: (text) => setName(text),
-      onEnd: (err) => {
+      onEnd: (err, detail) => {
         setListening(false);
         voiceRef.current = null;
-        if (err === "permiso") {
-          Alert.alert("Sin permiso de micrófono", "Actívalo en los ajustes para dictar.");
-        }
+        if (!err) return;
+        // Sin módulo nativo (Expo Go) al menos abrimos el teclado, que trae micro.
+        if (err === "no-module") inputRef.current?.focus();
+        Alert.alert("Dictado por voz", voiceErrorMessage(err, detail));
       },
     });
     voiceRef.current = session;
@@ -228,7 +227,7 @@ function CompraList({ hogarId, userName }: { hogarId: string; userName: string }
       ) : (
         groups.map((g) => (
           <ShopSection
-            key={g.store}
+            key={g.store || "sin-tienda"}
             group={g}
             priceIndex={priceIndex}
             onToggle={toggle}
@@ -278,16 +277,17 @@ function ShopSection({
   onDelete: (id: string) => void;
 }) {
   const t = useTheme();
-  const kb = useKeyboardHeight();
   const pending = group.items.filter((i) => !i.done).length;
   return (
     <View className="mx-4 mb-4">
-      <View className="flex-row items-center justify-between px-1 pb-2">
-        <Text className="text-subhead font-semibold text-label" style={{ letterSpacing: -0.2 }}>{group.store}</Text>
-        <Text className="text-caption1 text-secondary">
-          {pending > 0 ? `${pending} por comprar` : `${group.items.length} ${group.items.length === 1 ? "producto" : "productos"}`}
-        </Text>
-      </View>
+      {group.store ? (
+        <View className="flex-row items-center justify-between px-1 pb-2">
+          <Text className="text-subhead font-semibold text-label" style={{ letterSpacing: -0.2 }}>{group.store}</Text>
+          <Text className="text-caption1 text-secondary">
+            {pending > 0 ? `${pending} por comprar` : `${group.items.length} ${group.items.length === 1 ? "producto" : "productos"}`}
+          </Text>
+        </View>
+      ) : null}
       <View className="bg-card rounded-lg2 overflow-hidden" style={{ shadowColor: "#000", shadowOpacity: t.dark ? 0 : 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } }}>
         {group.items.map((item, i) => (
           <ShopRow
@@ -319,7 +319,6 @@ function ShopRow({
   onDelete: () => void;
 }) {
   const t = useTheme();
-  const kb = useKeyboardHeight();
 
   let meta: string;
   if (item.done) {

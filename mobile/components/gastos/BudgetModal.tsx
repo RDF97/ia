@@ -34,7 +34,6 @@ export function BudgetModal({
   onClose: () => void;
 }) {
   const t = useTheme();
-  const kb = useKeyboardHeight();
   const qc = useQueryClient();
   const { data: categories, isLoading } = useCategories(hogarId);
   const [editing, setEditing] = useState<Category | "new" | null>(null);

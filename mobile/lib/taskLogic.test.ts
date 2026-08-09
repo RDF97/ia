@@ -92,20 +92,53 @@ describe("groupTasks", () => {
     T({ $id: "hecha", done: true, dueAt: "2026-07-13T09:00:00.000Z" }),
   ];
 
-  it("filtro 'today' → solo atrasadas y hoy", () => {
+  it("filtro 'today' → atrasadas, hoy y las que no tienen fecha", () => {
     const g = groupTasks(tasks, "today", now);
-    expect(g.map((x) => x.key)).toEqual(["overdue", "today"]);
+    expect(g.map((x) => x.key)).toEqual(["overdue", "today", "noDate"]);
     expect(g[1].tasks.map((t) => t.$id)).toEqual(["hoy"]);
   });
 
   it("filtro 'week' → hasta esta semana, sin 'más adelante' ni completadas", () => {
     const g = groupTasks(tasks, "week", now);
-    expect(g.map((x) => x.key)).toEqual(["overdue", "today", "tomorrow", "week"]);
+    expect(g.map((x) => x.key)).toEqual(["overdue", "today", "tomorrow", "week", "noDate"]);
+  });
+
+  // Una tarea añadida rápido no tiene fecha: si no saliera en "Hoy" parecería
+  // que la barra de añadir no funciona.
+  it("una tarea sin fecha aparece en todos los filtros", () => {
+    for (const f of ["today", "week", "all"] as const) {
+      const g = groupTasks(tasks, f, now);
+      expect(g.find((x) => x.key === "noDate")?.tasks.map((t) => t.$id)).toEqual(["sinfecha"]);
+    }
   });
 
   it("filtro 'all' → todos los grupos + Completadas al final", () => {
     const g = groupTasks(tasks, "all", now);
     expect(g.map((x) => x.key)).toEqual(["overdue", "today", "tomorrow", "week", "later", "noDate", "done"]);
     expect(g[g.length - 1].tasks.map((t) => t.$id)).toEqual(["hecha"]);
+  });
+});
+
+describe("repetición con fecha límite", () => {
+  const now = new Date("2026-07-14T12:00:00.000Z");
+
+  test("sin límite sigue repitiéndose", () => {
+    expect(nextDueAfter("2026-07-01T09:00:00.000Z", "monthly", now)).not.toBeNull();
+  });
+
+  test("si la siguiente cae después del límite, se acabó", () => {
+    // El ING se repite cada mes hasta septiembre: en septiembre ya no rueda más.
+    const next = nextDueAfter("2026-09-01T09:00:00.000Z", "monthly", new Date("2026-09-02T12:00:00.000Z"), "2026-09-30T00:00:00.000Z");
+    expect(next).toBeNull();
+  });
+
+  test("una ocurrencia que cae justo el día del límite sí vale", () => {
+    const next = nextDueAfter("2026-08-30T09:00:00.000Z", "monthly", new Date("2026-08-31T12:00:00.000Z"), "2026-09-30T00:00:00.000Z");
+    expect(next).not.toBeNull();
+    expect(new Date(next as string).getMonth()).toBe(8); // septiembre
+  });
+
+  test("un límite inválido no bloquea la repetición", () => {
+    expect(nextDueAfter("2026-07-01T09:00:00.000Z", "monthly", now, "no es una fecha")).not.toBeNull();
   });
 });

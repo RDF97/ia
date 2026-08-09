@@ -2,6 +2,8 @@ import {
   accountTotals,
   balances,
   equalSplits,
+  expenseOwner,
+  individualByPerson,
   monthlyTotal,
   parseExpenseItems,
   parseSplits,
@@ -195,5 +197,74 @@ describe("reparto por porcentajes", () => {
     ];
     const res = balances(list, 2, [{ fromName: "B", toName: "A", amount: 80 }], ["A", "B"]);
     expect(res).toEqual([]);
+  });
+});
+
+describe("gasto individual de otra persona (paga uno, es de otro)", () => {
+  test("si lo paga otro, el titular se lo debe entero", () => {
+    const list = [
+      // Clara paga 60 € del gimnasio de Rubén: no es compartido, es de Rubén.
+      exp({ amount: 60, paidByName: "Clara", shared: false, account: "individual", forName: "Rubén" }),
+    ];
+    const res = balances(list, 2, [], ["Clara", "Rubén"]);
+    expect(res.find((r) => r.name === "Clara")!.net).toBeCloseTo(60, 5);
+    expect(res.find((r) => r.name === "Rubén")!.net).toBeCloseTo(-60, 5);
+  });
+
+  test("si el titular es quien pagó, no hay deuda (compat con lo de antes)", () => {
+    const list = [exp({ amount: 60, paidByName: "Clara", shared: false, account: "individual", forName: "Clara" })];
+    expect(balances(list, 2, [], ["Clara", "Rubén"])) .toEqual([]);
+  });
+
+  test("sin titular se comporta como siempre: es de quien lo pagó", () => {
+    const list = [exp({ amount: 60, paidByName: "Clara", shared: false, account: "individual" })];
+    expect(balances(list, 2, [], ["Clara", "Rubén"])).toEqual([]);
+  });
+
+  test("liquidar salda un gasto personal pagado por otro", () => {
+    const list = [exp({ amount: 60, paidByName: "Clara", shared: false, account: "individual", forName: "Rubén" })];
+    const res = balances(list, 2, [{ fromName: "Rubén", toName: "Clara", amount: 60 }], ["Clara", "Rubén"]);
+    expect(res).toEqual([]);
+  });
+
+  test("expenseOwner: el titular manda; si no hay, quien pagó", () => {
+    expect(expenseOwner({ forName: "Rubén", paidByName: "Clara" })).toBe("Rubén");
+    expect(expenseOwner({ forName: null, paidByName: "Clara" })).toBe("Clara");
+    expect(expenseOwner({ forName: "  ", paidByName: "Clara" })).toBe("Clara");
+  });
+});
+
+describe("individualByPerson · gasto individual separado por usuario", () => {
+  const members = ["Clara", "Rubén"];
+
+  test("cada gasto personal va a su titular, no a quien lo pagó", () => {
+    const list = [
+      exp({ amount: 60, paidByName: "Clara", shared: false, account: "individual", forName: "Rubén" }),
+      exp({ amount: 40, paidByName: "Clara", shared: false, account: "individual" }),
+    ];
+    expect(individualByPerson(list, members)).toEqual({ Clara: 40, "Rubén": 60 });
+  });
+
+  test("los compartidos se reparten a partes iguales", () => {
+    const list = [exp({ amount: 100, paidByName: "Clara", shared: true, account: "individual" })];
+    expect(individualByPerson(list, members)).toEqual({ Clara: 50, "Rubén": 50 });
+  });
+
+  test("los compartidos con porcentaje se reparten según el porcentaje", () => {
+    const list = [
+      exp({
+        amount: 100,
+        paidByName: "Clara",
+        shared: true,
+        account: "individual",
+        splits: JSON.stringify([{ name: "Clara", pct: 20 }, { name: "Rubén", pct: 80 }]),
+      }),
+    ];
+    expect(individualByPerson(list, members)).toEqual({ Clara: 20, "Rubén": 80 });
+  });
+
+  test("la cuenta conjunta no es de nadie en particular", () => {
+    const list = [exp({ amount: 200, paidByName: "Clara", shared: true, account: "joint" })];
+    expect(individualByPerson(list, members)).toEqual({ Clara: 0, "Rubén": 0 });
   });
 });

@@ -14,8 +14,19 @@ export interface Expense extends Models.Document {
   spentAt?: string | null; // fecha real del gasto (ISO); ausente → se usa $createdAt
   items?: string | null; // JSON con los artículos del ticket escaneado
   splits?: string | null; // JSON con el reparto por porcentajes (si no, a partes iguales)
+  /**
+   * De quién es el gasto, cuando es individual y NO compartido. Se separa de
+   * `paidByName` (quien puso el dinero) a propósito: Clara puede apuntar un
+   * gasto que pagó ella pero que es de Rubén, y entonces Rubén se lo debe.
+   * Ausente → es de quien lo pagó (comportamiento de siempre, sin deuda).
+   */
+  forName?: string | null;
   hogarId: string;
 }
+
+/** De quién es el gasto: el titular si está puesto, si no quien lo pagó. */
+export const expenseOwner = (e: Pick<Expense, "forName" | "paidByName">): string =>
+  (e.forName ?? "").trim() || e.paidByName;
 
 /** Un artículo del ticket, tal como se guarda dentro del gasto. */
 export interface ExpenseItem {
@@ -107,9 +118,37 @@ export async function listExpenses(hogarId: string): Promise<Expense[]> {
   return res.documents;
 }
 
+/**
+ * Campos que puede que la colección todavía no tenga (se añaden con
+ * `scripts/appwrite-setup.sh`). Appwrite RECHAZA el documento entero si mandas
+ * un atributo inexistente, así que se intenta con ellos y, si falla, se guarda
+ * sin ellos: mejor un gasto sin detalle que ningún gasto.
+ */
+const OPTIONAL_FIELDS = ["items", "splits", "forName"] as const;
+
+const pickOptional = (data: Record<string, unknown>): Record<string, string> => {
+  const out: Record<string, string> = {};
+  for (const k of OPTIONAL_FIELDS) {
+    const v = data[k];
+    if (typeof v === "string" && v) out[k] = v;
+  }
+  return out;
+};
+
 export async function addExpense(
   hogarId: string,
-  data: { amount: number; concept: string; paidByName: string; shared: boolean; category?: string; account?: Account; spentAt?: string; items?: string | null; splits?: string | null },
+  data: {
+    amount: number;
+    concept: string;
+    paidByName: string;
+    shared: boolean;
+    category?: string;
+    account?: Account;
+    spentAt?: string;
+    items?: string | null;
+    splits?: string | null;
+    forName?: string | null;
+  },
 ): Promise<Expense> {
   const base = {
     amount: data.amount,
@@ -127,12 +166,7 @@ export async function addExpense(
     Permission.delete(Role.team(hogarId)),
   ];
 
-  // Appwrite RECHAZA el documento entero si mandas un atributo que no existe en
-  // la colección. Si `items`/`splits` aún no están creados, guardamos el gasto
-  // sin ellos en vez de perderlo: mejor sin detalle que ningún gasto.
-  const extra: Record<string, string> = {};
-  if (data.items) extra.items = data.items;
-  if (data.splits) extra.splits = data.splits;
+  const extra = pickOptional(data as Record<string, unknown>);
   if (Object.keys(extra).length) {
     try {
       return await databases.createDocument<Expense>(
@@ -159,6 +193,8 @@ export async function updateExpense(
     account?: Account;
     spentAt?: string;
     splits?: string | null;
+    paidByName?: string;
+    forName?: string | null;
   },
 ): Promise<Expense> {
   const base = {
@@ -168,15 +204,18 @@ export async function updateExpense(
     shared: data.shared,
     account: data.account ?? "individual",
     ...(data.spentAt ? { spentAt: data.spentAt } : {}),
+    ...(data.paidByName ? { paidByName: data.paidByName } : {}),
   };
-  if (data.splits !== undefined) {
+  // `splits` y `forName` se mandan siempre que se toquen (también en null, para
+  // poder borrarlos); si la colección aún no los tiene, se guarda el resto.
+  const optional: Record<string, string | null> = {};
+  if (data.splits !== undefined) optional.splits = data.splits;
+  if (data.forName !== undefined) optional.forName = data.forName;
+  if (Object.keys(optional).length) {
     try {
-      return await databases.updateDocument<Expense>(DB_ID, EXPENSES_COL, id, {
-        ...base,
-        splits: data.splits,
-      });
+      return await databases.updateDocument<Expense>(DB_ID, EXPENSES_COL, id, { ...base, ...optional });
     } catch {
-      /* el atributo splits aún no existe: guardamos el resto */
+      /* los atributos opcionales aún no existen: guardamos el resto */
     }
   }
   return databases.updateDocument<Expense>(DB_ID, EXPENSES_COL, id, base);
@@ -232,16 +271,57 @@ export function accountTotals(
   return { joint, individual };
 }
 
+type OwnedExpense = Pick<Expense, "amount" | "account" | "shared" | "paidByName" | "forName" | "splits">;
+
+/**
+ * Gasto individual de cada persona: lo que le corresponde a ella y no al hogar.
+ *
+ * Se atribuye a su titular, no a quien puso el dinero: si Clara paga el gimnasio
+ * de Rubén, el gasto es de Rubén (y además se lo debe). Los compartidos se
+ * reparten según su porcentaje, o a partes iguales.
+ */
+export function individualByPerson(
+  expenses: OwnedExpense[],
+  memberNames: string[] = [],
+): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const n of memberNames) if (n.trim()) out[n] = 0;
+  const add = (name: string, v: number) => {
+    out[name] = (out[name] ?? 0) + v;
+  };
+
+  for (const e of expenses) {
+    if (effectiveAccount(e) !== "individual") continue;
+    if (!e.shared) {
+      add(expenseOwner(e), e.amount);
+      continue;
+    }
+    const splits = parseSplits(e.splits);
+    if (splits.length) {
+      for (const sp of splits) add(sp.name, (e.amount * sp.pct) / 100);
+    } else {
+      const people = memberNames.filter((n) => n.trim());
+      const n = people.length || 1;
+      for (const p of people.length ? people : [e.paidByName]) add(p, e.amount / n);
+    }
+  }
+  return out;
+}
+
 /** Liquidación mínima que necesita `balances` (pago de `fromName` a `toName`). */
 export type SettlementLike = { fromName: string; toName: string; amount: number };
 
 /**
- * Balance simple del hogar: solo generan deuda los gastos pagados por una persona
- * de su bolsillo (cuenta individual) y marcados como compartidos; lo pagado desde
- * la cuenta conjunta es dinero común y no reparte. net > 0 → le deben; net < 0 → debe.
+ * Balance simple del hogar. Lo pagado desde la cuenta conjunta es dinero común y
+ * no reparte; solo generan deuda los gastos de bolsillo (cuenta individual):
  *
- * Las liquidaciones saldan deuda sin ser gasto: quien paga (`fromName`) sube su
- * balance hacia 0 y quien cobra (`toName`) baja el suyo, por el mismo importe.
+ *  · compartidos → se reparten entre el hogar (por porcentaje o a partes iguales);
+ *  · no compartidos → son de su titular (`forName`), y si lo pagó otra persona,
+ *    el titular se lo debe entero.
+ *
+ * net > 0 → le deben; net < 0 → debe. Las liquidaciones saldan deuda sin ser
+ * gasto: quien paga (`fromName`) sube su balance hacia 0 y quien cobra (`toName`)
+ * baja el suyo, por el mismo importe.
  */
 export function balances(
   expenses: Expense[],
@@ -249,7 +329,10 @@ export function balances(
   settlements: SettlementLike[] = [],
   memberNames: string[] = [],
 ): { name: string; net: number }[] {
-  const shared = expenses.filter((e) => e.shared && effectiveAccount(e) === "individual");
+  const own = expenses.filter((e) => effectiveAccount(e) === "individual");
+  const shared = own.filter((e) => e.shared);
+  // Gasto personal de alguien que pagó otro: deuda directa por el total.
+  const personal = own.filter((e) => !e.shared && expenseOwner(e) !== e.paidByName);
 
   // Quién participa: los miembros del hogar y, por si acaso, quien haya pagado
   // o aparezca en algún reparto (p. ej. alguien que ya se fue del hogar).
@@ -258,6 +341,10 @@ export function balances(
   for (const e of shared) {
     people.add(e.paidByName);
     for (const sp of parseSplits(e.splits)) people.add(sp.name);
+  }
+  for (const e of personal) {
+    people.add(e.paidByName);
+    people.add(expenseOwner(e));
   }
 
   const paid: Record<string, number> = {};
@@ -279,6 +366,11 @@ export function balances(
       const part = n > 0 ? e.amount / n : 0;
       for (const p of people) owed[p] = (owed[p] ?? 0) + part;
     }
+  }
+
+  for (const e of personal) {
+    paid[e.paidByName] = (paid[e.paidByName] ?? 0) + e.amount;
+    owed[expenseOwner(e)] = (owed[expenseOwner(e)] ?? 0) + e.amount;
   }
 
   // Las liquidaciones saldan deuda: quien paga sube y quien cobra baja.

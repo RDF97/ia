@@ -151,7 +151,6 @@ export function ProductsModal({
 
 function ProductDetail({ points }: { points: PricePoint[] }) {
   const t = useTheme();
-  const kb = useKeyboardHeight();
   const byStore = latestByStore(points);
   return (
     <>

@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Alert, Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/theme/theme";
-import { useKeyboardHeight } from "@/lib/useKeyboard";
 import { Toggle } from "@/components/Toggle";
 import { appliances } from "@/lib/samplePrices";
 import { cheapestOptions, fmtEur, fmtKwh, priciestWindow, rangeLabel } from "@/lib/luz";
@@ -25,7 +24,6 @@ export function Planner({
   onClose: () => void;
 }) {
   const t = useTheme();
-  const kb = useKeyboardHeight();
   const [selId, setSelId] = useState(initialId);
   const [optIdx, setOptIdx] = useState(0);
   const [notify, setNotify] = useState(true);

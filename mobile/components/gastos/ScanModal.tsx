@@ -387,7 +387,6 @@ export function ScanModal({
 
 function MetaRow({ label, children, last }: { label: string; children: React.ReactNode; last?: boolean }) {
   const t = useTheme();
-  const kb = useKeyboardHeight();
   return (
     <View
       className="flex-row items-center justify-between"
