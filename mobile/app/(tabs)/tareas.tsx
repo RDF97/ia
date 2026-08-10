@@ -15,6 +15,7 @@ import { appwriteConfigured } from "@/lib/appwrite";
 import { useTasks } from "@/lib/useTasks";
 import { completeTask, createTask, deleteTask, setTaskDone, type Task } from "@/lib/tasks";
 import { useMembers } from "@/lib/useMembers";
+import { payingMembers } from "@/lib/members";
 import { dueInfo, groupTasks, repeatLabel, type TaskFilter } from "@/lib/taskLogic";
 import { syncTaskReminders } from "@/lib/taskReminders";
 import { useTheme } from "@/theme/theme";
@@ -51,7 +52,7 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["tasks", hogarId] });
   // Siempre me incluyo: si los miembros aún no han cargado, al menos estoy yo.
-  const members = [...new Set([userName, ...(useMembers(hogarId).data ?? []).map((m) => m.name)].filter((n) => n && n.trim()))];
+  const members = [...new Set([userName, ...payingMembers(useMembers(hogarId).data ?? [])])];
 
   // Programa/actualiza los recordatorios locales según las tareas.
   useEffect(() => {

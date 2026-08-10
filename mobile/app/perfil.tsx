@@ -11,7 +11,7 @@ import { Avatar } from "@/components/ui";
 import { IconPickerModal } from "@/components/IconPickerModal";
 import { Segmented } from "@/components/Segmented";
 import { getThemeChoice, setThemeChoice, THEME_OPTIONS, type ThemeChoice } from "@/lib/themePref";
-import { listMembers, type Member } from "@/lib/members";
+import { listMembers, memberLabel, type Member } from "@/lib/members";
 import {
   setHogarIcon,
   setPerfilIcon,
@@ -222,14 +222,20 @@ export default function Perfil() {
                     className="flex-row items-center px-4 py-2.5"
                     style={{ gap: 12, borderTopWidth: 0.5, borderTopColor: t.separator }}
                   >
-                    <Avatar name={m.name} size={30} />
+                    <Avatar name={memberLabel(m)} size={30} />
                     <View className="flex-1">
                       <Text className="text-subhead text-label">
-                        {m.name}
+                        {memberLabel(m)}
                         {isMe ? <Text className="text-secondary"> · tú</Text> : null}
                       </Text>
                       {m.email ? (
                         <Text className="text-caption1 text-secondary" numberOfLines={1}>{m.email}</Text>
+                      ) : !m.name ? (
+                        // Sin nombre no entra en el reparto de gastos: hay que decirlo,
+                        // si no parece que simplemente no se muestra.
+                        <Text className="text-caption1" style={{ color: t.orange }}>
+                          Sin nombre · no cuenta para repartir gastos
+                        </Text>
                       ) : null}
                     </View>
                     {!m.confirmed && (

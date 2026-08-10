@@ -1,5 +1,6 @@
 import {
   accountTotals,
+  balanceDetail,
   balances,
   equalSplits,
   expenseOwner,
@@ -266,5 +267,61 @@ describe("individualByPerson · gasto individual separado por usuario", () => {
   test("la cuenta conjunta no es de nadie en particular", () => {
     const list = [exp({ amount: 200, paidByName: "Clara", shared: true, account: "joint" })];
     expect(individualByPerson(list, members)).toEqual({ Clara: 0, "Rubén": 0 });
+  });
+});
+
+describe("balanceDetail · de dónde sale la deuda", () => {
+  test("el desglose suma exactamente lo mismo que el balance", () => {
+    const list = [
+      exp({ amount: 100, paidByName: "Clara", shared: true, account: "individual" }),
+      exp({ amount: 40, paidByName: "Rubén", shared: true, account: "individual" }),
+      exp({ amount: 60, paidByName: "Clara", shared: false, account: "individual", forName: "Rubén" }),
+    ];
+    const members = ["Clara", "Rubén"];
+    for (const who of members) {
+      const d = balanceDetail(list, who, 2, [], members);
+      const net = balances(list, 2, [], members).find((b) => b.name === who)!.net;
+      expect(d.net).toBeCloseTo(net, 5);
+    }
+  });
+
+  test("cada línea dice lo que puso y lo que le tocaba", () => {
+    const list = [exp({ amount: 100, concept: "Cena", paidByName: "Clara", shared: true, account: "individual" })];
+    const d = balanceDetail(list, "Clara", 2, [], ["Clara", "Rubén"]);
+    expect(d.lines).toHaveLength(1);
+    expect(d.lines[0]).toMatchObject({ concept: "Cena", paid: 100, owed: 50, delta: 50 });
+  });
+
+  test("las liquidaciones salen en el desglose (si no, no cuadraría)", () => {
+    const list = [exp({ amount: 100, paidByName: "Clara", shared: true, account: "individual" })];
+    const d = balanceDetail(list, "Rubén", 2, [{ fromName: "Rubén", toName: "Clara", amount: 50 }], ["Clara", "Rubén"]);
+    expect(d.lines.some((l) => l.kind === "settlement")).toBe(true);
+    expect(d.net).toBeCloseTo(0, 5);
+  });
+
+  test("la cuenta conjunta no aparece: no genera deuda", () => {
+    const list = [exp({ amount: 200, paidByName: "Clara", shared: true, account: "joint" })];
+    expect(balanceDetail(list, "Rubén", 2, [], ["Clara", "Rubén"]).lines).toEqual([]);
+  });
+
+  test("no se listan gastos que no le tocan a esa persona", () => {
+    const list = [exp({ amount: 60, paidByName: "Clara", shared: false, account: "individual", forName: "Clara" })];
+    expect(balanceDetail(list, "Rubén", 2, [], ["Clara", "Rubén"]).lines).toEqual([]);
+  });
+});
+
+describe("nadie sin nombre debe dinero", () => {
+  test("un miembro sin nombre no entra en el reparto ni aparece debiendo", () => {
+    const list = [exp({ amount: 100, paidByName: "Clara", shared: true, account: "individual" })];
+    // `payingMembers` ya filtra a los que no tienen nombre: aquí solo llegan los reales.
+    const res = balances(list, 2, [], ["Clara"]);
+    expect(res.map((r) => r.name)).toEqual(["Clara"]);
+    expect(res.every((r) => r.name.trim().length > 0)).toBe(true);
+  });
+
+  test("un nombre en blanco en la lista de miembros se ignora", () => {
+    const list = [exp({ amount: 100, paidByName: "Clara", shared: true, account: "individual" })];
+    const res = balances(list, 2, [], ["Clara", "", "   "]);
+    expect(res.map((r) => r.name)).toEqual(["Clara"]);
   });
 });
