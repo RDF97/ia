@@ -12,6 +12,7 @@ import { IconPickerModal } from "@/components/IconPickerModal";
 import { Segmented } from "@/components/Segmented";
 import { getThemeChoice, setThemeChoice, THEME_OPTIONS, type ThemeChoice } from "@/lib/themePref";
 import { listMembers, memberLabel, type Member } from "@/lib/members";
+import { syncMyProfile } from "@/lib/profiles";
 import {
   setHogarIcon,
   setPerfilIcon,
@@ -85,6 +86,10 @@ export default function Perfil() {
     try {
       await updateName(val);
       setEditName(null);
+      if (active && user) {
+        await syncMyProfile(active.$id, user.$id, val);
+        listMembers(active.$id).then(setMembers).catch(() => undefined);
+      }
     } catch (e) {
       Alert.alert("No se pudo cambiar el nombre", e instanceof Error ? e.message : "Inténtalo de nuevo.");
     }
@@ -222,7 +227,16 @@ export default function Perfil() {
                     className="flex-row items-center px-4 py-2.5"
                     style={{ gap: 12, borderTopWidth: 0.5, borderTopColor: t.separator }}
                   >
-                    <Avatar name={memberLabel(m)} size={30} />
+                    {m.icon && m.iconColor ? (
+                      <View
+                        className="items-center justify-center"
+                        style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: m.iconColor }}
+                      >
+                        <Ionicons name={m.icon as React.ComponentProps<typeof Ionicons>["name"]} size={15} color="#fff" />
+                      </View>
+                    ) : (
+                      <Avatar name={memberLabel(m)} size={30} />
+                    )}
                     <View className="flex-1">
                       <Text className="text-subhead text-label">
                         {memberLabel(m)}
@@ -231,10 +245,10 @@ export default function Perfil() {
                       {m.email ? (
                         <Text className="text-caption1 text-secondary" numberOfLines={1}>{m.email}</Text>
                       ) : !m.name ? (
-                        // Sin nombre no entra en el reparto de gastos: hay que decirlo,
-                        // si no parece que simplemente no se muestra.
+                        // Appwrite no nos deja leer su nombre: solo aparecerá cuando
+                        // esa persona abra la app y publique su ficha en el hogar.
                         <Text className="text-caption1" style={{ color: t.orange }}>
-                          Sin nombre · no cuenta para repartir gastos
+                          Aún no ha abierto esta versión · no cuenta para repartir gastos
                         </Text>
                       ) : null}
                     </View>
@@ -302,10 +316,17 @@ export default function Perfil() {
         onClose={() => setPick(null)}
         onSave={async (st) => {
           await setPerfilIcon(st);
+          // Se republica en el hogar para que los demás vean el icono nuevo.
+          if (active && user) {
+            await syncMyProfile(active.$id, user.$id, user.name || "", { icon: st.icon, iconColor: st.color });
+          }
           await refreshAppearance();
         }}
         onReset={async () => {
           await setPerfilIcon(null);
+          if (active && user) {
+            await syncMyProfile(active.$id, user.$id, user.name || "", { icon: null, iconColor: null });
+          }
           await refreshAppearance();
         }}
       />

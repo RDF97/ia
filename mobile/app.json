@@ -80,6 +80,7 @@
       "appwriteSettlementsCollectionId": "settlements",
       "appwriteInvitesCollectionId": "invites",
       "appwriteIncomesCollectionId": "incomes",
+      "appwriteProfilesCollectionId": "profiles",
       "homieApkUrl": "https://github.com/RDF97/ia/releases/download/homie-latest/homie.apk",
       "appwriteJoinFunctionId": "joinHogar",
       "appwriteScanFunctionId": "scanReceipt",
