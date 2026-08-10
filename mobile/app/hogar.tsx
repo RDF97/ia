@@ -69,13 +69,13 @@ export default function HogarOnboarding() {
         <Pressable
           onPress={submit}
           disabled={busy || !name.trim()}
-          className="rounded-[14px] py-3.5 items-center"
+          className="rounded-lg2 py-3.5 items-center"
           style={{ backgroundColor: t.accent, opacity: busy || !name.trim() ? 0.6 : 1 }}
         >
           {busy ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text className="text-white text-base font-semibold">Crear hogar</Text>
+            <Text className="text-white text-callout font-semibold">Crear hogar</Text>
           )}
         </Pressable>
 
@@ -104,7 +104,7 @@ export default function HogarOnboarding() {
             className="rounded-lg2 px-5 items-center justify-center"
             style={{ backgroundColor: t.accent, opacity: joining || !code.trim() ? 0.6 : 1 }}
           >
-            {joining ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-base font-semibold">Unirme</Text>}
+            {joining ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-callout font-semibold">Unirme</Text>}
           </Pressable>
         </View>
         {joinError && <Text className="text-footnote mt-2" style={{ color: t.red }}>{joinError}</Text>}

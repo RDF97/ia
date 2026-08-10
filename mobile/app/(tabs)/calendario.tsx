@@ -21,6 +21,7 @@ import { appwriteConfigured } from "@/lib/appwrite";
 import { useEvents } from "@/lib/useEvents";
 import { addEvent, dayIndexLabel, daysWithEvents, deleteEvent, eventsOfDay, hhmm, ymd, type Event } from "@/lib/events";
 import { SwipeToDelete } from "@/components/SwipeToDelete";
+import { ListGroup } from "@/components/List";
 import { SheetHeader } from "@/components/SheetHeader";
 import { Segmented } from "@/components/Segmented";
 import { Toggle } from "@/components/Toggle";
@@ -212,12 +213,12 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
       ) : dayEvents.length === 0 ? (
         <Text className="text-center text-tertiary mt-4 mb-4">Sin eventos este día.</Text>
       ) : (
-        <View className="bg-card rounded-lg2 mx-4 mb-3 overflow-hidden" style={cardShadow(t.dark)}>
+        <ListGroup>
           {dayEvents.map((e, i) => (
             <SwipeToDelete key={e.$id} onDelete={() => remove(e.$id)}>
               <View
                 className="flex-row items-center px-4 py-3"
-                style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}
+                style={{ gap: 12, minHeight: 44, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}
               >
                 <Text
                   className="text-subhead font-semibold text-secondary"
@@ -243,16 +244,16 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
               </View>
             </SwipeToDelete>
           ))}
-        </View>
+        </ListGroup>
       )}
 
       <Pressable
         onPress={() => setAddOpen(true)}
-        className="rounded-[14px] mx-4 mt-1 py-3.5 items-center flex-row justify-center"
+        className="rounded-lg2 mx-4 mt-1 py-3.5 items-center flex-row justify-center"
         style={{ backgroundColor: t.accent, gap: 8 }}
       >
         <Ionicons name="add" size={20} color="#fff" />
-        <Text className="text-white text-base font-semibold">Añadir evento</Text>
+        <Text className="text-white text-callout font-semibold">Añadir evento</Text>
       </Pressable>
 
       <Text className="px-4 pt-3 pb-2 text-caption1 text-tertiary">
@@ -263,7 +264,7 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
           detrás de la campana de la cabecera, no debajo del calendario. */}
       <Modal visible={leadOpen} transparent animationType="slide" onRequestClose={() => setLeadOpen(false)}>
         <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={() => setLeadOpen(false)} />
-        <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0" style={{ paddingBottom: 32, backgroundColor: t.bg }}>
+        <View className="rounded-t-sheet absolute left-0 right-0 bottom-0" style={{ paddingBottom: 32, backgroundColor: t.bg }}>
           <SheetHeader title="Avisos" onClose={() => setLeadOpen(false)} closeLabel="Listo" />
           <View className="pt-3 pb-1">
             <Segmented
@@ -380,7 +381,7 @@ function AddEvent({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
-      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
+      <View className="rounded-t-sheet absolute left-0 right-0 bottom-0" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
         <SheetHeader
           title="Nuevo evento"
           onClose={onClose}

@@ -25,7 +25,9 @@ module.exports = {
         purple: "#AF52DE",
         pink: "#FF2D55",
       },
-      borderRadius: { card: "18px", lg2: "14px", pill: "999px" },
+      // Cuatro radios y no más: tarjeta, control, control pequeño y píldora.
+      // Antes convivían 14, 12, 10, 9 y 7 px y la interfaz se veía descosida.
+      borderRadius: { card: "18px", lg2: "14px", ctl: "10px", sheet: "14px", pill: "999px" },
       // Escala tipográfica de Apple (HIG). Cada tamaño lleva SU interlineado y
       // tracking: usarlos juntos es lo que da el aspecto de app de sistema.
       fontSize: {

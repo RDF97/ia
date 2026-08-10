@@ -204,9 +204,9 @@ export function ScanModal({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={close}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={close} />
-      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0" style={{ height: step === "review" ? "90%" : undefined, backgroundColor: t.bg, paddingBottom: kb }}>
+      <View className="rounded-t-sheet absolute left-0 right-0 bottom-0" style={{ height: step === "review" ? "90%" : undefined, backgroundColor: t.bg, paddingBottom: kb }}>
         <View className="flex-row items-center justify-between px-5 py-3" style={{ borderBottomWidth: 0.5, borderBottomColor: t.separator }}>
-          <Pressable onPress={close} hitSlop={8}><Text className="text-base text-accent">Cerrar</Text></Pressable>
+          <Pressable onPress={close} hitSlop={8}><Text className="text-callout text-accent">Cerrar</Text></Pressable>
           <Text className="text-headline font-semibold text-label">{step === "review" ? "Ticket detectado" : "Escanear ticket"}</Text>
           <View style={{ width: 52 }} />
         </View>
@@ -221,7 +221,7 @@ export function ScanModal({
               style={{ borderRadius: 18, padding: 16, shadowColor: t.accent, shadowOpacity: 0.25, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } }}
             >
               <View className="flex-row items-center mb-3" style={{ gap: 10 }}>
-                <View className="rounded-[10px] items-center justify-center" style={{ width: 32, height: 32, backgroundColor: "rgba(255,255,255,0.18)" }}>
+                <View className="rounded-ctl items-center justify-center" style={{ width: 32, height: 32, backgroundColor: "rgba(255,255,255,0.18)" }}>
                   <Ionicons name="receipt-outline" size={18} color="#fff" />
                 </View>
                 <View className="flex-1">
@@ -238,7 +238,7 @@ export function ScanModal({
                   <Pressable
                     key={o.key}
                     onPress={() => run(o.key)}
-                    className="flex-1 items-center justify-center rounded-[12px] py-3"
+                    className="flex-1 items-center justify-center rounded-lg2 py-3"
                     style={{ backgroundColor: "rgba(255,255,255,0.16)", gap: 5 }}
                   >
                     <Ionicons name={o.icon as IoniconName} size={20} color="#fff" />
@@ -354,7 +354,7 @@ export function ScanModal({
                           className="flex-row items-center px-4 py-3"
                           style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator, opacity: usable ? 1 : 0.4 }}
                         >
-                          <View className="items-center justify-center rounded-full" style={{ width: 22, height: 22, backgroundColor: on ? t.accent : "transparent", borderWidth: on ? 0 : 1.6, borderColor: t.separator }}>
+                          <View className="items-center justify-center rounded-pill" style={{ width: 22, height: 22, backgroundColor: on ? t.accent : "transparent", borderWidth: on ? 0 : 1.6, borderColor: t.separator }}>
                             {on && <Ionicons name="checkmark" size={13} color="#fff" />}
                           </View>
                           <View className="flex-1">
@@ -374,8 +374,8 @@ export function ScanModal({
               </>
             )}
 
-            <Pressable onPress={save} disabled={busy} className="rounded-[14px] py-3.5 items-center mt-3" style={{ backgroundColor: t.accent, opacity: busy ? 0.6 : 1 }}>
-              {busy ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-base font-semibold">Guardar gasto{savePrices && picked.size ? ` + ${picked.size} precios` : ""}</Text>}
+            <Pressable onPress={save} disabled={busy} className="rounded-lg2 py-3.5 items-center mt-3" style={{ backgroundColor: t.accent, opacity: busy ? 0.6 : 1 }}>
+              {busy ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-callout font-semibold">Guardar gasto{savePrices && picked.size ? ` + ${picked.size} precios` : ""}</Text>}
             </Pressable>
             <Text className="text-center text-caption1 text-tertiary mt-3">Puedes editar el comercio y el total antes de guardar.</Text>
           </ScrollView>

@@ -105,7 +105,7 @@ export function DebtCard({
       <Modal visible={openDetail} transparent animationType="slide" onRequestClose={() => setOpenDetail(false)}>
         <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={() => setOpenDetail(false)} />
         <View
-          className="rounded-t-[14px] absolute left-0 right-0 bottom-0"
+          className="rounded-t-sheet absolute left-0 right-0 bottom-0"
           style={{ maxHeight: "85%", paddingBottom: 24, backgroundColor: t.bg }}
         >
           <SheetHeader title={`Cuentas con ${name}`} onClose={() => setOpenDetail(false)} closeLabel="Listo" />

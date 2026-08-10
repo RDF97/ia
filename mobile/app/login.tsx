@@ -49,7 +49,7 @@ export default function Login() {
               className="rounded-card items-center justify-center mb-3"
               style={{ width: 64, height: 64, backgroundColor: t.accent }}
             >
-              <Text className="text-white text-3xl font-bold">H</Text>
+              <Text className="text-white text-title1 font-bold">H</Text>
             </View>
             <Text className="text-title1 font-bold text-label">Homie</Text>
             <Text className="text-subhead text-secondary mt-1">
@@ -100,13 +100,13 @@ export default function Login() {
           <Pressable
             onPress={submit}
             disabled={busy}
-            className="rounded-[14px] py-3.5 items-center"
+            className="rounded-lg2 py-3.5 items-center"
             style={{ backgroundColor: t.accent, opacity: busy ? 0.6 : 1 }}
           >
             {busy ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text className="text-white text-base font-semibold">
+              <Text className="text-white text-callout font-semibold">
                 {mode === "login" ? "Entrar" : "Crear cuenta"}
               </Text>
             )}

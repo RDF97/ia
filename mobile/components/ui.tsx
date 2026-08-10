@@ -39,7 +39,8 @@ export function SectionTitle({ children, action, onAction }: { children: ReactNo
     <View className="flex-row items-baseline justify-between pr-4">
       <Text
         className="px-4 pt-4 pb-2 text-footnote font-medium"
-        style={{ color: t.labelSecondary, textTransform: "uppercase", letterSpacing: 0.06 }}
+        // En mayúsculas hace falta abrir el tracking: pegadas se leen peor.
+        style={{ color: t.labelSecondary, textTransform: "uppercase", letterSpacing: 0.5 }}
       >
         {children}
       </Text>

@@ -47,7 +47,7 @@ export function UploadCard({
       >
         <View className="flex-row items-center mb-3" style={{ gap: 10 }}>
           <View
-            className="rounded-[10px] items-center justify-center"
+            className="rounded-ctl items-center justify-center"
             style={{ width: 32, height: 32, backgroundColor: "rgba(255,255,255,0.18)" }}
           >
             <Ionicons name={icon} size={18} color="#fff" />
@@ -67,7 +67,7 @@ export function UploadCard({
                 hSelect();
                 a.onPress();
               }}
-              className="flex-1 items-center justify-center rounded-[10px]"
+              className="flex-1 items-center justify-center rounded-ctl"
               style={{ backgroundColor: "rgba(255,255,255,0.16)", gap: 5, paddingVertical: 10, paddingHorizontal: 2 }}
             >
               <Ionicons name={a.icon} size={compact ? 17 : 18} color="#fff" />

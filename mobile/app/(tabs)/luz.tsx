@@ -42,9 +42,7 @@ const sourceLabel = (s: LuzSource) =>
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <Text className="px-4 pt-4 pb-2 text-footnote font-medium uppercase tracking-wide text-secondary">
-      {children}
-    </Text>
+    <SectionTitle>{children}</SectionTitle>
   );
 }
 
@@ -134,7 +132,7 @@ export default function Luz() {
                 className="text-largeTitle font-bold text-white mt-1"
                 style={{ lineHeight: 42, includeFontPadding: false, fontVariant: ["tabular-nums"], letterSpacing: -0.6 }}
               >
-                {fmtKwh(now)} <Text className="text-base text-white/90">€/kWh</Text>
+                {fmtKwh(now)} <Text className="text-callout text-white/90">€/kWh</Text>
               </Text>
             </View>
             <Text className="text-footnote font-bold text-white rounded-pill px-3 py-1.5" style={{ backgroundColor: "#ffffff38" }}>
@@ -220,7 +218,7 @@ export default function Luz() {
                 <Ionicons name="flash" size={16} color="#fff" />
               </View>
               <View className="flex-1">
-                <Text className="text-base text-label">
+                <Text className="text-callout text-label">
                   {dayPart(r.start)} · {hourLabel(r.start)}–{hourLabel(r.end + 1)}
                 </Text>
                 <Text className="text-footnote text-secondary mt-0.5">
@@ -246,7 +244,7 @@ export default function Luz() {
               <View key={a.id} style={{ width: "50%", padding: 4 }}>
                 <Pressable onPress={() => setPlannerId(a.id)} className="bg-card rounded-lg2 p-3" style={cardShadow(t.dark)}>
                   <View className="flex-row items-center" style={{ gap: 8 }}>
-                    <View className="rounded-[7px] items-center justify-center" style={{ width: 26, height: 26, backgroundColor: a.color }}>
+                    <View className="rounded-ctl items-center justify-center" style={{ width: 26, height: 26, backgroundColor: a.color }}>
                       <Ionicons name={a.icon as IoniconName} size={15} color="#fff" />
                     </View>
                     <Text className="text-subhead font-semibold text-label">{a.name}</Text>
@@ -254,10 +252,10 @@ export default function Luz() {
                   <Text className="text-subhead font-bold mt-1.5" style={{ color: t.accent, fontVariant: ["tabular-nums"] }}>
                     {rangeLabel(best.start, a.dur)}
                   </Text>
-                  <Text className="text-xs text-secondary mt-0.5">
+                  <Text className="text-caption1 text-secondary mt-0.5">
                     ~{fmtEur(cost)} · {a.kwh.toFixed(1).replace(".", ",")} kWh
                   </Text>
-                  <Text className="text-xs font-semibold mt-0.5" style={{ color: t.green }}>
+                  <Text className="text-caption1 font-semibold mt-0.5" style={{ color: t.green }}>
                     Ahorras {fmtEur(save)}
                   </Text>
                 </Pressable>

@@ -7,6 +7,7 @@ import { PhaseCard, cardShadow } from "@/components/Card";
 import { Avatar, AvatarStack, CheckCircle, SectionTitle } from "@/components/ui";
 import { AddBar } from "@/components/AddBar";
 import { SwipeToDelete } from "@/components/SwipeToDelete";
+import { ListGroup, Row } from "@/components/List";
 import { Segmented } from "@/components/Segmented";
 import { TaskEditor } from "@/components/tareas/TaskEditor";
 import { useHogar } from "@/lib/hogar";
@@ -187,31 +188,31 @@ function Section({
   return (
     <>
       <SectionTitle>{title}</SectionTitle>
-      <View className="bg-card rounded-lg2 mx-4 mb-3 overflow-hidden" style={cardShadow(t.dark)}>
+      <ListGroup>
         {tasks.map((task, i) => (
           <SwipeToDelete key={task.$id} onDelete={() => onDelete(task)}>
-          <View
-            className="flex-row items-center px-4 py-3"
-            style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}
-          >
-            <CheckCircle done={task.done} onPress={() => onToggle(task)} />
-            <Pressable className="flex-1" onPress={() => onEdit(task)}>
-              <Text
-                className="text-body"
-                style={{
-                  color: task.done ? t.labelTertiary : t.label,
-                  textDecorationLine: task.done ? "line-through" : "none",
-                }}
-              >
-                {task.title}
-              </Text>
-              <TaskMeta task={task} members={members} />
-            </Pressable>
-            <Ionicons name="chevron-forward" size={16} color={t.tabInactive} />
-          </View>
+            <Row
+              first={i === 0}
+              leading={<CheckCircle done={task.done} onPress={() => onToggle(task)} />}
+              leadingWidth={23}
+              chevron
+              onPress={() => onEdit(task)}
+              title={
+                <Text
+                  className="text-body"
+                  style={{
+                    color: task.done ? t.labelTertiary : t.label,
+                    textDecorationLine: task.done ? "line-through" : "none",
+                  }}
+                >
+                  {task.title}
+                </Text>
+              }
+              subtitle={<TaskMeta task={task} members={members} />}
+            />
           </SwipeToDelete>
         ))}
-      </View>
+      </ListGroup>
     </>
   );
 }
