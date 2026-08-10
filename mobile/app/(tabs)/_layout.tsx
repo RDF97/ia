@@ -6,6 +6,7 @@ import { TabIcon, type TabIconName } from "@/components/TabIcon";
 import { useAuth } from "@/lib/auth";
 import { useHogar } from "@/lib/hogar";
 import { useExpenseAlerts } from "@/lib/expenseAlerts";
+import { useProfileSync } from "@/lib/useProfileSync";
 import { useTheme } from "@/theme/theme";
 
 function icon(name: TabIconName) {
@@ -23,6 +24,9 @@ export default function TabsLayout() {
 
   // Aviso cuando otra persona del hogar apunta un gasto.
   useExpenseAlerts(active?.$id, user?.name || "");
+  // Publica mi nombre e icono en el hogar: Appwrite no deja que los demás los
+  // lean de mi cuenta, así que sin esto todos salimos como "sin nombre".
+  useProfileSync(active?.$id, user?.$id, user?.name || "", t.accent);
 
   return (
     <Tabs

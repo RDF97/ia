@@ -14,6 +14,7 @@ const extra = (Constants.expoConfig?.extra ?? {}) as {
   appwriteSettlementsCollectionId?: string;
   appwriteInvitesCollectionId?: string;
   appwriteIncomesCollectionId?: string;
+  appwriteProfilesCollectionId?: string;
   appwriteJoinFunctionId?: string;
   appwriteScanFunctionId?: string;
 };
@@ -29,6 +30,7 @@ export const CATEGORIES_COL = extra.appwriteCategoriesCollectionId ?? "categorie
 export const SETTLEMENTS_COL = extra.appwriteSettlementsCollectionId ?? "settlements";
 export const INVITES_COL = extra.appwriteInvitesCollectionId ?? "invites";
 export const INCOMES_COL = extra.appwriteIncomesCollectionId ?? "incomes";
+export const PROFILES_COL = extra.appwriteProfilesCollectionId ?? "profiles";
 export const JOIN_FUNCTION_ID = extra.appwriteJoinFunctionId ?? "joinHogar";
 export const SCAN_FUNCTION_ID = extra.appwriteScanFunctionId ?? "scanReceipt";
 
