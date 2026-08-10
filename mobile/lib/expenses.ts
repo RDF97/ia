@@ -274,6 +274,21 @@ export function accountTotals(
 type OwnedExpense = Pick<Expense, "amount" | "account" | "shared" | "paidByName" | "forName" | "splits">;
 
 /**
+ * ¿Le toca a esta persona? Sirve para filtrar los movimientos por usuario.
+ *
+ * Cuenta si lo pagó, si es suyo, o si entra en el reparto. Un gasto compartido
+ * sin porcentajes es de todo el hogar, así que le toca a cualquiera.
+ */
+export function expenseInvolves(e: OwnedExpense, name: string): boolean {
+  if (!name) return true;
+  if (e.paidByName === name) return true;
+  if (expenseOwner(e) === name) return true;
+  const splits = parseSplits(e.splits);
+  if (splits.length) return splits.some((sp) => sp.name === name);
+  return e.shared;
+}
+
+/**
  * Gasto individual de cada persona: lo que le corresponde a ella y no al hogar.
  *
  * Se atribuye a su titular, no a quien puso el dinero: si Clara paga el gimnasio
@@ -382,4 +397,88 @@ export function balances(
   return Object.keys(paid)
     .map((name) => ({ name, net: (paid[name] ?? 0) - (owed[name] ?? 0) }))
     .filter((b) => Math.abs(b.net) >= 0.005);
+}
+
+/** Una línea del desglose de una deuda: de dónde sale cada euro. */
+export interface BalanceLine {
+  id: string;
+  concept: string;
+  date: string;
+  /** Lo que puso esa persona. */
+  paid: number;
+  /** Lo que le tocaba. */
+  owed: number;
+  /** paid − owed: cuánto mueve su balance esta línea. */
+  delta: number;
+  kind: "expense" | "settlement";
+}
+
+/**
+ * De qué gastos sale el balance de una persona, línea a línea.
+ *
+ * Existe porque un número suelto ("te debe 37,40 €") no se puede comprobar: si
+ * no cuadra, no hay forma de saber qué gasto mirar. La suma de los `delta` es
+ * exactamente el `net` que devuelve `balances`.
+ */
+export function balanceDetail(
+  expenses: Expense[],
+  name: string,
+  members: number,
+  settlements: SettlementLike[] = [],
+  memberNames: string[] = [],
+): { lines: BalanceLine[]; net: number } {
+  const own = expenses.filter((e) => effectiveAccount(e) === "individual");
+  const people = new Set<string>();
+  for (const n of memberNames) if (n.trim()) people.add(n);
+  for (const e of own) {
+    people.add(e.paidByName);
+    people.add(expenseOwner(e));
+    for (const sp of parseSplits(e.splits)) people.add(sp.name);
+  }
+
+  const lines: BalanceLine[] = [];
+  for (const e of own) {
+    const paid = e.paidByName === name ? e.amount : 0;
+    let owed = 0;
+    if (e.shared) {
+      const splits = parseSplits(e.splits);
+      if (splits.length) {
+        owed = splits.filter((sp) => sp.name === name).reduce((s, sp) => s + (e.amount * sp.pct) / 100, 0);
+      } else if (people.has(name)) {
+        const n = members > 0 ? members : people.size;
+        owed = n > 0 ? e.amount / n : 0;
+      }
+    } else if (expenseOwner(e) !== e.paidByName) {
+      owed = expenseOwner(e) === name ? e.amount : 0;
+    }
+    if (Math.abs(paid) < 0.005 && Math.abs(owed) < 0.005) continue;
+    lines.push({
+      id: e.$id,
+      concept: e.concept,
+      date: expenseDate(e),
+      paid,
+      owed,
+      delta: paid - owed,
+      kind: "expense",
+    });
+  }
+
+  // Las liquidaciones no son gasto, pero mueven el balance: sin ellas el
+  // desglose no sumaría lo mismo que el total.
+  settlements.forEach((s, i) => {
+    const delta = s.fromName === name ? s.amount : s.toName === name ? -s.amount : 0;
+    if (Math.abs(delta) < 0.005) return;
+    lines.push({
+      id: `settlement-${i}`,
+      concept: delta > 0 ? `Pagaste a ${s.toName}` : `${s.fromName} te pagó`,
+      date: "",
+      paid: delta > 0 ? s.amount : 0,
+      owed: delta < 0 ? s.amount : 0,
+      delta,
+      kind: "settlement",
+    });
+  });
+
+  lines.sort((a, b) => b.date.localeCompare(a.date));
+  return { lines, net: lines.reduce((s, l) => s + l.delta, 0) };
 }

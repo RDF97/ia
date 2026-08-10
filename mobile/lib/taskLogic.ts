@@ -161,7 +161,11 @@ export function groupTasks<T extends { done: boolean; dueAt?: string | null; $cr
   const buckets: Record<string, T[]> = { overdue: [], today: [], tomorrow: [], week: [], later: [], noDate: [] };
   for (const t of pending) {
     if (!t.dueAt) {
-      buckets.noDate.push(t);
+      // Una tarea sin fecha es algo que hay que hacer y punto, así que en "Hoy"
+      // y "Semana" va dentro de Hoy. En "Todas" sí se separa, porque ahí sí
+      // interesa distinguir lo que tiene fecha de lo que no.
+      if (filter === "all") buckets.noDate.push(t);
+      else buckets.today.push(t);
       continue;
     }
     const diff = Math.round((startOfDay(new Date(t.dueAt)) - today0) / DAY_MS);
@@ -178,10 +182,7 @@ export function groupTasks<T extends { done: boolean; dueAt?: string | null; $cr
     { key: "tomorrow", title: "Mañana", in: ["week", "all"] },
     { key: "week", title: "Esta semana", in: ["week", "all"] },
     { key: "later", title: "Más adelante", in: ["all"] },
-    // "Sin fecha" sale en TODOS los filtros a propósito: una tarea añadida rápido
-    // desde la barra no tiene fecha, y si solo apareciera en "Todas" daría la
-    // sensación de que la barra de añadir no funciona.
-    { key: "noDate", title: "Sin fecha", in: ["today", "week", "all"] },
+    { key: "noDate", title: "Sin fecha", in: ["all"] },
   ];
 
   const groups: TaskGroup<T>[] = [];

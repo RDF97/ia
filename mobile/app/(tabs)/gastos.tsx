@@ -21,8 +21,11 @@ import { useExpenses } from "@/lib/useExpenses";
 import { useCategories } from "@/lib/useCategories";
 import { useSettlements } from "@/lib/useSettlements";
 import { useMembers } from "@/lib/useMembers";
-import { accountTotals, addExpense, balances, deleteExpense, effectiveAccount, equalSplits, expenseDate, expenseOwner, individualByPerson, parseExpenseItems, parseSplits, stringifySplits, updateExpense, type Account, type Expense, type ExpenseSplit } from "@/lib/expenses";
-import { getIncome, monthBalance, scheduleMonthSummary, setIncome } from "@/lib/income";
+import { payingMembers } from "@/lib/members";
+import { accountTotals, addExpense, balances, deleteExpense, effectiveAccount, equalSplits, expenseDate, expenseInvolves, expenseOwner, individualByPerson, parseExpenseItems, parseSplits, stringifySplits, updateExpense, type Account, type Expense, type ExpenseSplit } from "@/lib/expenses";
+import { monthBalance, scheduleMonthSummary } from "@/lib/income";
+import { saveIncome } from "@/lib/incomes";
+import { useIncomes, useRefreshIncomes } from "@/lib/useIncomes";
 import {
   budgetStatus,
   budgetTotals,
@@ -61,7 +64,8 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
   const { data: expenses, isLoading, isError } = useExpenses(hogarId);
   const { data: categories } = useCategories(hogarId);
   const { data: settlements } = useSettlements(hogarId);
-  const memberNames = (useMembers(hogarId).data ?? []).map((m) => m.name);
+  // Solo cuentan para el dinero los miembros confirmados y con nombre.
+  const memberNames = payingMembers(useMembers(hogarId).data ?? []);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [budgetOpen, setBudgetOpen] = useState(false);
@@ -70,6 +74,8 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
   const [scanSource, setScanSource] = useState<"camera" | "library" | "pdf" | null>(null);
   const [filter, setFilter] = useState<"all" | Account>("all");
   const [catFilter, setCatFilter] = useState<string | null>(null);
+  // Filtro "de quién": null = todo el hogar.
+  const [who, setWho] = useState<string | null>(null);
   // Mes que se está viendo (se puede retroceder/avanzar).
   const [month, setMonth] = useState(() => {
     const n = new Date();
@@ -105,9 +111,14 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
   // Gasto individual DE CADA UNO: se atribuye a su titular, no a quien lo pagó.
   const perPerson = individualByPerson(list, memberNames.length ? memberNames : [userName]);
   const people = Object.keys(perPerson).sort((a, b) => (a === userName ? -1 : b === userName ? 1 : a.localeCompare(b)));
-  const myIndividual = perPerson[userName] ?? 0;
+  // Lo que sale del bolsillo de cada uno este mes: su parte de la cuenta
+  // conjunta más lo que es suyo. Es la cifra que se descuenta de su ingreso.
+  const myJointShare = members > 0 ? accTotals.joint / members : 0;
+  const shareByPerson: Record<string, number> = {};
+  for (const [name, own] of Object.entries(perPerson)) shareByPerson[name] = own + myJointShare;
   const byAccount = filter === "all" ? list : list.filter((e) => effectiveAccount(e) === filter);
-  const movements = catFilter ? byAccount.filter((e) => e.category === catFilter) : byAccount;
+  const byCat = catFilter ? byAccount.filter((e) => e.category === catFilter) : byAccount;
+  const movements = who ? byCat.filter((e) => expenseInvolves(e, who)) : byCat;
 
   const rows = budgetStatus(cats, list, monthDate);
   const budgeted = rows.filter((r) => r.hasBudget);
@@ -239,7 +250,13 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
         )}
       </Card>
 
-      <IncomeCard hogarId={hogarId} spent={myIndividual} monthLabel={monthLabel} />
+      <IncomeCard
+        hogarId={hogarId}
+        userName={userName}
+        spentByPerson={shareByPerson}
+        joint={myJointShare}
+        monthLabel={monthLabel}
+      />
 
       {budgetOn && (
         <BudgetSection
@@ -259,28 +276,79 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
           {bal
             .filter((b) => b.name !== userName)
             .map((b) => (
-              <DebtCard key={b.name} hogarId={hogarId} userName={userName} name={b.name} net={b.net} onDone={refreshBal} />
+              <DebtCard
+                key={b.name}
+                hogarId={hogarId}
+                userName={userName}
+                name={b.name}
+                net={b.net}
+                onDone={refreshBal}
+                expenses={all}
+                settlements={settlements ?? []}
+                members={members}
+                memberNames={memberNames}
+              />
             ))}
         </>
       )}
 
       <SectionTitle>Movimientos recientes</SectionTitle>
       {list.length > 0 && (
-        <Segmented
-          value={filter}
-          onChange={setFilter}
-          options={[
-            { key: "all", label: "Todo" },
-            { key: "joint", label: "Conjunta" },
-            { key: "individual", label: "Individual" },
-          ]}
-        />
+        <>
+          <Segmented
+            value={filter}
+            onChange={setFilter}
+            options={[
+              { key: "all", label: "Todo" },
+              { key: "joint", label: "Conjunta" },
+              { key: "individual", label: "Individual" },
+            ]}
+          />
+          {people.length > 1 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              className="mb-1"
+              contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingBottom: 8 }}
+            >
+              <Pressable
+                onPress={() => setWho(null)}
+                className="rounded-pill px-3 py-1.5"
+                style={{ backgroundColor: who === null ? t.accent : t.fill }}
+              >
+                <Text className="text-footnote font-medium" style={{ color: who === null ? "#fff" : t.label }}>
+                  Todo el hogar
+                </Text>
+              </Pressable>
+              {people.map((p) => {
+                const on = who === p;
+                return (
+                  <Pressable
+                    key={p}
+                    onPress={() => setWho(on ? null : p)}
+                    className="flex-row items-center rounded-pill px-3 py-1.5"
+                    style={{ gap: 6, backgroundColor: on ? t.accent : t.fill }}
+                  >
+                    <Avatar name={p} size={18} />
+                    <Text className="text-footnote font-medium" style={{ color: on ? "#fff" : t.label }}>
+                      {p === userName ? "Yo" : p}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          )}
+        </>
       )}
       {isLoading ? (
         <ActivityIndicator color={t.accent} style={{ marginTop: 16 }} />
       ) : movements.length === 0 ? (
         <Text className="text-center text-tertiary mt-6">
-          {list.length === 0 ? "Sin gastos todavía." : "Sin movimientos en esta cuenta."}
+          {list.length === 0
+            ? "Sin gastos todavía."
+            : who
+              ? `Sin movimientos de ${who === userName ? "los tuyos" : who} en esta cuenta.`
+              : "Sin movimientos en esta cuenta."}
         </Text>
       ) : (
         <View className="bg-card rounded-lg2 mx-4 mb-3 overflow-hidden" style={cardShadow(t.dark)}>
@@ -360,22 +428,44 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
 }
 
 /**
- * "Me entran X, llevo gastado Y, me quedan Z" con barra de progreso.
+ * "Me entran X, llevo gastado Y, me quedan Z" con barra de progreso, y debajo
+ * lo mismo del resto del hogar.
  *
- * El ingreso es un dato personal: se guarda solo en este móvil, no en el hogar.
- * Cada vez que cambia el gasto se reprograma el resumen de fin de mes, porque
+ * Cada uno tiene su ingreso y solo puede tocar el suyo, pero todos los ven: son
+ * dos personas repartiendo gastos, y sin saber lo que entra en cada lado no se
+ * puede decidir nada. A cada uno se le descuenta su parte de la cuenta conjunta
+ * más sus gastos individuales.
+ *
+ * El resumen de fin de mes se reprograma cada vez que cambia el gasto, porque
  * una notificación local congela su texto al programarla.
  */
-function IncomeCard({ hogarId, spent, monthLabel }: { hogarId: string; spent: number; monthLabel: string }) {
+function IncomeCard({
+  hogarId,
+  userName,
+  spentByPerson,
+  joint,
+  monthLabel,
+}: {
+  hogarId: string;
+  userName: string;
+  /** Lo que sale del bolsillo de cada uno: su parte de la conjunta + lo suyo. */
+  spentByPerson: Record<string, number>;
+  /** Parte de la cuenta conjunta que le toca a cada uno. */
+  joint: number;
+  monthLabel: string;
+}) {
   const t = useTheme();
   const kb = useKeyboardHeight();
-  const [income, setIncomeState] = useState(0);
+  const incomes = useIncomes(hogarId, userName).data ?? {};
+  const refreshIncomes = useRefreshIncomes(hogarId);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
 
-  useEffect(() => {
-    getIncome(hogarId).then(setIncomeState).catch(() => undefined);
-  }, [hogarId]);
+  const income = incomes[userName] ?? 0;
+  const spent = spentByPerson[userName] ?? 0;
+  const others = Object.keys(spentByPerson)
+    .filter((n) => n !== userName && (incomes[n] ?? 0) > 0)
+    .sort();
 
   useEffect(() => {
     scheduleMonthSummary(hogarId, income, spent).catch(() => undefined);
@@ -383,10 +473,9 @@ function IncomeCard({ hogarId, spent, monthLabel }: { hogarId: string; spent: nu
 
   const save = async () => {
     const v = parseFloat(draft.replace(",", ".").replace(/[^\d.]/g, ""));
-    const value = Number.isFinite(v) && v > 0 ? v : 0;
-    setIncomeState(value);
     setEditing(false);
-    await setIncome(hogarId, value).catch(() => undefined);
+    await saveIncome(hogarId, userName, Number.isFinite(v) && v > 0 ? v : 0).catch(() => undefined);
+    await refreshIncomes();
   };
 
   const open = () => {
@@ -433,10 +522,31 @@ function IncomeCard({ hogarId, spent, monthLabel }: { hogarId: string; spent: nu
           </View>
           <ProgressBar pct={b.pct} color={b.over ? t.red : b.pct >= 0.85 ? t.orange : t.green} />
           <Text className="text-caption1 text-secondary mt-2">
-            {b.over
-              ? `Llevas ${eur(spent)}: te has pasado ${eur(-b.left)}.`
-              : `Llevas ${eur(spent)} de gasto individual este mes.`}
+            {`Llevas ${eur(spent)}`}
+            {joint > 0.005 ? ` (${eur(joint)} de tu parte de la conjunta)` : ""}
+            {b.over ? `: te has pasado ${eur(-b.left)}.` : "."}
           </Text>
+
+          {others.length > 0 && (
+            <View className="mt-3 pt-3" style={{ borderTopWidth: 0.5, borderTopColor: t.separator }}>
+              {others.map((n) => {
+                const ob = monthBalance(incomes[n] ?? 0, spentByPerson[n] ?? 0);
+                return (
+                  <View key={n} className="flex-row items-center py-1" style={{ gap: 8 }}>
+                    <Avatar name={n} size={20} />
+                    <Text className="flex-1 text-subhead text-label" numberOfLines={1}>{n}</Text>
+                    <Text className="text-caption1 text-tertiary mr-2">de {eur(ob.income)}</Text>
+                    <Text
+                      className="text-subhead font-semibold"
+                      style={{ color: ob.over ? t.red : t.label, fontVariant: ["tabular-nums"] }}
+                    >
+                      {ob.over ? `−${eur(-ob.left)}` : eur(ob.left)}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          )}
         </Pressable>
       )}
 
@@ -460,8 +570,9 @@ function IncomeCard({ hogarId, spent, monthLabel }: { hogarId: string; spent: nu
               autoFocus
             />
             <Text className="text-caption1 text-tertiary">
-              Se guarda solo en este móvil: el resto del hogar no lo ve. A final de mes recibirás un
-              aviso con lo que hayas conseguido ahorrar. Déjalo vacío para quitarlo.
+              Cada uno pone el suyo y lo ve todo el hogar. Se le descuenta tu parte de la cuenta
+              conjunta más tus gastos individuales. A final de mes recibirás un aviso con lo que
+              hayas conseguido ahorrar. Déjalo vacío para quitarlo.
             </Text>
           </View>
         </View>

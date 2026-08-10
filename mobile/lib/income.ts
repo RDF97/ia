@@ -4,23 +4,9 @@ import { endOfMonth, savingsNotice } from "./incomeLogic";
 
 export { monthBalance, savingsNotice, endOfMonth, type MonthBalance } from "./incomeLogic";
 
-/**
- * Ingreso mensual. Es un dato personal (lo que entra en TU cuenta), así que se
- * guarda solo en este móvil y no se comparte con el hogar.
- */
-const KEY = (hogarId: string) => `income:${hogarId}`;
+// El ingreso en sí vive en `incomes.ts` (colección compartida con el hogar).
+// Aquí solo queda el aviso de fin de mes, que es local a este móvil.
 const NOTIF_KEY = (hogarId: string) => `income-notif:${hogarId}`;
-
-export async function getIncome(hogarId: string): Promise<number> {
-  const raw = await AsyncStorage.getItem(KEY(hogarId));
-  const n = raw === null ? 0 : parseFloat(raw);
-  return Number.isFinite(n) && n > 0 ? n : 0;
-}
-
-export async function setIncome(hogarId: string, value: number): Promise<void> {
-  if (!Number.isFinite(value) || value <= 0) await AsyncStorage.removeItem(KEY(hogarId));
-  else await AsyncStorage.setItem(KEY(hogarId), String(value));
-}
 
 /**
  * Programa el resumen de fin de mes con lo gastado HASTA AHORA.

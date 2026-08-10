@@ -92,24 +92,31 @@ describe("groupTasks", () => {
     T({ $id: "hecha", done: true, dueAt: "2026-07-13T09:00:00.000Z" }),
   ];
 
-  it("filtro 'today' → atrasadas, hoy y las que no tienen fecha", () => {
+  it("filtro 'today' → atrasadas y hoy, con las que no tienen fecha dentro de Hoy", () => {
     const g = groupTasks(tasks, "today", now);
-    expect(g.map((x) => x.key)).toEqual(["overdue", "today", "noDate"]);
-    expect(g[1].tasks.map((t) => t.$id)).toEqual(["hoy"]);
+    expect(g.map((x) => x.key)).toEqual(["overdue", "today"]);
+    expect(g[1].tasks.map((t) => t.$id).sort()).toEqual(["hoy", "sinfecha"]);
   });
 
   it("filtro 'week' → hasta esta semana, sin 'más adelante' ni completadas", () => {
     const g = groupTasks(tasks, "week", now);
-    expect(g.map((x) => x.key)).toEqual(["overdue", "today", "tomorrow", "week", "noDate"]);
+    expect(g.map((x) => x.key)).toEqual(["overdue", "today", "tomorrow", "week"]);
+    expect(g[1].tasks.map((t) => t.$id)).toContain("sinfecha");
   });
 
-  // Una tarea añadida rápido no tiene fecha: si no saliera en "Hoy" parecería
-  // que la barra de añadir no funciona.
-  it("una tarea sin fecha aparece en todos los filtros", () => {
+  // Una tarea añadida rápido desde la barra no tiene fecha: si no saliera en
+  // "Hoy" parecería que la barra de añadir no funciona.
+  it("una tarea sin fecha nunca se queda escondida", () => {
     for (const f of ["today", "week", "all"] as const) {
       const g = groupTasks(tasks, f, now);
-      expect(g.find((x) => x.key === "noDate")?.tasks.map((t) => t.$id)).toEqual(["sinfecha"]);
+      expect(g.some((x) => x.tasks.some((t) => t.$id === "sinfecha"))).toBe(true);
     }
+  });
+
+  it("en 'Todas' sí se separan las que no tienen fecha", () => {
+    const g = groupTasks(tasks, "all", now);
+    expect(g.find((x) => x.key === "noDate")?.tasks.map((t) => t.$id)).toEqual(["sinfecha"]);
+    expect(g.find((x) => x.key === "today")?.tasks.map((t) => t.$id)).toEqual(["hoy"]);
   });
 
   it("filtro 'all' → todos los grupos + Completadas al final", () => {
