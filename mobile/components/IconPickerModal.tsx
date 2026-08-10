@@ -57,7 +57,9 @@ export function IconPickerModal({
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
       <View
         className="rounded-t-[14px] absolute left-0 right-0 bottom-0"
-        style={{ backgroundColor: t.bg, paddingBottom: 32 + kb }}
+        // Con la paleta y los iconos ampliados la hoja se pasaría de alto y la
+        // cuadrícula se saldría por arriba: con el tope, el ScrollView scrollea.
+        style={{ maxHeight: "88%", backgroundColor: t.bg, paddingBottom: 32 + kb }}
       >
         <View className="items-center pt-2 pb-1">
           <View style={{ width: 36, height: 5, borderRadius: 999, backgroundColor: t.separator }} />

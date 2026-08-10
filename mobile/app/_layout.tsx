@@ -8,6 +8,7 @@ import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { initThemeChoice } from "@/lib/themePref";
 import { wireAppState } from "@/lib/appState";
+import { installCrashGuard } from "@/lib/crashGuard";
 import { useResumeKey } from "@/lib/useResumeKey";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -73,6 +74,10 @@ function RootNavigator() {
     </Stack>
   );
 }
+
+// Se instala al cargar el módulo, antes de pintar nada: un error temprano
+// también tiene que acabar en la pantalla de error y no en una blanca.
+installCrashGuard();
 
 export default function RootLayout() {
   // Aplica el tema guardado (Sistema/Claro/Oscuro) antes de pintar.

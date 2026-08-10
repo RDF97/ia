@@ -20,6 +20,10 @@ export const HOGAR_ICONS: IoniconName[] = [
   "bed", "cafe", "pizza", "restaurant", "wine", "tv",
   "musical-notes", "football", "fitness", "airplane", "car-sport", "umbrella",
   "snow", "flame", "diamond", "gift", "balloon", "key",
+  "bonfire", "business", "storefront", "cart", "basket", "bag-handle",
+  "shield", "ribbon", "rose", "nutrition", "fast-food", "ice-cream",
+  "wifi", "bulb", "hammer", "construct", "color-palette", "school",
+  "library", "earth", "map", "compass", "telescope", "planet",
 ];
 
 export const PERFIL_ICONS: IoniconName[] = [
@@ -28,12 +32,35 @@ export const PERFIL_ICONS: IoniconName[] = [
   "paw", "heart", "star", "flash", "leaf", "flower",
   "bicycle", "boat", "airplane", "medkit", "brush", "code-slash",
   "headset", "ice-cream", "pizza", "beer", "trophy", "moon",
+  "sunny", "snow", "flame", "diamond", "shield", "ribbon",
+  "barbell", "bandage", "basketball", "tennisball", "golf", "bowling-ball",
+  "american-football", "baseball", "body", "walk", "bicycle-outline", "car-sport",
+  "bus", "train", "subway", "rocket-outline", "telescope", "earth",
+  "watch", "headset-outline", "mic", "disc", "film", "tv",
+  "laptop", "phone-portrait", "hardware-chip", "terminal", "magnet", "key",
 ];
 
+/**
+ * Paleta de personalización, ordenada por tono (verdes → azules → morados →
+ * rojos → naranjas → neutros) para que la cuadrícula se lea como un degradado
+ * y no como una bolsa de colores sueltos.
+ *
+ * Todos tienen contraste de sobra con el icono blanco que va encima: los tonos
+ * muy claros (amarillos y pasteles) van en versión oscurecida a propósito.
+ */
 export const ICON_COLORS = [
-  "#1F4D52", "#2A6E75", "#00C7BE", "#34C759", "#30D158", "#8BC34A",
-  "#5AC8FA", "#007AFF", "#5856D6", "#AF52DE", "#BF5AF2", "#FF2D55",
-  "#FF3B30", "#FF6B35", "#FF9500", "#FFCC00", "#A2845E", "#8E8E93",
+  // Verdes y turquesas
+  "#1F4D52", "#2A6E75", "#00A99D", "#00C7BE", "#1F8C4D", "#34C759",
+  "#8BC34A", "#5B8C00",
+  // Azules
+  "#5AC8FA", "#0A84FF", "#007AFF", "#0055B8", "#1B3A6B", "#3F7CAC",
+  // Morados y rosas
+  "#5856D6", "#7D5FFF", "#AF52DE", "#BF5AF2", "#C56CF0", "#8E44AD",
+  "#FF2D55", "#FF6B9D", "#D81B60",
+  // Rojos y naranjas
+  "#FF3B30", "#C0392B", "#FF6B35", "#FF9500", "#E67E22", "#D4A017",
+  // Tierra y neutros
+  "#A2845E", "#7D6608", "#6D4C41", "#5D4037", "#48484A", "#8E8E93",
 ];
 
 const isColor = (v: unknown): v is string => typeof v === "string" && /^#[0-9A-Fa-f]{6}$/.test(v);
