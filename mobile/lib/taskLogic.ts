@@ -32,8 +32,19 @@ export function nextDue(fromISO: string, repeat: Repeat): string | null {
   return d.toISOString();
 }
 
-/** Avanza la fecha hasta la primera ocurrencia estrictamente posterior a `now`. */
-export function nextDueAfter(fromISO: string, repeat: Repeat, now: Date = new Date()): string | null {
+/**
+ * Avanza la fecha hasta la primera ocurrencia estrictamente posterior a `now`.
+ *
+ * `untilISO` es la fecha límite de la repetición (p. ej. "el recibo del ING se
+ * repite cada mes hasta septiembre"): si la siguiente ocurrencia se pasa de ahí,
+ * devuelve null y la tarea se da por terminada en vez de repetirse para siempre.
+ */
+export function nextDueAfter(
+  fromISO: string,
+  repeat: Repeat,
+  now: Date = new Date(),
+  untilISO?: string | null,
+): string | null {
   if (repeat === "none") return null;
   let iso = fromISO;
   let guard = 0;
@@ -43,6 +54,13 @@ export function nextDueAfter(fromISO: string, repeat: Repeat, now: Date = new Da
     iso = nx;
     guard++;
   } while (new Date(iso).getTime() <= now.getTime() && guard < 750);
+
+  if (untilISO) {
+    const limit = new Date(untilISO);
+    // El límite es un día, no un instante: vale hasta el final de ese día.
+    limit.setHours(23, 59, 59, 999);
+    if (isFinite(limit.getTime()) && new Date(iso).getTime() > limit.getTime()) return null;
+  }
   return iso;
 }
 
@@ -160,7 +178,10 @@ export function groupTasks<T extends { done: boolean; dueAt?: string | null; $cr
     { key: "tomorrow", title: "Mañana", in: ["week", "all"] },
     { key: "week", title: "Esta semana", in: ["week", "all"] },
     { key: "later", title: "Más adelante", in: ["all"] },
-    { key: "noDate", title: "Sin fecha", in: ["all"] },
+    // "Sin fecha" sale en TODOS los filtros a propósito: una tarea añadida rápido
+    // desde la barra no tiene fecha, y si solo apareciera en "Todas" daría la
+    // sensación de que la barra de añadir no funciona.
+    { key: "noDate", title: "Sin fecha", in: ["today", "week", "all"] },
   ];
 
   const groups: TaskGroup<T>[] = [];

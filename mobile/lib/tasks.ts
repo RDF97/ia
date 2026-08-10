@@ -8,9 +8,12 @@ export interface Task extends Models.Document {
   done: boolean;
   hogarId: string;
   createdByName: string;
+  /** Persona asignada. null/vacío = de todos (tarea conjunta). */
   assignedToName?: string | null;
   dueAt?: string | null; // ISO datetime
   repeat?: Repeat;
+  /** Hasta cuándo se repite (ISO). Ausente = para siempre. */
+  repeatUntil?: string | null;
   notify?: boolean;
 }
 
@@ -26,8 +29,23 @@ export interface NewTask {
   assignedToName?: string | null;
   dueAt?: string | null;
   repeat?: Repeat;
+  repeatUntil?: string | null;
   notify?: boolean;
 }
+
+/**
+ * Atributos que puede que la colección todavía no tenga (los crea
+ * `scripts/appwrite-setup.sh`). Appwrite rechaza el documento ENTERO si mandas
+ * uno que no existe, así que si falla se reintenta con lo imprescindible: más
+ * vale una tarea sin fecha ni aviso que una tarea que no se guarda.
+ */
+const OPTIONAL = ["assignedToName", "dueAt", "repeat", "repeatUntil", "notify"] as const;
+
+const withoutOptional = <T extends object>(data: T): T => {
+  const out = { ...data } as Record<string, unknown>;
+  for (const k of OPTIONAL) delete out[k];
+  return out as T;
+};
 
 export async function listTasks(hogarId: string): Promise<Task[]> {
   const res = await databases.listDocuments<Task>(DB_ID, TASKS_COL, [
@@ -39,29 +57,37 @@ export async function listTasks(hogarId: string): Promise<Task[]> {
 }
 
 export async function createTask(hogarId: string, data: NewTask): Promise<Task> {
-  return databases.createDocument<Task>(
-    DB_ID,
-    TASKS_COL,
-    ID.unique(),
-    {
-      title: data.title,
-      done: false,
-      hogarId,
-      createdByName: data.createdByName,
-      assignedToName: data.assignedToName ?? null,
-      dueAt: data.dueAt ?? null,
-      repeat: data.repeat ?? "none",
-      notify: data.notify ?? false,
-    },
-    teamPerms(hogarId),
-  );
+  const doc = {
+    title: data.title,
+    done: false,
+    hogarId,
+    createdByName: data.createdByName,
+    assignedToName: data.assignedToName ?? null,
+    dueAt: data.dueAt ?? null,
+    repeat: data.repeat ?? "none",
+    repeatUntil: data.repeatUntil ?? null,
+    notify: data.notify ?? false,
+  };
+  try {
+    return await databases.createDocument<Task>(DB_ID, TASKS_COL, ID.unique(), doc, teamPerms(hogarId));
+  } catch {
+    return databases.createDocument<Task>(DB_ID, TASKS_COL, ID.unique(), withoutOptional(doc), teamPerms(hogarId));
+  }
 }
 
 export async function updateTask(
   id: string,
-  patch: Partial<Pick<Task, "title" | "done" | "assignedToName" | "dueAt" | "repeat" | "notify">>,
+  patch: Partial<Pick<Task, "title" | "done" | "assignedToName" | "dueAt" | "repeat" | "repeatUntil" | "notify">>,
 ): Promise<Task> {
-  return databases.updateDocument<Task>(DB_ID, TASKS_COL, id, patch);
+  try {
+    return await databases.updateDocument<Task>(DB_ID, TASKS_COL, id, patch);
+  } catch (e) {
+    const rest = withoutOptional(patch);
+    // Si lo único que se tocaba era un atributo que no existe, no hay nada que
+    // salvar: mejor que el error suba y se vea, en vez de fingir que se guardó.
+    if (!Object.keys(rest).length) throw e;
+    return databases.updateDocument<Task>(DB_ID, TASKS_COL, id, rest);
+  }
 }
 
 export async function setTaskDone(task: Task, done: boolean): Promise<Task> {
@@ -76,7 +102,7 @@ export async function setTaskDone(task: Task, done: boolean): Promise<Task> {
 export async function completeTask(task: Task, now: Date = new Date()): Promise<void> {
   const repeat = task.repeat ?? "none";
   if (repeat !== "none" && task.dueAt) {
-    const next = nextDueAfter(task.dueAt, repeat, now);
+    const next = nextDueAfter(task.dueAt, repeat, now, task.repeatUntil);
     if (next) {
       await updateTask(task.$id, { dueAt: next, done: false });
       return;

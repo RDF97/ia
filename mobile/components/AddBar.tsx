@@ -25,6 +25,7 @@ export function AddBar({
   onPress,
   busy = false,
   actionIcon = "add",
+  leadingIcon = "add",
   onAction,
   inputRef,
 }: {
@@ -37,6 +38,8 @@ export function AddBar({
   busy?: boolean;
   /** Icono del botón redondo cuando no hay texto escrito. */
   actionIcon?: IoniconName;
+  /** Icono decorativo de la izquierda; cámbialo si el redondo ya es un "+". */
+  leadingIcon?: IoniconName;
   /** Acción del botón redondo cuando no hay texto (p. ej. abrir el formulario completo). */
   onAction?: () => void;
   inputRef?: RefObject<TextInput | null>;
@@ -85,7 +88,7 @@ export function AddBar({
         }}
         style={container}
       >
-        <Ionicons name="add" size={20} color={t.labelTertiary} />
+        <Ionicons name={leadingIcon} size={20} color={t.labelTertiary} />
         <Text style={{ flex: 1, fontSize: 15, color: t.labelTertiary }}>{placeholder}</Text>
         <View style={roundBtn}>
           {busy ? <ActivityIndicator color="#fff" size="small" /> : <Ionicons name={actionIcon} size={16} color="#fff" />}
@@ -96,7 +99,7 @@ export function AddBar({
 
   return (
     <View style={container}>
-      <Ionicons name="add" size={20} color={t.labelTertiary} />
+      <Ionicons name={leadingIcon} size={20} color={t.labelTertiary} />
       <TextInput
         ref={inputRef}
         style={{ flex: 1, fontSize: 15, color: t.label, paddingVertical: 6 }}

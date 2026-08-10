@@ -92,6 +92,34 @@ export function Avatar({ name, size = 32 }: { name: string; size?: number }) {
   );
 }
 
+/**
+ * Varios avatares solapados (para lo que es "de todos": la C y la R montadas).
+ * El borde del color de la tarjeta es lo que hace que se lean como un montón.
+ */
+export function AvatarStack({ names, size = 18 }: { names: string[]; size?: number }) {
+  const t = useTheme();
+  const list = names.filter((n) => n && n.trim()).slice(0, 4);
+  if (!list.length) return null;
+  return (
+    <View className="flex-row items-center">
+      {list.map((n, i) => (
+        <View
+          key={`${n}-${i}`}
+          style={{
+            marginLeft: i ? -size * 0.35 : 0,
+            borderRadius: size,
+            borderWidth: 1.5,
+            borderColor: t.card,
+            zIndex: list.length - i,
+          }}
+        >
+          <Avatar name={n} size={size} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
 /** Círculo de check — como .shop-check del mockup. */
 export function CheckCircle({ done, onPress }: { done: boolean; onPress: () => void }) {
   const t = useTheme();

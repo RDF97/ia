@@ -3,6 +3,9 @@ import { Tabs } from "expo-router";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TabIcon, type TabIconName } from "@/components/TabIcon";
+import { useAuth } from "@/lib/auth";
+import { useHogar } from "@/lib/hogar";
+import { useExpenseAlerts } from "@/lib/expenseAlerts";
 import { useTheme } from "@/theme/theme";
 
 function icon(name: TabIconName) {
@@ -15,6 +18,11 @@ export default function TabsLayout() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const bottom = insets.bottom > 0 ? insets.bottom : 10;
+  const { user } = useAuth();
+  const { active } = useHogar();
+
+  // Aviso cuando otra persona del hogar apunta un gasto.
+  useExpenseAlerts(active?.$id, user?.name || "");
 
   return (
     <Tabs

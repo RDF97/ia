@@ -16,7 +16,10 @@ export interface EventReminder {
   sig: string; // firma: cambia si hay que reprogramar
 }
 
-type EventLike = Pick<Event, "$id" | "title" | "startAt" | "place">;
+type EventLike = Pick<Event, "$id" | "title" | "startAt" | "place"> & { allDay?: boolean | null };
+
+/** Hora de referencia de un evento de todo el día: las 9:00, no medianoche. */
+export const ALL_DAY_HOUR = 9;
 
 /** Avisos a programar: eventos futuros, con la antelación elegida. */
 export function eventReminderPlan(
@@ -28,16 +31,21 @@ export function eventReminderPlan(
   for (const e of events) {
     const start = new Date(e.startAt);
     if (!isFinite(start.getTime())) continue;
-    const when = new Date(start.getTime() - leadMinutes * 60_000);
+    // Un evento de todo el día empieza a las 00:00, y avisar a medianoche (o el
+    // día antes a medianoche) no le sirve a nadie: se toma como referencia las 9.
+    const ref = e.allDay
+      ? new Date(start.getFullYear(), start.getMonth(), start.getDate(), ALL_DAY_HOUR, 0, 0, 0)
+      : start;
+    const when = new Date(ref.getTime() - leadMinutes * 60_000);
     if (when.getTime() <= now.getTime()) continue;
-    const hh = String(start.getHours()).padStart(2, "0");
-    const mm = String(start.getMinutes()).padStart(2, "0");
+    const hh = String(ref.getHours()).padStart(2, "0");
+    const mm = String(ref.getMinutes()).padStart(2, "0");
     out.push({
       id: e.$id,
       date: when,
       title: `📅 ${e.title}`,
-      body: `${hh}:${mm}${e.place ? ` · ${e.place}` : ""}`,
-      sig: `${e.startAt}|${e.title}|${leadMinutes}`,
+      body: `${e.allDay ? "Todo el día" : `${hh}:${mm}`}${e.place ? ` · ${e.place}` : ""}`,
+      sig: `${e.startAt}|${e.title}|${leadMinutes}|${e.allDay ? 1 : 0}`,
     });
   }
   return out;
@@ -55,11 +63,16 @@ const stamp = (d: Date): string =>
  * conectada ni permisos: es el flujo estándar de Google.
  */
 export function googleCalendarUrl(
-  e: Pick<Event, "title" | "startAt" | "place">,
+  e: Pick<Event, "title" | "startAt" | "place"> & { endAt?: string | null },
   durationMinutes = 60,
 ): string {
   const start = new Date(e.startAt);
-  const end = new Date(start.getTime() + durationMinutes * 60_000);
+  const declared = e.endAt ? new Date(e.endAt) : null;
+  // Respetamos el fin real (vacaciones de una semana), no una hora fija.
+  const end =
+    declared && isFinite(declared.getTime()) && declared.getTime() > start.getTime()
+      ? declared
+      : new Date(start.getTime() + durationMinutes * 60_000);
   const params = new URLSearchParams({
     action: "TEMPLATE",
     text: e.title,

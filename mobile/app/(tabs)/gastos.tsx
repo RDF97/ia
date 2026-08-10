@@ -5,7 +5,7 @@ import DateTimePicker, { type DateTimePickerEvent } from "@react-native-communit
 import { useQueryClient } from "@tanstack/react-query";
 import { Screen } from "@/components/Screen";
 import { Card, PhaseCard, cardShadow } from "@/components/Card";
-import { AddFab, IconTile, Money, SectionTitle } from "@/components/ui";
+import { AddFab, Avatar, IconTile, Money, SectionTitle } from "@/components/ui";
 import { SwipeToDelete } from "@/components/SwipeToDelete";
 import { SheetHeader } from "@/components/SheetHeader";
 import { UploadCard } from "@/components/UploadCard";
@@ -21,7 +21,8 @@ import { useExpenses } from "@/lib/useExpenses";
 import { useCategories } from "@/lib/useCategories";
 import { useSettlements } from "@/lib/useSettlements";
 import { useMembers } from "@/lib/useMembers";
-import { accountTotals, addExpense, balances, deleteExpense, effectiveAccount, equalSplits, expenseDate, parseExpenseItems, parseSplits, stringifySplits, updateExpense, type Account, type Expense, type ExpenseSplit } from "@/lib/expenses";
+import { accountTotals, addExpense, balances, deleteExpense, effectiveAccount, equalSplits, expenseDate, expenseOwner, individualByPerson, parseExpenseItems, parseSplits, stringifySplits, updateExpense, type Account, type Expense, type ExpenseSplit } from "@/lib/expenses";
+import { getIncome, monthBalance, scheduleMonthSummary, setIncome } from "@/lib/income";
 import {
   budgetStatus,
   budgetTotals,
@@ -56,7 +57,6 @@ export default function Gastos() {
 
 function GastosView({ hogarId, members, userName }: { hogarId: string; members: number; userName: string }) {
   const t = useTheme();
-  const kb = useKeyboardHeight();
   const qc = useQueryClient();
   const { data: expenses, isLoading, isError } = useExpenses(hogarId);
   const { data: categories } = useCategories(hogarId);
@@ -102,14 +102,10 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
   const total = list.reduce((s, e) => s + e.amount, 0);
   const bal = balances(all, members, settlements ?? [], memberNames);
   const accTotals = accountTotals(list, monthDate);
-  // "Gasto individual" = mi parte de la conjunta + lo que he puesto de mi bolsillo.
-  const myOwn = list
-    .filter((e) => effectiveAccount(e) === "individual" && e.paidByName === userName)
-    .reduce((s, e) => s + e.amount, 0);
-  const myTotals = {
-    joint: accTotals.joint,
-    individual: myOwn + (members > 0 ? accTotals.joint / members : 0),
-  };
+  // Gasto individual DE CADA UNO: se atribuye a su titular, no a quien lo pagó.
+  const perPerson = individualByPerson(list, memberNames.length ? memberNames : [userName]);
+  const people = Object.keys(perPerson).sort((a, b) => (a === userName ? -1 : b === userName ? 1 : a.localeCompare(b)));
+  const myIndividual = perPerson[userName] ?? 0;
   const byAccount = filter === "all" ? list : list.filter((e) => effectiveAccount(e) === filter);
   const movements = catFilter ? byAccount.filter((e) => e.category === catFilter) : byAccount;
 
@@ -213,30 +209,37 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
           {eur(total)}
         </Text>
         {total > 0 && (
-          <View className="flex-row mt-3 pt-3" style={{ gap: 16, borderTopWidth: 0.5, borderTopColor: t.separator }}>
-            <View className="flex-1">
-              <View className="flex-row items-center mb-0.5" style={{ gap: 7 }}>
-                <View style={{ width: 9, height: 9, borderRadius: 3, backgroundColor: t.purple }} />
-                <Text className="text-footnote text-secondary">Gasto individual</Text>
-              </View>
-              <Text className="text-headline font-semibold text-label" style={{ fontVariant: ["tabular-nums"] }}>
-                {eur(myTotals.individual)}
-              </Text>
-              <Text className="text-caption2 text-tertiary">mi parte de la conjunta + lo mío</Text>
-            </View>
-            <View className="flex-1">
-              <View className="flex-row items-center mb-0.5" style={{ gap: 7 }}>
+          <View className="mt-3 pt-3" style={{ borderTopWidth: 0.5, borderTopColor: t.separator }}>
+            <View className="flex-row items-center justify-between mb-2">
+              <View className="flex-row items-center" style={{ gap: 7 }}>
                 <View style={{ width: 9, height: 9, borderRadius: 3, backgroundColor: t.accent }} />
                 <Text className="text-footnote text-secondary">Gasto conjunto</Text>
               </View>
               <Text className="text-headline font-semibold text-label" style={{ fontVariant: ["tabular-nums"] }}>
-                {eur(myTotals.joint)}
+                {eur(accTotals.joint)}
               </Text>
-              <Text className="text-caption2 text-tertiary">solo cuenta conjunta</Text>
             </View>
+            <View className="flex-row items-center mb-1" style={{ gap: 7 }}>
+              <View style={{ width: 9, height: 9, borderRadius: 3, backgroundColor: t.purple }} />
+              <Text className="text-footnote text-secondary">Gasto individual · de cada uno</Text>
+            </View>
+            {people.map((p) => (
+              <View key={p} className="flex-row items-center py-1" style={{ gap: 8 }}>
+                <Avatar name={p} size={20} />
+                <Text className="flex-1 text-subhead text-label" numberOfLines={1}>
+                  {p}
+                  {p === userName ? <Text className="text-secondary"> · tú</Text> : null}
+                </Text>
+                <Text className="text-subhead font-semibold text-label" style={{ fontVariant: ["tabular-nums"] }}>
+                  {eur(perPerson[p] ?? 0)}
+                </Text>
+              </View>
+            ))}
           </View>
         )}
       </Card>
+
+      <IncomeCard hogarId={hogarId} spent={myIndividual} monthLabel={monthLabel} />
 
       {budgetOn && (
         <BudgetSection
@@ -285,7 +288,15 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
             const joint = effectiveAccount(e) === "joint";
             const icon = joint ? "wallet" : e.shared ? "people" : "person";
             const color = joint ? t.accent : e.shared ? t.teal : t.gray;
-            const source = joint ? "conjunta" : e.shared ? "compartido" : "personal";
+            const owner = expenseOwner(e);
+            // Si lo pagó uno y es de otro, hay que verlo de un vistazo en la lista.
+            const source = joint
+              ? "conjunta"
+              : e.shared
+                ? "compartido"
+                : owner === e.paidByName
+                  ? "personal"
+                  : `de ${owner}`;
             return (
               <SwipeToDelete key={e.$id} onDelete={() => remove(e.$id)}>
               <Pressable
@@ -348,6 +359,117 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
   );
 }
 
+/**
+ * "Me entran X, llevo gastado Y, me quedan Z" con barra de progreso.
+ *
+ * El ingreso es un dato personal: se guarda solo en este móvil, no en el hogar.
+ * Cada vez que cambia el gasto se reprograma el resumen de fin de mes, porque
+ * una notificación local congela su texto al programarla.
+ */
+function IncomeCard({ hogarId, spent, monthLabel }: { hogarId: string; spent: number; monthLabel: string }) {
+  const t = useTheme();
+  const kb = useKeyboardHeight();
+  const [income, setIncomeState] = useState(0);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+
+  useEffect(() => {
+    getIncome(hogarId).then(setIncomeState).catch(() => undefined);
+  }, [hogarId]);
+
+  useEffect(() => {
+    scheduleMonthSummary(hogarId, income, spent).catch(() => undefined);
+  }, [hogarId, income, spent]);
+
+  const save = async () => {
+    const v = parseFloat(draft.replace(",", ".").replace(/[^\d.]/g, ""));
+    const value = Number.isFinite(v) && v > 0 ? v : 0;
+    setIncomeState(value);
+    setEditing(false);
+    await setIncome(hogarId, value).catch(() => undefined);
+  };
+
+  const open = () => {
+    setDraft(income > 0 ? String(income).replace(".", ",") : "");
+    setEditing(true);
+  };
+
+  const b = monthBalance(income, spent);
+
+  return (
+    <>
+      {income <= 0 ? (
+        <Pressable
+          onPress={open}
+          className="bg-card rounded-lg2 mx-4 mb-3 px-4 py-3 flex-row items-center"
+          style={{ gap: 12, ...cardShadow(t.dark) }}
+        >
+          <View className="rounded-lg items-center justify-center" style={{ width: 30, height: 30, backgroundColor: t.green }}>
+            <Ionicons name="trending-up" size={16} color="#fff" />
+          </View>
+          <Text className="flex-1 text-subhead text-secondary">
+            Pon tu ingreso mensual y verás cuánto te queda
+          </Text>
+          <Ionicons name="chevron-forward" size={16} color={t.tabInactive} />
+        </Pressable>
+      ) : (
+        <Pressable onPress={open} className="bg-card rounded-card mx-4 mb-3 p-4" style={cardShadow(t.dark)}>
+          <View className="flex-row items-end justify-between mb-3">
+            <View>
+              <Text className="text-caption1 text-secondary mb-1" style={{ textTransform: "uppercase", letterSpacing: 0.4 }}>
+                Te queda · {monthLabel}
+              </Text>
+              <Text
+                className="text-largeTitle font-bold"
+                style={{ lineHeight: 36, letterSpacing: -1, fontVariant: ["tabular-nums"], color: b.over ? t.red : t.label }}
+              >
+                {b.over ? `−${eur(-b.left)}` : eur(b.left)}
+              </Text>
+            </View>
+            <View className="items-end">
+              <Text className="text-subhead text-secondary">de {eur(income)}</Text>
+              <Text className="text-caption1 text-tertiary mt-0.5">tu ingreso · toca para cambiar</Text>
+            </View>
+          </View>
+          <ProgressBar pct={b.pct} color={b.over ? t.red : b.pct >= 0.85 ? t.orange : t.green} />
+          <Text className="text-caption1 text-secondary mt-2">
+            {b.over
+              ? `Llevas ${eur(spent)}: te has pasado ${eur(-b.left)}.`
+              : `Llevas ${eur(spent)} de gasto individual este mes.`}
+          </Text>
+        </Pressable>
+      )}
+
+      <Modal visible={editing} transparent animationType="slide" onRequestClose={() => setEditing(false)}>
+        <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={() => setEditing(false)} />
+        <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
+          <SheetHeader
+            title="Ingreso mensual"
+            onClose={() => setEditing(false)}
+            onSave={save}
+            dirty={draft !== (income > 0 ? String(income).replace(".", ",") : "")}
+          />
+          <View className="p-5">
+            <TextInput
+              className="bg-card rounded-lg2 px-4 py-3 mb-3 text-callout text-label"
+              placeholder="Lo que te entra al mes (€)"
+              placeholderTextColor={t.labelTertiary}
+              value={draft}
+              onChangeText={setDraft}
+              keyboardType="decimal-pad"
+              autoFocus
+            />
+            <Text className="text-caption1 text-tertiary">
+              Se guarda solo en este móvil: el resto del hogar no lo ve. A final de mes recibirás un
+              aviso con lo que hayas conseguido ahorrar. Déjalo vacío para quitarlo.
+            </Text>
+          </View>
+        </View>
+      </Modal>
+    </>
+  );
+}
+
 function BudgetSection({
   rows,
   totals,
@@ -367,7 +489,6 @@ function BudgetSection({
   onSelect: (name: string | null) => void;
 }) {
   const t = useTheme();
-  const kb = useKeyboardHeight();
   const stateColor = (s: CategorySpend["state"]) => (s === "over" ? t.red : s === "warn" ? t.orange : t.accent);
 
   if (rows.length === 0) {
@@ -462,10 +583,32 @@ function BudgetSection({
   );
 }
 
+/** Fila de personas del hogar en chips (quién pagó / de quién es el gasto). */
+function PeopleRow({ people, value, onChange }: { people: string[]; value: string; onChange: (n: string) => void }) {
+  const t = useTheme();
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4" contentContainerStyle={{ gap: 8, paddingRight: 8 }}>
+      {people.map((p) => {
+        const on = p === value;
+        return (
+          <Pressable
+            key={p}
+            onPress={() => onChange(p)}
+            className="flex-row items-center rounded-pill px-3 py-2"
+            style={{ gap: 6, backgroundColor: on ? t.accent : t.fill }}
+          >
+            <Avatar name={p} size={18} />
+            <Text className="text-footnote font-medium" style={{ color: on ? "#fff" : t.label }}>{p}</Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
 /** Barra de progreso 6px con relleno de color (como .progress del mockup). */
 function ProgressBar({ pct, color }: { pct: number; color: string }) {
   const t = useTheme();
-  const kb = useKeyboardHeight();
   const w = `${Math.max(0, Math.min(100, Math.round(pct * 100)))}%` as `${number}%`;
   return (
     <View style={{ height: 6, borderRadius: 3, backgroundColor: t.fill, overflow: "hidden" }}>
@@ -507,9 +650,14 @@ function AddExpense({
   const [date, setDate] = useState(new Date());
   const [showDate, setShowDate] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Quién puso el dinero y de quién es el gasto (pueden ser personas distintas).
+  const [paidBy, setPaidBy] = useState(userName);
+  const [forWho, setForWho] = useState(userName);
   // Reparto por porcentajes: null = a partes iguales.
   const [splits, setSplits] = useState<ExpenseSplit[] | null>(null);
   const items = parseExpenseItems(expense?.items);
+  // Siempre me incluyo: si aún no se han cargado los miembros, al menos estoy yo.
+  const everyone = [...new Set([userName, ...memberNames].filter((n) => n && n.trim()))];
   const splitTotal = (splits ?? []).reduce((s, x) => s + x.pct, 0);
   const splitsOk = splits === null || Math.abs(splitTotal - 100) < 0.01;
   // ¿Cambió algo respecto a lo que había al abrir?
@@ -518,6 +666,8 @@ function AddExpense({
       concept !== expense.concept ||
       shared !== expense.shared ||
       account !== effectiveAccount(expense) ||
+      paidBy !== expense.paidByName ||
+      forWho !== expenseOwner(expense) ||
       (category ?? null) !== (expense.category ?? null)
     : amount.trim().length > 0 || concept.trim().length > 0;
 
@@ -536,6 +686,8 @@ function AddExpense({
       setAccount(effectiveAccount(expense));
       setCategory(expense.category ?? null);
       setDate(new Date(expenseDate(expense)));
+      setPaidBy(expense.paidByName);
+      setForWho(expenseOwner(expense));
       const sp = parseSplits(expense.splits);
       setSplits(sp.length ? sp : null);
     } else {
@@ -545,27 +697,34 @@ function AddExpense({
       setAccount("joint");
       setCategory(null);
       setDate(new Date());
+      setPaidBy(userName);
+      setForWho(userName);
       setSplits(null);
     }
-  }, [visible, expense]);
+  }, [visible, expense, userName]);
 
   const submit = async () => {
     const value = parseFloat(amount.replace(",", "."));
     if (!isFinite(value) || value <= 0 || !concept.trim()) return;
     setBusy(true);
     try {
+      const isShared = account === "joint" ? true : shared;
       const data = {
         amount: value,
         concept: concept.trim(),
         account,
-        shared: account === "joint" ? true : shared,
+        shared: isShared,
         category: category ?? undefined,
         spentAt: date.toISOString(),
+        paidByName: paidBy,
         // Solo tiene sentido repartir un gasto individual compartido.
         splits: account === "individual" && shared ? stringifySplits(splits ?? []) : null,
+        // El titular solo importa en el individual NO compartido; en el resto se
+        // guarda null para que un gasto editado no arrastre un dueño antiguo.
+        forName: account === "individual" && !isShared ? forWho : null,
       };
       if (expense) await updateExpense(expense.$id, data);
-      else await addExpense(hogarId, { ...data, paidByName: userName });
+      else await addExpense(hogarId, data);
       onAdded();
       onClose();
     } catch (e) {
@@ -666,6 +825,13 @@ function AddExpense({
           </>
         )}
 
+        {everyone.length > 1 && (
+          <>
+            <Text className="text-caption1 font-medium uppercase tracking-wide text-secondary mb-2">Lo pagó</Text>
+            <PeopleRow people={everyone} value={paidBy} onChange={setPaidBy} />
+          </>
+        )}
+
         <Text className="text-caption1 font-medium uppercase tracking-wide text-secondary mb-2">Cuenta</Text>
         <View className="flex-row mb-4" style={{ gap: 8 }}>
           {([
@@ -695,6 +861,18 @@ function AddExpense({
             </View>
             <Switch value={shared} onValueChange={setShared} trackColor={{ true: t.accent, false: t.separator }} />
           </View>
+        )}
+
+        {account === "individual" && !shared && everyone.length > 1 && (
+          <>
+            <Text className="text-caption1 font-medium uppercase tracking-wide text-secondary mb-2">De quién es</Text>
+            <PeopleRow people={everyone} value={forWho} onChange={setForWho} />
+            {forWho !== paidBy && (
+              <Text className="text-caption1 mb-4" style={{ color: t.orange }}>
+                Lo pagó {paidBy} pero es de {forWho}: {forWho} se lo debe.
+              </Text>
+            )}
+          </>
         )}
 
         {account === "individual" && shared && memberNames.length > 1 && (

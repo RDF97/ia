@@ -77,6 +77,8 @@ attr tasks string   '{"key":"assignedToName","size":255,"required":false}'
 attr tasks datetime '{"key":"dueAt","required":false}'
 attr tasks string   '{"key":"repeat","size":20,"required":false,"default":"none"}'
 attr tasks boolean  '{"key":"notify","required":false,"default":false}'
+# Hasta cuándo se repite una tarea recurrente (p. ej. el recibo del ING, hasta septiembre).
+attr tasks datetime '{"key":"repeatUntil","required":false}'
 
 echo "== expenses (atributos nuevos) =="
 attr expenses string   '{"key":"account","size":20,"required":false,"default":"individual"}'
@@ -92,6 +94,9 @@ attr expenses datetime '{"key":"spentAt","required":false}'
 attr expenses string   '{"key":"items","size":1073741823,"required":false}'
 # reparto por porcentajes del gasto (JSON), p. ej. 20 % / 80 %
 attr expenses string   '{"key":"splits","size":2000,"required":false}'
+# De quién es el gasto individual, que no tiene por qué ser quien lo pagó:
+# Clara puede apuntar un gasto que pagó ella pero que es de Rubén.
+attr expenses string   '{"key":"forName","size":255,"required":false}'
 
 echo "== events =="
 attr events string   '{"key":"title","size":255,"required":true}'
@@ -99,6 +104,9 @@ attr events datetime '{"key":"startAt","required":true}'
 attr events string   '{"key":"place","size":255,"required":false}'
 attr events string   '{"key":"ownerName","size":255,"required":true}'
 attr events string   '{"key":"hogarId","size":50,"required":true}'
+# Eventos de varios días (vacaciones) y de todo el día (cumpleaños).
+attr events datetime '{"key":"endAt","required":false}'
+attr events boolean  '{"key":"allDay","required":false,"default":false}'
 
 echo "== products =="
 attr products string   '{"key":"name","size":255,"required":true}'

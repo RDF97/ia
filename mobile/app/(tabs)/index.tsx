@@ -17,7 +17,9 @@ import { useShopping } from "@/lib/useShopping";
 import { useEvents } from "@/lib/useEvents";
 import { useLuzPrices } from "@/lib/useLuzPrices";
 import { useSettlements } from "@/lib/useSettlements";
+import { useMembers } from "@/lib/useMembers";
 import { balances, monthlyTotal, previousMonthTotal } from "@/lib/expenses";
+import { useHogarIcon, usePerfilIcon } from "@/lib/useAppearance";
 import { eventsOfDay, hhmm } from "@/lib/events";
 import { fmtKwh, tierOf } from "@/lib/luz";
 import { useTheme, type Theme } from "@/theme/theme";
@@ -123,6 +125,9 @@ function Dashboard({
   const events = useEvents(hogarId).data ?? [];
   const settlements = useSettlements(hogarId).data ?? [];
   const luz = useLuzPrices().data;
+  // Iconos personalizados (los mismos que se eligen en Perfil).
+  const hogarIcon = useHogarIcon(hogarId, t.accent).data ?? { icon: "home" as const, color: t.accent };
+  const perfilIcon = usePerfilIcon(t.accent).data ?? null;
 
   const refreshAll = () =>
     Promise.all([
@@ -145,7 +150,9 @@ function Dashboard({
   const pendingShop = shopping.filter((s) => !s.done).length;
   const shopPreview = shopping.filter((s) => !s.done).slice(0, 3).map((s) => s.name).join(" · ");
   const shopStore = shopping.filter((s) => !s.done).find((s) => s.store)?.store ?? null;
-  const bal = balances(expenses, members, settlements).filter((b) => b.name !== userName);
+  // Sin los nombres del hogar, quien no ha pagado nunca no aparecería debiendo.
+  const memberNames = (useMembers(hogarId).data ?? []).map((m) => m.name);
+  const bal = balances(expenses, members, settlements, memberNames).filter((b) => b.name !== userName);
   const now = new Date();
   const todayLabel = `${WEEKDAYS[now.getDay()]} ${now.getDate()}`;
   const todayEvents = eventsOfDay(events, now);
@@ -169,15 +176,27 @@ function Dashboard({
       onRefresh={refreshAll}
       right={
         <Pressable onPress={() => router.push("/perfil")} style={{ marginBottom: 4 }} hitSlop={6}>
-          <Avatar name={userName} size={38} />
+          {perfilIcon ? (
+            <View
+              style={{
+                width: 38, height: 38, borderRadius: 19,
+                backgroundColor: perfilIcon.color,
+                alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <Ionicons name={perfilIcon.icon} size={19} color="#fff" />
+            </View>
+          ) : (
+            <Avatar name={userName} size={38} />
+          )}
         </Pressable>
       }
     >
       <Card>
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center" style={{ gap: 10 }}>
-            <View className="rounded-lg2 items-center justify-center" style={{ width: 40, height: 40, backgroundColor: t.accent }}>
-              <Ionicons name="home" size={20} color="#fff" />
+            <View className="rounded-lg2 items-center justify-center" style={{ width: 40, height: 40, backgroundColor: hogarIcon.color }}>
+              <Ionicons name={hogarIcon.icon} size={20} color="#fff" />
             </View>
             <View>
               <Text className="text-callout font-semibold text-label">{hogarName}</Text>

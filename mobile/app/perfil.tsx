@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,14 +13,13 @@ import { Segmented } from "@/components/Segmented";
 import { getThemeChoice, setThemeChoice, THEME_OPTIONS, type ThemeChoice } from "@/lib/themePref";
 import { listMembers, type Member } from "@/lib/members";
 import {
-  getHogarIcon,
-  getPerfilIcon,
   setHogarIcon,
   setPerfilIcon,
   HOGAR_ICONS,
   PERFIL_ICONS,
   type IconStyle,
 } from "@/lib/appearance";
+import { useHogarIcon, usePerfilIcon, useRefreshAppearance } from "@/lib/useAppearance";
 import { useTheme } from "@/theme/theme";
 
 function Row({
@@ -62,8 +61,9 @@ export default function Perfil() {
   const { user, logout, updateName } = useAuth();
   const { active, leaveHogar } = useHogar();
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [hogarIcon, setHogarIconState] = useState<IconStyle>({ icon: "home", color: t.accent });
-  const [perfilIcon, setPerfilIconState] = useState<IconStyle | null>(null);
+  const hogarIcon = useHogarIcon(active?.$id, t.accent).data ?? { icon: "home" as const, color: t.accent };
+  const perfilIcon = usePerfilIcon(t.accent).data ?? null;
+  const refreshAppearance = useRefreshAppearance();
   const [pick, setPick] = useState<"hogar" | "perfil" | null>(null);
   const [theme, setTheme] = useState<ThemeChoice>("system");
   const [members, setMembers] = useState<Member[] | null>(null);
@@ -78,13 +78,6 @@ export default function Perfil() {
     if (!active) return;
     listMembers(active.$id).then(setMembers).catch(() => setMembers([]));
   }, [active]);
-
-  const loadIcons = useCallback(() => {
-    if (active) getHogarIcon(active.$id, t.accent).then(setHogarIconState).catch(() => undefined);
-    getPerfilIcon(t.accent).then(setPerfilIconState).catch(() => undefined);
-  }, [active, t.accent]);
-
-  useEffect(loadIcons, [loadIcons]);
 
   const saveName = async () => {
     const val = (editName ?? "").trim();
@@ -292,7 +285,7 @@ export default function Perfil() {
         onSave={async (st) => {
           if (!active) return;
           await setHogarIcon(active.$id, st);
-          setHogarIconState(st);
+          await refreshAppearance();
         }}
       />
       <IconPickerModal
@@ -303,11 +296,11 @@ export default function Perfil() {
         onClose={() => setPick(null)}
         onSave={async (st) => {
           await setPerfilIcon(st);
-          setPerfilIconState(st);
+          await refreshAppearance();
         }}
         onReset={async () => {
           await setPerfilIcon(null);
-          setPerfilIconState(null);
+          await refreshAppearance();
         }}
       />
     </SafeAreaView>

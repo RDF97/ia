@@ -6,7 +6,7 @@ import { useTheme } from "@/theme/theme";
 import { SheetHeader } from "@/components/SheetHeader";
 import { useKeyboardHeight } from "@/lib/useKeyboard";
 import { Toggle } from "@/components/Toggle";
-import { Avatar } from "@/components/ui";
+import { Avatar, AvatarStack } from "@/components/ui";
 import { REPEAT_OPTIONS, type Repeat } from "@/lib/taskLogic";
 import { createTask, deleteTask, updateTask, type Task } from "@/lib/tasks";
 import { ensureNotificationPermissions } from "@/lib/notifications";
@@ -41,8 +41,15 @@ export function TaskEditor({
   });
   const [repeat, setRepeat] = useState<Repeat>("none");
   const [notify, setNotify] = useState(false);
-  const [picker, setPicker] = useState<null | "date" | "time">(null);
+  const [picker, setPicker] = useState<null | "date" | "time" | "until">(null);
   const [busy, setBusy] = useState(false);
+  // Fecha límite de la repetición (p. ej. el ING se repite cada mes hasta septiembre).
+  const [hasUntil, setHasUntil] = useState(false);
+  const [until, setUntil] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 3);
+    return d;
+  });
 
   useEffect(() => {
     if (!target) return;
@@ -57,12 +64,19 @@ export function TaskEditor({
       } else {
         setHasDate(false);
       }
+      if (task.repeatUntil) {
+        setHasUntil(true);
+        setUntil(new Date(task.repeatUntil));
+      } else {
+        setHasUntil(false);
+      }
     } else {
       setTitle("");
       setAssigned(null);
       setRepeat("none");
       setNotify(false);
       setHasDate(false);
+      setHasUntil(false);
       const d = new Date();
       d.setHours(d.getHours() + 1, 0, 0, 0);
       setWhen(d);
@@ -70,8 +84,11 @@ export function TaskEditor({
   }, [target]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onPick = (_e: DateTimePickerEvent, d?: Date) => {
+    const mode = picker;
     setPicker(null);
-    if (d) setWhen(d);
+    if (!d) return;
+    if (mode === "until") setUntil(d);
+    else setWhen(d);
   };
 
   const memberList = [...new Set([userName, ...members].filter((n) => n && n.trim()))];
@@ -82,11 +99,13 @@ export function TaskEditor({
     try {
       if (notify && hasDate) await ensureNotificationPermissions();
       const dueAt = hasDate ? when.toISOString() : null;
+      const repeats = hasDate && repeat !== "none";
       const payload = {
         title: title.trim(),
         assignedToName: assigned,
         dueAt,
         repeat: hasDate ? repeat : "none",
+        repeatUntil: repeats && hasUntil ? until.toISOString() : null,
         notify: hasDate ? notify : false,
       } as const;
       if (task) await updateTask(task.$id, payload);
@@ -120,11 +139,15 @@ export function TaskEditor({
 
   const dateLabel = `${when.getDate()}/${when.getMonth() + 1}/${when.getFullYear()}`;
   const timeLabel = `${String(when.getHours()).padStart(2, "0")}:${String(when.getMinutes()).padStart(2, "0")}`;
+  const untilLabel = `${until.getDate()}/${until.getMonth() + 1}/${until.getFullYear()}`;
 
   return (
     <Modal visible={target !== null} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
-      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0" style={{ maxHeight: "90%", backgroundColor: t.bg }}>
+      <View
+        className="rounded-t-[14px] absolute left-0 right-0 bottom-0"
+        style={{ maxHeight: "90%", paddingBottom: kb, backgroundColor: t.bg }}
+      >
         <SheetHeader
           title={isNew ? "Nueva tarea" : "Editar tarea"}
           onClose={onClose}
@@ -144,10 +167,19 @@ export function TaskEditor({
             autoCapitalize="sentences"
           />
 
-          {/* Asignar */}
+          {/* Asignar. Sin asignar = tarea de todos, no "de nadie". */}
           <Text className="text-xs font-medium uppercase tracking-wide text-secondary mb-2">Asignar a</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4" contentContainerStyle={{ gap: 8, paddingRight: 8 }}>
-            <Chip on={assigned === null} label="Cualquiera" onPress={() => setAssigned(null)} />
+            <Pressable
+              onPress={() => setAssigned(null)}
+              className="flex-row items-center rounded-pill px-3 py-2"
+              style={{ gap: 6, backgroundColor: assigned === null ? t.accent : t.fill }}
+            >
+              <AvatarStack names={memberList} size={18} />
+              <Text className="text-footnote font-medium" style={{ color: assigned === null ? "#fff" : t.label }}>
+                Todos
+              </Text>
+            </Pressable>
             {memberList.map((m) => (
               <Chip key={m} on={assigned === m} label={m} avatar onPress={() => setAssigned(m)} />
             ))}
@@ -174,7 +206,13 @@ export function TaskEditor({
               </View>
 
               {picker && (
-                <DateTimePicker value={when} mode={picker} is24Hour onChange={onPick} display={Platform.OS === "ios" ? "spinner" : "default"} />
+                <DateTimePicker
+                  value={picker === "until" ? until : when}
+                  mode={picker === "until" ? "date" : picker}
+                  is24Hour
+                  onChange={onPick}
+                  display={Platform.OS === "ios" ? "spinner" : "default"}
+                />
               )}
 
               {/* Repetir */}
@@ -184,6 +222,28 @@ export function TaskEditor({
                   <Chip key={o.key} on={repeat === o.key} label={o.label} onPress={() => setRepeat(o.key)} />
                 ))}
               </ScrollView>
+
+              {/* Hasta cuándo se repite (p. ej. el recibo del ING, hasta septiembre) */}
+              {repeat !== "none" && (
+                <>
+                  <View className="bg-card rounded-lg2 px-4 py-3 mb-3 flex-row items-center" style={{ gap: 12 }}>
+                    <Ionicons name="flag-outline" size={19} color={t.accent} />
+                    <Text className="flex-1 text-subhead text-label">Terminar en una fecha</Text>
+                    <Toggle value={hasUntil} onChange={setHasUntil} />
+                  </View>
+                  {hasUntil && (
+                    <Pressable
+                      onPress={() => setPicker("until")}
+                      className="bg-card rounded-lg2 px-4 py-3 mb-3 flex-row items-center"
+                      style={{ gap: 8 }}
+                    >
+                      <Ionicons name="calendar-outline" size={17} color={t.accent} />
+                      <Text className="flex-1 text-subhead text-label">Último día</Text>
+                      <Text className="text-subhead text-secondary">{untilLabel}</Text>
+                    </Pressable>
+                  )}
+                </>
+              )}
 
               {/* Aviso */}
               <View className="bg-card rounded-lg2 px-4 py-3 mb-2 flex-row items-center" style={{ gap: 12 }}>
@@ -207,7 +267,6 @@ export function TaskEditor({
 
 function Chip({ on, label, avatar, onPress }: { on: boolean; label: string; avatar?: boolean; onPress: () => void }) {
   const t = useTheme();
-  const kb = useKeyboardHeight();
   return (
     <Pressable
       onPress={onPress}
