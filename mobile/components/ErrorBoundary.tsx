@@ -1,5 +1,24 @@
 import { Component, type ReactNode } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { DevSettings, Pressable, ScrollView, Text, View } from "react-native";
+
+/**
+ * Reinicia la app entera sin tener que ir a "apps recientes" y forzar el cierre.
+ * En la APK lo hace expo-updates; el `require` va en try/catch porque en Expo Go
+ * el módulo no siempre está y no queremos romper la pantalla de error.
+ */
+function reloadApp(): void {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Updates = require("expo-updates");
+    if (typeof Updates?.reloadAsync === "function") {
+      Updates.reloadAsync().catch(() => DevSettings.reload?.());
+      return;
+    }
+  } catch {
+    /* sin expo-updates, probamos el recargador de RN */
+  }
+  DevSettings.reload?.();
+}
 
 /**
  * Red de seguridad: si algo revienta al pintar, en vez de dejar la pantalla en
@@ -42,6 +61,9 @@ export class ErrorBoundary extends Component<
           style={{ backgroundColor: "#1F4D52", borderRadius: 14, paddingVertical: 14, alignItems: "center" }}
         >
           <Text style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}>Reintentar</Text>
+        </Pressable>
+        <Pressable onPress={reloadApp} style={{ paddingVertical: 14, alignItems: "center" }}>
+          <Text style={{ color: "#1F4D52", fontSize: 15 }}>Reiniciar la app</Text>
         </Pressable>
       </View>
     );

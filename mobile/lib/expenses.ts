@@ -274,6 +274,21 @@ export function accountTotals(
 type OwnedExpense = Pick<Expense, "amount" | "account" | "shared" | "paidByName" | "forName" | "splits">;
 
 /**
+ * ¿Le toca a esta persona? Sirve para filtrar los movimientos por usuario.
+ *
+ * Cuenta si lo pagó, si es suyo, o si entra en el reparto. Un gasto compartido
+ * sin porcentajes es de todo el hogar, así que le toca a cualquiera.
+ */
+export function expenseInvolves(e: OwnedExpense, name: string): boolean {
+  if (!name) return true;
+  if (e.paidByName === name) return true;
+  if (expenseOwner(e) === name) return true;
+  const splits = parseSplits(e.splits);
+  if (splits.length) return splits.some((sp) => sp.name === name);
+  return e.shared;
+}
+
+/**
  * Gasto individual de cada persona: lo que le corresponde a ella y no al hogar.
  *
  * Se atribuye a su titular, no a quien puso el dinero: si Clara paga el gimnasio

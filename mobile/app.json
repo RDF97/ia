@@ -79,6 +79,7 @@
       "appwriteCategoriesCollectionId": "categories",
       "appwriteSettlementsCollectionId": "settlements",
       "appwriteInvitesCollectionId": "invites",
+      "appwriteIncomesCollectionId": "incomes",
       "homieApkUrl": "https://github.com/RDF97/ia/releases/download/homie-latest/homie.apk",
       "appwriteJoinFunctionId": "joinHogar",
       "appwriteScanFunctionId": "scanReceipt",
@@ -87,7 +88,9 @@
       }
     },
     "updates": {
-      "url": "https://u.expo.dev/032f3b1e-5187-43c3-a9bf-0ad71e2e5ff7"
+      "url": "https://u.expo.dev/032f3b1e-5187-43c3-a9bf-0ad71e2e5ff7",
+      "checkAutomatically": "ON_ERROR_RECOVERY",
+      "fallbackToCacheTimeout": 0
     },
     "runtimeVersion": {
       "policy": "appVersion"

@@ -8,6 +8,7 @@ import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { initThemeChoice } from "@/lib/themePref";
 import { wireAppState } from "@/lib/appState";
+import { useResumeKey } from "@/lib/useResumeKey";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -20,6 +21,9 @@ const queryClient = new QueryClient();
 
 function RootNavigator() {
   const t = useTheme();
+  // Al volver del segundo plano tras un rato fuera, se vuelve a montar la vista.
+  // Es lo que evita la pantalla en blanco que obligaba a forzar el cierre.
+  const resumeKey = useResumeKey();
   const { user, loading: authLoading } = useAuth();
   const { active, loading: hogarLoading } = useHogar();
   const segments = useSegments();
@@ -60,7 +64,7 @@ function RootNavigator() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={{ headerShown: false }} key={resumeKey}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="login" />
       <Stack.Screen name="hogar" />

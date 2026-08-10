@@ -32,15 +32,23 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: t.tabInactive,
         tabBarLabelStyle: { fontSize: 10, fontWeight: "500", marginTop: 2 },
         // Fondo translúcido (frosted glass) como la tab bar del mockup.
-        tabBarBackground: () => (
-          <BlurView
-            intensity={80}
-            tint={t.dark ? "systemChromeMaterialDark" : "systemChromeMaterialLight"}
-            style={{ flex: 1 }}
-          >
-            <View style={{ flex: 1, borderTopWidth: 0.5, borderTopColor: t.separator }} />
-          </BlurView>
-        ),
+        //
+        // Solo en iOS: en Android el desenfoque de expo-blur se pinta a base de
+        // capturar la ventana en cada frame, es la pieza más frágil cuando la
+        // app vuelve del segundo plano, y aquí no aporta nada porque debajo ya
+        // hay un color sólido casi opaco. Fuera riesgo a cambio de nada.
+        tabBarBackground:
+          Platform.OS === "ios"
+            ? () => (
+                <BlurView
+                  intensity={80}
+                  tint={t.dark ? "systemChromeMaterialDark" : "systemChromeMaterialLight"}
+                  style={{ flex: 1 }}
+                >
+                  <View style={{ flex: 1, borderTopWidth: 0.5, borderTopColor: t.separator }} />
+                </BlurView>
+              )
+            : () => <View style={{ flex: 1, borderTopWidth: 0.5, borderTopColor: t.separator }} />,
         tabBarStyle: {
           position: "absolute",
           backgroundColor: Platform.OS === "android" ? (t.dark ? "rgba(20,20,22,0.92)" : "rgba(255,255,255,0.92)") : "transparent",

@@ -68,7 +68,7 @@ echo "== permisos de TODAS las colecciones (documentSecurity + create users) =="
 # Se aplica también a las que ya existían: si alguna se creó a mano sin el
 # permiso "create" para users, la app no puede añadir nada en ella (tareas,
 # eventos, productos...). Este PUT lo corrige.
-for C in tasks shopping_items expenses events products price_points categories settlements invites; do
+for C in tasks shopping_items expenses events products price_points categories settlements invites incomes; do
   coll "$C"
 done
 
@@ -122,6 +122,11 @@ attr price_points string   '{"key":"store","size":100,"required":true}'
 attr price_points datetime '{"key":"at","required":true}'
 attr price_points string   '{"key":"hogarId","size":50,"required":true}'
 
+echo "== incomes (ingreso mensual de cada miembro, visible para el hogar) =="
+attr incomes string   '{"key":"hogarId","size":50,"required":true}'
+attr incomes string   '{"key":"userName","size":255,"required":true}'
+attr incomes float    '{"key":"amount","required":true}'
+
 echo "== settlements =="
 attr settlements string   '{"key":"fromName","size":255,"required":true}'
 attr settlements string   '{"key":"toName","size":255,"required":true}'
@@ -131,7 +136,7 @@ attr settlements datetime '{"key":"at","required":true}'
 
 echo "== índices (esperando a que los atributos estén listos) =="
 sleep 5
-for C in events products price_points settlements; do
+for C in events products price_points settlements incomes; do
   idx "$C" '{"key":"hogarId_idx","type":"key","attributes":["hogarId"],"orders":["ASC"]}'
 done
 idx price_points '{"key":"productId_idx","type":"key","attributes":["productId"],"orders":["ASC"]}'
@@ -147,7 +152,7 @@ echo ""
 echo -n "Esperando a que los atributos estén listos"
 for _ in $(seq 1 20); do
   PENDING=0
-  for C in tasks expenses events products price_points settlements; do
+  for C in tasks expenses events products price_points settlements incomes; do
     A="$(curl -sS "$EP/databases/$DB/collections/$C/attributes" "${H[@]}" 2>/dev/null)"
     N="$(printf '%s' "$A" | tr ',' '\n' | grep '"status"' | grep -c 'processing')"
     PENDING=$((PENDING + N))
@@ -159,7 +164,7 @@ done
 echo " listo."
 echo ""
 ALL_OK=1
-for C in tasks shopping_items expenses events products price_points categories settlements invites; do
+for C in tasks shopping_items expenses events products price_points categories settlements invites incomes; do
   BODY="$(curl -sS "$EP/databases/$DB/collections/$C" "${H[@]}" 2>/dev/null)"
   if ! printf '%s' "$BODY" | grep -q '"\$id"'; then
     # Ojo: un 401/403 tampoco trae "$id". Hay que distinguirlo de "no existe",

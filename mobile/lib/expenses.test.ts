@@ -3,6 +3,7 @@ import {
   balanceDetail,
   balances,
   equalSplits,
+  expenseInvolves,
   expenseOwner,
   individualByPerson,
   monthlyTotal,
@@ -323,5 +324,41 @@ describe("nadie sin nombre debe dinero", () => {
     const list = [exp({ amount: 100, paidByName: "Clara", shared: true, account: "individual" })];
     const res = balances(list, 2, [], ["Clara", "", "   "]);
     expect(res.map((r) => r.name)).toEqual(["Clara"]);
+  });
+});
+
+describe("expenseInvolves · filtrar movimientos por usuario", () => {
+  test("le toca a quien lo pagó", () => {
+    expect(expenseInvolves(exp({ paidByName: "Clara", shared: false, account: "individual" }), "Clara")).toBe(true);
+  });
+
+  test("le toca a su titular aunque lo pagara otro", () => {
+    const e = exp({ paidByName: "Clara", shared: false, account: "individual", forName: "Rubén" });
+    expect(expenseInvolves(e, "Rubén")).toBe(true);
+    expect(expenseInvolves(e, "Clara")).toBe(true); // ella puso el dinero
+  });
+
+  test("un gasto personal de otro no me toca", () => {
+    const e = exp({ paidByName: "Clara", shared: false, account: "individual", forName: "Clara" });
+    expect(expenseInvolves(e, "Rubén")).toBe(false);
+  });
+
+  test("un compartido sin porcentajes es de todo el hogar", () => {
+    expect(expenseInvolves(exp({ paidByName: "Clara", shared: true, account: "individual" }), "Rubén")).toBe(true);
+  });
+
+  test("con porcentajes, solo a quien sale en el reparto", () => {
+    const e = exp({
+      paidByName: "Clara",
+      shared: true,
+      account: "individual",
+      splits: JSON.stringify([{ name: "Clara", pct: 100 }]),
+    });
+    expect(expenseInvolves(e, "Rubén")).toBe(false);
+    expect(expenseInvolves(e, "Clara")).toBe(true);
+  });
+
+  test("sin filtro entra todo", () => {
+    expect(expenseInvolves(exp({ paidByName: "Clara", shared: false, account: "individual" }), "")).toBe(true);
   });
 });
