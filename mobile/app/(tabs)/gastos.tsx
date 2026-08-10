@@ -76,6 +76,7 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
   const [catFilter, setCatFilter] = useState<string | null>(null);
   // Filtro "de quién": null = todo el hogar.
   const [who, setWho] = useState<string | null>(null);
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
   // Mes que se está viendo (se puede retroceder/avanzar).
   const [month, setMonth] = useState(() => {
     const n = new Date();
@@ -212,6 +213,9 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
           No se pudieron cargar los gastos. Desliza hacia abajo para reintentar.
         </Text>
       )}
+      {/* Único número grande de la pantalla: el foco. Todo lo demás va a un
+          nivel tipográfico por debajo, y el detalle por persona a una hoja
+          aparte, que si no la pantalla se convierte en un muro de cifras. */}
       <Card>
         <Text className="text-caption1 text-secondary mb-1" style={{ textTransform: "uppercase", letterSpacing: 0.4 }}>
           Gastado · {monthLabel}
@@ -220,35 +224,79 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
           {eur(total)}
         </Text>
         {total > 0 && (
-          <View className="mt-3 pt-3" style={{ borderTopWidth: 0.5, borderTopColor: t.separator }}>
-            <View className="flex-row items-center justify-between mb-2">
-              <View className="flex-row items-center" style={{ gap: 7 }}>
+          <Pressable
+            onPress={() => setBreakdownOpen(true)}
+            className="flex-row items-center mt-3 pt-3"
+            style={{ gap: 16, borderTopWidth: 0.5, borderTopColor: t.separator, minHeight: 44 }}
+          >
+            <View className="flex-1">
+              <View className="flex-row items-center mb-0.5" style={{ gap: 7 }}>
                 <View style={{ width: 9, height: 9, borderRadius: 3, backgroundColor: t.accent }} />
-                <Text className="text-footnote text-secondary">Gasto conjunto</Text>
+                <Text className="text-footnote text-secondary">Conjunto</Text>
               </View>
               <Text className="text-headline font-semibold text-label" style={{ fontVariant: ["tabular-nums"] }}>
                 {eur(accTotals.joint)}
               </Text>
             </View>
-            <View className="flex-row items-center mb-1" style={{ gap: 7 }}>
-              <View style={{ width: 9, height: 9, borderRadius: 3, backgroundColor: t.purple }} />
-              <Text className="text-footnote text-secondary">Gasto individual · de cada uno</Text>
-            </View>
-            {people.map((p) => (
-              <View key={p} className="flex-row items-center py-1" style={{ gap: 8 }}>
-                <Avatar name={p} size={20} />
-                <Text className="flex-1 text-subhead text-label" numberOfLines={1}>
-                  {p}
-                  {p === userName ? <Text className="text-secondary"> · tú</Text> : null}
-                </Text>
-                <Text className="text-subhead font-semibold text-label" style={{ fontVariant: ["tabular-nums"] }}>
-                  {eur(perPerson[p] ?? 0)}
-                </Text>
+            <View className="flex-1">
+              <View className="flex-row items-center mb-0.5" style={{ gap: 7 }}>
+                <View style={{ width: 9, height: 9, borderRadius: 3, backgroundColor: t.purple }} />
+                <Text className="text-footnote text-secondary">Tuyo</Text>
               </View>
-            ))}
-          </View>
+              <Text className="text-headline font-semibold text-label" style={{ fontVariant: ["tabular-nums"] }}>
+                {eur(perPerson[userName] ?? 0)}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={t.tabInactive} />
+          </Pressable>
         )}
       </Card>
+
+      <Modal visible={breakdownOpen} transparent animationType="slide" onRequestClose={() => setBreakdownOpen(false)}>
+        <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={() => setBreakdownOpen(false)} />
+        <View
+          className="rounded-t-[14px] absolute left-0 right-0 bottom-0"
+          style={{ maxHeight: "80%", paddingBottom: 24, backgroundColor: t.bg }}
+        >
+          <SheetHeader title={`Gasto de ${monthLabel}`} onClose={() => setBreakdownOpen(false)} closeLabel="Listo" />
+          <ScrollView contentContainerStyle={{ padding: 20 }}>
+            <View className="bg-card rounded-lg2 overflow-hidden mb-4">
+              <View className="flex-row items-center px-4 py-3" style={{ gap: 10 }}>
+                <View style={{ width: 9, height: 9, borderRadius: 3, backgroundColor: t.accent }} />
+                <Text className="flex-1 text-subhead text-label">Cuenta conjunta</Text>
+                <Text className="text-subhead font-semibold text-label" style={{ fontVariant: ["tabular-nums"] }}>
+                  {eur(accTotals.joint)}
+                </Text>
+              </View>
+            </View>
+            <Text className="text-caption1 font-medium uppercase tracking-wide text-secondary mb-2">
+              Gasto individual de cada uno
+            </Text>
+            <View className="bg-card rounded-lg2 overflow-hidden">
+              {people.map((p, i) => (
+                <View
+                  key={p}
+                  className="flex-row items-center px-4 py-2.5"
+                  style={{ gap: 10, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}
+                >
+                  <Avatar name={p} size={26} />
+                  <Text className="flex-1 text-subhead text-label" numberOfLines={1}>
+                    {p}
+                    {p === userName ? <Text className="text-secondary"> · tú</Text> : null}
+                  </Text>
+                  <Text className="text-subhead font-semibold text-label" style={{ fontVariant: ["tabular-nums"] }}>
+                    {eur(perPerson[p] ?? 0)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+            <Text className="text-caption1 text-tertiary mt-3">
+              Cada gasto cuenta para su titular, no para quien puso el dinero. Lo de la cuenta
+              conjunta es dinero común y no se atribuye a nadie.
+            </Text>
+          </ScrollView>
+        </View>
+      </Modal>
 
       <IncomeCard
         hogarId={hogarId}
@@ -391,7 +439,7 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
       )}
       <Text className="text-center text-caption1 text-tertiary mb-2">Toca un gasto para editarlo · desliza para borrarlo</Text>
 
-      <AddExpense visible={open} onClose={() => setOpen(false)} hogarId={hogarId} userName={userName} categories={cats} memberNames={memberNames} onAdded={refresh} />
+      <AddExpense visible={open} onClose={() => setOpen(false)} hogarId={hogarId} userName={userName} categories={cats} memberNames={memberNames} householdSize={members} onAdded={refresh} />
       <BudgetModal visible={budgetOpen} hogarId={hogarId} enabled={budgetOn} onToggle={toggleBudget} onClose={() => setBudgetOpen(false)} />
       <CsvModal visible={csvOpen} hogarId={hogarId} userName={userName} expenses={list} onClose={() => setCsvOpen(false)} onImported={refresh} />
       <ScanModal
@@ -414,6 +462,7 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
         userName={userName}
         categories={cats}
         memberNames={memberNames}
+        householdSize={members}
         onAdded={() => {
           setEditing(null);
           refresh();
@@ -508,9 +557,11 @@ function IncomeCard({
               <Text className="text-caption1 text-secondary mb-1" style={{ textTransform: "uppercase", letterSpacing: 0.4 }}>
                 Te queda · {monthLabel}
               </Text>
+              {/* Un nivel por debajo del "Gastado": en la pantalla solo puede
+                  haber un número protagonista. */}
               <Text
-                className="text-largeTitle font-bold"
-                style={{ lineHeight: 36, letterSpacing: -1, fontVariant: ["tabular-nums"], color: b.over ? t.red : t.label }}
+                className="text-title2 font-bold"
+                style={{ letterSpacing: -0.5, fontVariant: ["tabular-nums"], color: b.over ? t.red : t.label }}
               >
                 {b.over ? `−${eur(-b.left)}` : eur(b.left)}
               </Text>
@@ -630,7 +681,7 @@ function BudgetSection({
         <View className="flex-row items-end justify-between mb-3.5">
           <View>
             <Text className="text-caption1 text-secondary mb-1" style={{ textTransform: "uppercase", letterSpacing: 0.4 }}>Presupuesto · {monthLabel}</Text>
-            <Text className="text-largeTitle font-bold text-label" style={{ lineHeight: 36, letterSpacing: -1, fontVariant: ["tabular-nums"] }}>{eur(totals.spent)}</Text>
+            <Text className="text-title2 font-bold text-label" style={{ letterSpacing: -0.5, fontVariant: ["tabular-nums"] }}>{eur(totals.spent)}</Text>
           </View>
           <Text className="text-subhead text-secondary mb-1">de {eur(totals.budget)}</Text>
         </View>
@@ -736,6 +787,7 @@ function AddExpense({
   categories,
   onAdded,
   memberNames,
+  householdSize,
   expense = null,
   onDelete,
 }: {
@@ -747,6 +799,8 @@ function AddExpense({
   onAdded: () => void;
   /** Nombres de los miembros, para el reparto por porcentajes. */
   memberNames: string[];
+  /** Cuánta gente hay en el hogar según Appwrite (aunque no sepamos su nombre). */
+  householdSize: number;
   /** Si viene un gasto, el formulario edita en vez de crear. */
   expense?: Expense | null;
   onDelete?: (id: string) => void;
@@ -936,12 +990,23 @@ function AddExpense({
           </>
         )}
 
-        {everyone.length > 1 && (
+        {everyone.length > 1 ? (
           <>
             <Text className="text-caption1 font-medium uppercase tracking-wide text-secondary mb-2">Lo pagó</Text>
             <PeopleRow people={everyone} value={paidBy} onChange={setPaidBy} />
           </>
-        )}
+        ) : householdSize > 1 ? (
+          // Se sabe que el hogar tiene más gente, pero no cómo se llama: sin
+          // nombre no se puede asignar ni repartir. Mejor decirlo que esconder
+          // los controles y que parezca que la función no existe.
+          <View className="bg-card rounded-lg2 px-4 py-3 mb-4 flex-row items-center" style={{ gap: 10 }}>
+            <Ionicons name="information-circle-outline" size={18} color={t.orange} />
+            <Text className="flex-1 text-caption1 text-secondary">
+              Para asignar el gasto a otra persona o repartirlo por porcentajes, la otra persona del
+              hogar tiene que abrir esta versión de la app al menos una vez.
+            </Text>
+          </View>
+        ) : null}
 
         <Text className="text-caption1 font-medium uppercase tracking-wide text-secondary mb-2">Cuenta</Text>
         <View className="flex-row mb-4" style={{ gap: 8 }}>
@@ -986,7 +1051,7 @@ function AddExpense({
           </>
         )}
 
-        {account === "individual" && shared && memberNames.length > 1 && (
+        {account === "individual" && shared && everyone.length > 1 && (
           <>
             <View className="flex-row items-center justify-between mb-2">
               <Text className="text-caption1 font-medium uppercase tracking-wide text-secondary">Reparto</Text>

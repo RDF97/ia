@@ -1,5 +1,6 @@
 import { Component, type ReactNode } from "react";
 import { DevSettings, Pressable, ScrollView, Text, View } from "react-native";
+import { clearLastCrash, onFatal, type CrashInfo } from "@/lib/crashGuard";
 
 /**
  * Reinicia la app entera sin tener que ir a "apps recientes" y forzar el cierre.
@@ -7,6 +8,7 @@ import { DevSettings, Pressable, ScrollView, Text, View } from "react-native";
  * el módulo no siempre está y no queremos romper la pantalla de error.
  */
 function reloadApp(): void {
+  clearLastCrash().catch(() => undefined);
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Updates = require("expo-updates");
@@ -21,25 +23,47 @@ function reloadApp(): void {
 }
 
 /**
- * Red de seguridad: si algo revienta al pintar, en vez de dejar la pantalla en
- * blanco muestra el error y un botón para reintentar. Sin esto, un fallo de
- * JavaScript deja la app en blanco y hay que cerrarla y volver a abrirla.
+ * Red de seguridad: si algo revienta, en vez de dejar la pantalla en blanco
+ * muestra el error y un botón para reintentar.
+ *
+ * Cubre dos casos distintos:
+ *  · lo que falla al pintar → `getDerivedStateFromError`, lo normal de React;
+ *  · lo que falla FUERA del pintado (temporizadores, promesas, callbacks de
+ *    tiempo real) → llega por `onFatal`. Eso React no lo ve, y es lo que dejaba
+ *    la app en blanco obligando a forzar el cierre.
  */
 export class ErrorBoundary extends Component<
   { children: ReactNode },
-  { error: Error | null }
+  { error: Error | null; crash: CrashInfo | null }
 > {
-  state: { error: Error | null } = { error: null };
+  state: { error: Error | null; crash: CrashInfo | null } = { error: null, crash: null };
+  private unsubscribe?: () => void;
 
   static getDerivedStateFromError(error: Error) {
     return { error };
   }
 
-  reset = () => this.setState({ error: null });
+  componentDidMount() {
+    this.unsubscribe = onFatal((crash) => {
+      if (crash.fatal) this.setState({ crash });
+    });
+  }
+
+  componentWillUnmount() {
+    this.unsubscribe?.();
+  }
+
+  reset = () => {
+    clearLastCrash().catch(() => undefined);
+    this.setState({ error: null, crash: null });
+  };
 
   render() {
-    const { error } = this.state;
-    if (!error) return this.props.children;
+    const { error, crash } = this.state;
+    if (!error && !crash) return this.props.children;
+
+    const message = error?.message ?? crash?.message ?? "Error desconocido";
+    const stack = error ? String(error.stack ?? "") : (crash?.stack ?? "");
 
     return (
       <View style={{ flex: 1, backgroundColor: "#F2F2F7", padding: 24, justifyContent: "center" }}>
@@ -51,9 +75,9 @@ export class ErrorBoundary extends Component<
         </Text>
         <ScrollView style={{ maxHeight: 180, marginBottom: 20 }}>
           <Text style={{ fontSize: 12, color: "#FF3B30" }}>
-            {error.message}
+            {message}
             {"\n\n"}
-            {String(error.stack ?? "").slice(0, 800)}
+            {stack.slice(0, 800)}
           </Text>
         </ScrollView>
         <Pressable
