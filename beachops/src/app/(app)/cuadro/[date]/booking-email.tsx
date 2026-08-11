@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Spinner } from "@/components/submit-button";
 
 type EmailData = {
@@ -26,8 +27,7 @@ type EmailData = {
 
 /**
  * Nombre del cliente clicable: abre el email original de la reserva en un
- * recuadro sobre el cuadro, sin salir de él. El email se pinta dentro de un
- * iframe aislado (traen su propio CSS, que si no se colaría en la página).
+ * recuadro sobre el cuadro, sin salir de él.
  */
 export function BookingEmailLink({
   bookingId,
@@ -43,7 +43,7 @@ export function BookingEmailLink({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-left hover:text-blue-700 hover:underline"
+        className="text-left underline decoration-dotted underline-offset-2"
         title="Ver el email de esta reserva"
       >
         {label}
@@ -53,9 +53,28 @@ export function BookingEmailLink({
   );
 }
 
-function EmailDialog({ bookingId, onClose }: { bookingId: string; onClose: () => void }) {
+/**
+ * El email original de la reserva, sobre el cuadro. Se dibuja con un portal en
+ * <body> porque quien lo abre es una fila de la tabla: un contenedor fijo
+ * dentro de <tbody> no es HTML válido y el navegador lo sacaría de la tabla.
+ * El email se pinta dentro de un iframe aislado (traen su propio CSS, que si no
+ * se colaría en la página).
+ */
+export function EmailDialog({
+  bookingId,
+  onClose,
+  actions,
+}: {
+  bookingId: string;
+  onClose: () => void;
+  /** Acciones de la reserva (nota, cancelar): formularios de Server Actions. */
+  actions?: React.ReactNode;
+}) {
   const [data, setData] = useState<EmailData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,7 +97,9 @@ function EmailDialog({ bookingId, onClose }: { bookingId: string; onClose: () =>
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       // En móvil, hoja que sube desde abajo (patrón iOS); centrada en escritorio.
       className="no-print fixed inset-0 z-50 flex items-end justify-center bg-black/40 md:items-center md:p-4"
@@ -140,7 +161,14 @@ function EmailDialog({ bookingId, onClose }: { bookingId: string; onClose: () =>
             <pre className="whitespace-pre-wrap p-4 text-xs">{data.email.text}</pre>
           )}
         </div>
+
+        {/* Acciones de la reserva: aquí y no en la tabla, para que el cuadro
+            siga siendo solo el cuadro y quepa entero en el móvil. */}
+        {actions && (
+          <footer className="border-t border-slate-200 bg-white p-3">{actions}</footer>
+        )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

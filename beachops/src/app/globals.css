@@ -90,7 +90,6 @@ textarea {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-  .slot-card,
   .print-block {
     break-inside: avoid;
     box-shadow: none !important;
@@ -98,16 +97,288 @@ textarea {
   .pb-tabbar {
     padding-bottom: 0 !important;
   }
-  /* El reordenado es solo para la pantalla del móvil: en papel y en el PDF
-     manda el orden del instructivo (caja arriba, resumen al final). */
-  .board-flow {
-    display: block !important;
-  }
-  .board-flow > * {
-    order: 0 !important;
-  }
   a {
     text-decoration: none;
     color: inherit;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CUADRO DIARIO — estándar visual del documento imprimible.
+   Paleta y estructura fijas: no cambiar los colores "a mejor", significan
+   cosas (umbrales de cupo, canal de venta, estado de cobro).
+   Optimizado para iPhone 16 Pro (402px) y Pro Max (440px).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.cuadro {
+  background: #F5F4F0;
+  color: #1a1a1a;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* 1. Barra superior */
+.cuadro .topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: .6rem;
+  background: #fff; border: 1px solid #e0dfd8; border-radius: 12px;
+  padding: .8rem 1rem; margin-bottom: 10px;
+}
+.cuadro .brand { font-weight: 700; font-size: 15px; }
+.cuadro .topbar-left { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.cuadro .topbar-acc { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.cuadro .date-pill {
+  background: #F1EFE8; border: 1px solid #D3D1C7; color: #5F5E5A;
+  border-radius: 999px; padding: 4px 12px; font-size: 12px; white-space: nowrap;
+}
+.btn-out {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  background: transparent; border: 1px solid #D3D1C7; border-radius: 8px;
+  padding: 8px 12px; font: inherit; font-size: 12px; color: #5F5E5A;
+  cursor: pointer; min-height: 40px;
+}
+.btn-out:active { background: #F1EFE8; }
+.btn-pri {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  background: #185FA5; border: 1px solid #185FA5; border-radius: 8px;
+  padding: 8px 14px; font: inherit; font-size: 12px; font-weight: 700; color: #fff;
+  cursor: pointer; min-height: 40px;
+}
+.btn-pri:active { background: #12497f; }
+
+/* 2. Estadísticas */
+.cuadro .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 10px; }
+.cuadro .stat { background: #fff; border: 1px solid #e0dfd8; border-radius: 10px; padding: .7rem .8rem; }
+.cuadro .stat-lbl { font-size: 11px; color: #888780; }
+.cuadro .stat-val { font-size: 22px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.cuadro .stat-sub { font-size: 11px; color: #888780; }
+
+/* 3. Avisos */
+.cuadro .warn-box {
+  display: flex; gap: .5rem; background: #FAEEDA; border: 1px solid #EF9F27;
+  border-radius: 8px; padding: .6rem 1rem; font-size: 12px; color: #633806; margin-bottom: 10px;
+}
+.cuadro .warn-box.urgente { background: #FCEBEB; border-color: #E24B4A; color: #791F1F; }
+.cuadro .warn-box ul { margin: 0; padding-left: 1.1rem; }
+
+/* 4. Caja del día */
+.cuadro .caja-box {
+  background: #FFF7E6; border: 1px solid #C7912B; border-radius: 8px;
+  padding: .75rem 1rem; font-size: 12px; color: #6B4D0E; margin-bottom: 1.25rem;
+}
+.cuadro .caja-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+.cuadro .caja-row {
+  display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+  padding: 3px 0; border-bottom: 1px dashed #E2C98A;
+}
+.cuadro .caja-row.total { border-bottom: none; font-weight: 700; font-size: 14px; }
+.cuadro .caja-row > span:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cuadro .caja-nota { font-style: italic; font-size: 10px; margin-top: 5px; }
+
+/* 5. Etiqueta de sección */
+.cuadro .sec-lbl {
+  font-size: 11px; font-weight: 700; color: #888780;
+  text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px;
+}
+
+/* 6. Bloque de franjas */
+.cuadro .playa-wrap {
+  background: #fff; border: 1px solid #e0dfd8; border-radius: 12px;
+  overflow: hidden; margin-bottom: 1.25rem;
+}
+.cuadro .playa-hdr {
+  display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+  padding: 9px 14px; background: #F5F4F0; border-bottom: 1px solid #e0dfd8;
+  font-size: 13px; font-weight: 700;
+}
+.cuadro .resumen-zona { font-weight: 400; font-size: 11px; color: #888780; }
+.cuadro .hora-hdr {
+  display: flex; justify-content: space-between; align-items: center; gap: .75rem;
+  padding: 8px 14px; background: #fff; border-bottom: 1px solid #e0dfd8;
+}
+.cuadro .hora-hdr + .hora-hdr, .cuadro .hora-block + .hora-block .hora-hdr { border-top: 1px solid #e0dfd8; }
+.cuadro .hora-left { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.cuadro .hora-time { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.cuadro .cupo-wrap { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+.cuadro .cupo-bar { width: 64px; height: 5px; background: #D3D1C7; border-radius: 999px; overflow: hidden; }
+.cuadro .cupo-fill { height: 100%; border-radius: 999px; }
+.cuadro .cupo-txt { font-size: 11px; text-align: right; min-width: 34px; font-variant-numeric: tabular-nums; }
+
+.cuadro table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+.cuadro th {
+  background: #F5F4F0; color: #888780; font-size: 10px; text-transform: uppercase;
+  letter-spacing: .04em; text-align: left; font-weight: 700; padding: 5px 8px;
+  border-bottom: 1px solid #e0dfd8;
+  overflow: hidden; white-space: nowrap;
+}
+.cuadro td {
+  padding: 9px 8px; border-bottom: 1px solid #f0efe9;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cuadro tbody tr:last-child td { border-bottom: none; }
+/* La fila entera abre el email de la reserva */
+.cuadro tr.fila { cursor: pointer; }
+.cuadro tr.fila:active { background: #F1EFE8; }
+.cuadro tr.fila-directa { background: #FDF2F8; }
+.cuadro tr.fila-insta   { background: #FCE7F3; }
+.cuadro tr.fila-hotel   { background: #FFF7E6; }
+.cuadro tr.fila-aviso   { background: #FCEBEB; color: #791F1F; font-weight: 700; }
+.cuadro tr.nino         { background: #EEEDFE; }
+.cuadro tr.nino .pax-n  { color: #3C3489; }
+.cuadro tr.nino .nombre-nino { font-style: italic; }
+
+.cuadro .pax-n { font-weight: 700; font-variant-numeric: tabular-nums; }
+.cuadro .ref { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; color: #888780; }
+.cuadro .tel { font-size: 11px; color: #185FA5; }
+.cuadro .pay-ok   { background: #EAF3DE; color: #27500A; border-radius: 6px; padding: 2px 6px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+.cuadro .pay-pend { background: #FFF7E6; color: #A37408; border-radius: 6px; padding: 2px 6px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+.cuadro .nota-fila { font-size: 10px; color: #6B4D0E; font-style: italic; white-space: normal; }
+
+.cuadro .hora-foot {
+  display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+  padding: 6px 14px; background: #F5F4F0; border-top: 1px solid #e0dfd8;
+  font-size: 12px; color: #5F5E5A;
+}
+
+/* 7. Badges */
+.cuadro .badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 700; white-space: nowrap; }
+.cuadro .bk     { background: #E6F1FB; color: #0C447C; }
+.cuadro .bp     { background: #E1F5EE; color: #085041; }
+.cuadro .bw     { background: #FDEEF5; color: #9C1D6B; }
+.cuadro .bv     { background: #FAEEDA; color: #633806; }
+.cuadro .binsta { background: #FCE7F3; color: #9D174D; }
+.cuadro .bfree  { background: #E0F2F1; color: #00695C; }
+.cuadro .bsun   { background: #FFF0DB; color: #A35A06; }
+.cuadro .bn     { background: #EEEDFE; color: #3C3489; }
+.cuadro .bmon   { background: #E8E3F5; color: #4A2E83; border: 1px solid #C9BCE8; }
+.cuadro .over-badge { background: #FCEBEB; color: #791F1F; font-size: 10px; padding: 2px 6px; border-radius: 6px; font-weight: 700; white-space: nowrap; }
+
+/* 8. Colores por ocupación */
+.cuadro .grn { color: #3B6D11; }
+.cuadro .amb { color: #633806; }
+.cuadro .over-red { color: #A32D2D; }
+
+/* 9-10. Resumen y gráfico */
+.cuadro .bloque-title { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+.cuadro .resumen, .cuadro .desglose {
+  background: #fff; border: 1px solid #e0dfd8; border-radius: 12px;
+  padding: 1rem; margin-bottom: 1rem;
+}
+.cuadro .res-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+.cuadro .res-item { background: #F5F4F0; border-radius: 8px; padding: .75rem; }
+.cuadro .res-lbl { font-size: 11px; color: #888780; }
+.cuadro .res-val { font-size: 20px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.cuadro .res-sub { font-size: 11px; color: #888780; }
+.cuadro .leyenda { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; font-size: 11px; color: #5F5E5A; margin-top: 8px; }
+.cuadro .leyenda span { display: flex; align-items: center; gap: 5px; }
+.cuadro .sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+/* 11. Desglose */
+.cuadro .desglose-row {
+  display: flex; justify-content: space-between; gap: 1rem;
+  padding: 5px 0; border-bottom: 1px solid #eee; font-size: 13px;
+}
+.cuadro .desglose-hora { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #5F5E5A; }
+.cuadro .desglose-row.total { border-bottom: none; border-top: 2px solid #D3D1C7; font-weight: 700; padding-top: 9px; }
+.cuadro .desglose-nota { font-size: 10px; font-style: italic; color: #888780; margin-top: 6px; }
+
+/* Franjas vacías plegadas */
+.cuadro .vacias > summary {
+  list-style: none; cursor: pointer; padding: 8px 14px; font-size: 11px;
+  color: #888780; background: #F5F4F0; border-top: 1px solid #e0dfd8; min-height: 38px;
+  display: flex; align-items: center; gap: 6px;
+}
+.cuadro .vacias > summary::-webkit-details-marker { display: none; }
+
+/* Anchos de columna: con table-layout:fixed manda la fila de cabecera, así que
+   ocultar un <th> oculta la columna entera (es lo que se hace en el móvil). */
+.cuadro .col-pax  { width: 38px; }
+/* En porcentaje, nunca "auto": con una columna automática, la fila de la
+   nota (que ocupa toda la anchura) le robaba la mitad del ancho a Nombre. */
+.cuadro .col-nom  { width: 40%; }
+.cuadro .col-pais { width: 30px; }
+.cuadro .col-tel  { width: 124px; }
+.cuadro .col-ref  { width: 112px; }
+.cuadro .col-pay  { width: 62px; }
+.cuadro .tel a { color: inherit; text-decoration: none; }
+.cuadro .sin-reservas { padding: 10px 14px; font-size: 12px; color: #888780; }
+.cuadro .hora-foot-right { display: flex; align-items: center; gap: 8px; }
+.cuadro .nota-row td { background: #FFF7E6; white-space: normal; }
+
+/* Controles: mismo lenguaje que la barra superior, táctiles (44 pt) */
+.acc-wrap { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+/* Base en % (no en px): un flex-basis fijo se convierte en ancho mínimo de la
+   celda y estrechaba la columna Nombre de toda la tabla al abrir las acciones. */
+.acc-nota { display: flex; flex: 1 1 100%; min-width: 0; gap: 6px; align-items: center; }
+.campo {
+  min-width: 0; flex: 1 1 auto; border: 1px solid #D3D1C7; border-radius: 8px;
+  padding: 8px 10px; background: #fff; color: #1a1a1a;
+}
+.campo-mini { width: 62px; flex: 0 0 auto; padding: 4px 6px; font-size: 12px; }
+.campo-hora { flex: 0 0 auto; width: 96px; }
+.btn-mini {
+  border: 1px solid #D3D1C7; border-radius: 8px; background: #fff; color: #5F5E5A;
+  font-size: 11px; padding: 4px 8px; cursor: pointer; white-space: nowrap;
+}
+.btn-mini:active { background: #F1EFE8; }
+.btn-danger {
+  border: 1px solid #E9BDBD; border-radius: 8px; background: #FCEBEB; color: #791F1F;
+  font-size: 12px; font-weight: 700; padding: 8px 12px; cursor: pointer; min-height: 40px;
+}
+.cuadro .caja-form { display: inline-flex; gap: 4px; align-items: center; margin-left: 8px; }
+
+/* Meteo: una tira que se desliza, informa sin comerse la pantalla */
+.cuadro .meteo-box {
+  display: flex; gap: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+  background: #EAF2F8; border: 1px solid #B9D3E6; border-radius: 8px;
+  padding: .5rem 1rem; font-size: 12px; color: #14456E; margin-bottom: 10px;
+}
+.cuadro .meteo-lbl { font-weight: 700; flex-shrink: 0; }
+.cuadro .meteo-chip { white-space: nowrap; flex-shrink: 0; }
+
+/* Reservas por colocar */
+.cuadro .pendientes .playa-hdr { background: #FAEEDA; color: #633806; border-left: 5px solid #EF9F27; }
+.cuadro .pend-row { padding: 10px 14px; border-bottom: 1px solid #f0efe9; }
+.cuadro .pend-row:last-child { border-bottom: none; }
+.cuadro .pend-datos { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; }
+.cuadro .asignar { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.cuadro .asignar-fila { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.cuadro .asignar-lbl { font-size: 11px; color: #888780; }
+.cuadro .chart { width: 100%; height: auto; display: block; }
+
+/* ── iPhone 16 Pro (402px) y Pro Max (440px) ─────────────────────────
+   Con 6 columnas de ancho fijo la tabla no cabe y se recortaban justo
+   Referencia y Pago. En pantalla estrecha se oculta la referencia (está en
+   el email, a un toque) y el resto se ajusta: nada de scroll lateral. */
+@media (max-width: 460px) {
+  .cuadro .stats { grid-template-columns: repeat(2, 1fr); }
+  /* La referencia vive en el email, a un toque: fuera de la tabla estrecha */
+  .cuadro .col-ref { display: none; }
+  .cuadro .no-mobile { display: none; }
+  .cuadro .col-pax { width: 30px; }
+  .cuadro .col-pais { width: 28px; }
+  /* Un +34 620 788 391 completo pide 104 px a 10,5 px de cuerpo */
+  .cuadro .col-tel { width: 104px; }
+  .cuadro .tel { font-size: 10.5px; }
+  .cuadro .col-pay { width: 56px; }
+  .cuadro td, .cuadro th { padding-left: 5px; padding-right: 5px; }
+  .cuadro .hora-hdr, .cuadro .hora-foot, .cuadro .playa-hdr,
+  .cuadro .pend-row { padding-left: 10px; padding-right: 10px; }
+  .cuadro .hora-foot { font-size: 11px; flex-wrap: wrap; gap: 6px; }
+  .cuadro .cupo-bar { width: 44px; }
+  .cuadro .topbar { padding: .7rem .8rem; }
+  .cuadro .topbar-acc { width: 100%; }
+  /* Las flechas de día y "Hoy" reparten el ancho: pulgar, no puntería */
+  .cuadro .topbar-acc > .btn-out { flex: 1 1 0; }
+  .cuadro .topbar-acc > .btn-pri { flex: 1 1 100%; }
+}
+
+/* Impresión: A4 limpio y con TODAS las columnas */
+@media print {
+  .cuadro { background: #fff; }
+  .cuadro .col-ref { display: table-cell !important; }
+  .cuadro .playa-wrap, .cuadro .resumen, .cuadro .desglose, .cuadro .caja-box { break-inside: avoid; }
+  .cuadro tr, .cuadro .hora-hdr, .cuadro .hora-foot { break-inside: avoid; }
+  .cuadro .vacias { display: none; }
+  /* En papel no hay dedo que arrastre: la tira de meteo se reparte en varias líneas */
+  .cuadro .meteo-box { overflow: visible; flex-wrap: wrap; }
 }
