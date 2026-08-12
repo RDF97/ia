@@ -65,7 +65,31 @@ Solo los **nombres** (los valores están en el servidor):
 ## Publicar cambios (redeploy)
 
 Los cambios se hacen en GitHub (rama + PR) y se publican reconstruyendo el
-contenedor en el servidor. Desde `manu@` en el VPS:
+contenedor en el servidor. Con una sola orden, desde `manu@` en el VPS:
+
+```bash
+/opt/beachops/deploy.sh          # despliega main
+/opt/beachops/deploy.sh mi-rama  # despliega otra rama
+```
+
+El script hace el `git pull` + `docker compose up -d --build`, **espera a que la
+web responda de verdad** antes de darlo por bueno y limpia las imágenes viejas.
+Termina con `✅` o con `❌` y el motivo.
+
+### Desde el móvil
+
+Es la forma habitual de publicar sobre la marcha: con un cliente SSH (Termius,
+Blink, a-Shell) guardas `/opt/beachops/deploy.sh` como atajo y lo lanzas de un
+toque. El build tarda varios minutos en un VPS de 1 GB, así que el trabajo corre
+**desprendido de la sesión SSH**: si el móvil pierde cobertura o se bloquea la
+pantalla, el despliegue sigue solo. Lo que ves es el log en vivo; cerrar la app
+no cancela nada. Para volver a engancharte al log:
+
+```bash
+tail -f /opt/beachops/.deploy.log
+```
+
+A mano, si prefieres los pasos sueltos:
 
 ```bash
 cd /opt/beachops
