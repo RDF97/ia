@@ -105,12 +105,16 @@ docker compose logs -f web     # comprobar que arranca sin errores
 ### Parche de datos tras un cambio de configuración
 
 `scripts/seed.ts` es idempotente y **se salta las orgs que ya existen**. Por eso,
-cuando una versión añade nuevas playas/productos de fábrica (p. ej. **Cala Santanyí /
-Es Pontàs**), hay que aplicarlos a la base ya sembrada con un parche idempotente:
+cuando una versión cambia las playas o los productos de fábrica (fundir **Playa
+Barca** con **Mondragó**, añadir **Cala Santanyí / Es Pontàs**), hay que
+aplicarlo a la base ya sembrada con un parche idempotente:
 
 ```bash
-docker compose exec web npx tsx scripts/upgrade-santanyi.ts
+docker compose exec web npx tsx scripts/upgrade-playas.ts
 ```
+
+Normalmente **no hace falta**: el worker lo ejecuta solo en cada arranque, así
+que un `deploy.sh` ya lo deja al día.
 
 (Alternativa: crearlos a mano desde `/config`, que es editable.)
 

@@ -44,18 +44,16 @@ export async function seed() {
     .insert(schema.memberships)
     .values({ orgId: org.id, userId: owner.id, role: "owner" });
 
-  // Las tres playas reales: Playa Barca, Mondragó y Cala Santanyí.
+  // Dos puntos de salida. Playa Barca y Mondragó son la MISMA excursión (mismo
+  // sitio, mismo material, mismo monitor), así que van juntas en una playa.
   const [mondrago] = await db
     .insert(schema.locations)
-    .values({ orgId: org.id, name: "Playa Barca", sortOrder: 1 })
+    .values({ orgId: org.id, name: "Playa Barca / Mondragó", sortOrder: 1 })
     .returning();
-  await db
-    .insert(schema.locations)
-    .values({ orgId: org.id, name: "Mondragó", sortOrder: 2 });
   // Cala Santanyí: solo el producto "Es Pontàs" (cupo 22, monitor aparte).
   const [santanyi] = await db
     .insert(schema.locations)
-    .values({ orgId: org.id, name: "Cala Santanyí", sortOrder: 3 })
+    .values({ orgId: org.id, name: "Cala Santanyí", sortOrder: 2 })
     .returning();
 
   const [kayak] = await db

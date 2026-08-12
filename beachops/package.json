@@ -12,7 +12,7 @@
     "db:generate": "drizzle-kit generate",
     "db:seed": "tsx scripts/seed.ts",
     "db:seed:demo": "tsx scripts/seed-demo.ts",
-    "db:upgrade:santanyi": "tsx scripts/upgrade-santanyi.ts"
+    "db:upgrade:playas": "tsx scripts/upgrade-playas.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.4",
