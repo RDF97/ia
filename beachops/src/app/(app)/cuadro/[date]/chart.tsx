@@ -26,16 +26,15 @@ export function BoardChart({ bars }: { bars: ChartBar[] }) {
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
-      className="w-full h-auto"
+      className="chart"
       role="img"
       aria-label="Personas por franja horaria"
-      style={{ maxWidth: 700 }}
     >
       {/* Rejilla y eje Y */}
       {ticks.map((t) => (
         <g key={t}>
-          <line x1={mL} y1={y(t)} x2={W - mR} y2={y(t)} stroke="#E2E0DA" strokeWidth={1} />
-          <text x={mL - 8} y={y(t) + 4} textAnchor="end" fontSize={11} fill="#8A8778">
+          <line x1={mL} y1={y(t)} x2={W - mR} y2={y(t)} stroke="#e0dfd8" strokeWidth={1} />
+          <text x={mL - 8} y={y(t) + 4} textAnchor="end" fontSize={11} fill="#888780">
             {t}
           </text>
         </g>
@@ -54,17 +53,17 @@ export function BoardChart({ bars }: { bars: ChartBar[] }) {
               rx={3}
               fill={b.hex}
             />
-            <text x={cx} y={y(b.pax) - 6} textAnchor="middle" fontSize={12} fontWeight={700} fill="#3B3A33">
+            <text x={cx} y={y(b.pax) - 6} textAnchor="middle" fontSize={12} fontWeight={700} fill="#1a1a1a">
               {b.pax}
             </text>
-            <text x={cx} y={H - mB + 18} textAnchor="middle" fontSize={11} fill="#5B594F">
+            <text x={cx} y={H - mB + 18} textAnchor="middle" fontSize={11} fill="#888780">
               {b.hora}
             </text>
           </g>
         );
       })}
       {/* Eje X base */}
-      <line x1={mL} y1={mT + plotH} x2={W - mR} y2={mT + plotH} stroke="#B8B5A9" strokeWidth={1} />
+      <line x1={mL} y1={mT + plotH} x2={W - mR} y2={mT + plotH} stroke="#B0AEA6" strokeWidth={1} />
     </svg>
   );
 }

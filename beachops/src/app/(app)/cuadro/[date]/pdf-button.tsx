@@ -8,7 +8,7 @@ import { Spinner } from "@/components/submit-button";
  * la página con Chromium), así que el botón avisa mientras trabaja y confirma
  * al terminar en vez de quedarse mudo.
  */
-export function PdfButton({ date }: { date: string }) {
+export function PdfButton({ date, className }: { date: string; className?: string }) {
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -53,7 +53,10 @@ export function PdfButton({ date }: { date: string }) {
         onClick={download}
         disabled={state === "loading"}
         aria-busy={state === "loading"}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 text-white text-sm font-semibold hover:bg-slate-900 disabled:opacity-70 disabled:cursor-wait"
+        className={
+          className ??
+          "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 text-white text-sm font-semibold hover:bg-slate-900 disabled:opacity-70 disabled:cursor-wait"
+        }
       >
         {state === "loading" && <Spinner />}
         {label}
