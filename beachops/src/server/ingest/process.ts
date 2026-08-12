@@ -157,8 +157,8 @@ export async function processRawEmail(raw: RawEmail): Promise<void> {
     await notifyBookingEvent(raw.orgId, parsed, bookingId);
     if (result.adHocCreated) {
       await sendPushToOrg(raw.orgId, {
-        title: `📅 Salida extra creada — ${result.adHocCreated.time}`,
-        body: `El ${result.adHocCreated.date} llegó una reserva fuera de la plantilla; se creó la salida automáticamente.`,
+        title: `📅 Salida nueva a las ${result.adHocCreated.time}`,
+        body: `El ${result.adHocCreated.date} entró una reserva a una hora que no está en la plantilla; se creó la salida a esa hora.`,
         url: `/cuadro/${result.adHocCreated.date}`,
         tag: `adhoc-${result.adHocCreated.date}-${result.adHocCreated.time}`,
       });
@@ -328,8 +328,8 @@ export async function upsertParsedBooking(
     if (slot) {
       departureId = await ensureDeparture(orgId, slot.id, activityDate);
     } else if (parsed.activityTime) {
-      // Hora fuera de la plantilla: se acepta igualmente creando una
-      // salida "extra" para ese día a esa hora, con aviso.
+      // No hay franja a esa hora exacta: manda el email, así que se crea la
+      // salida a SU hora (con aviso). Nunca se arrima a la franja más cercana.
       const adHoc = await ensureAdHocDeparture(
         orgId,
         activityDate,
@@ -559,7 +559,7 @@ export async function ensureAdHocDeparture(
       date,
       startTime: time,
       capacityOverride: capacity,
-      notes: "Salida extra creada automáticamente (hora fuera de la plantilla)",
+      notes: "Salida creada automáticamente a la hora que decía el email",
     })
     .returning({ id: schema.departures.id });
   return { id: row.id, created: true };

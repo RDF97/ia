@@ -107,3 +107,33 @@ describe("cada reserva va a la playa que dice su email", () => {
     expect(await beachOf("GYGSINPLAYA1")).toBe(PRINCIPAL);
   });
 });
+
+describe("la hora de la salida la manda el email", () => {
+  it("una reserva de Es Pontàs a las 10:00 no se va a la franja de las 10:30", async () => {
+    const db = await getDb();
+    await ingest(
+      "m-pontas-10",
+      "GYGPONTAS010",
+      gygEmail("GYGPONTAS010", "Cala Santanyí (Es Pontàs)", "10:00 AM"),
+    );
+    const [b] = await db
+      .select()
+      .from(schema.bookings)
+      .where(and(eq(schema.bookings.orgId, orgId), eq(schema.bookings.externalRef, "GYGPONTAS010")));
+    const [dep] = await db
+      .select()
+      .from(schema.departures)
+      .where(eq(schema.departures.id, b.departureId!));
+
+    expect(dep.startTime.slice(0, 5)).toBe("10:00");
+    expect(dep.timeSlotId).toBeNull(); // salida propia, no la franja de las 10:30
+    // Y conserva el cupo del producto (Es Pontàs son 22, no los 12 de kayak).
+    expect(dep.capacityOverride).toBe(22);
+
+    // En el cuadro sale a su hora, aparte de la de las 10:30.
+    const board = await getBoard(orgId, DATE);
+    const santanyi = board.locations.find((l) => l.name === "Cala Santanyí")!;
+    const horas = santanyi.activeGroups.filter((g) => g.paxTotal > 0).map((g) => g.startTime);
+    expect(horas).toContain("10:00");
+  });
+});
