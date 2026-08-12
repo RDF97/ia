@@ -1,0 +1,3 @@
+# Log y estado que deja deploy.sh en el servidor
+/.deploy.log
+/.deploy.status
