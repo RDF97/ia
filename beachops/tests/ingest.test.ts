@@ -56,13 +56,14 @@ describe("pipeline email → reserva", () => {
     expect(b.status).toBe("confirmed");
     expect(b.paxAdults).toBe(2);
     expect(b.productId).not.toBeNull();
-    // 09:30 de Viator se asigna a la salida real de las 10:00
+    // La hora la manda el email: 09:30 sale a las 09:30, no se arrima a la
+    // franja de las 10:00 (antes lo hacía y movía gente de salida).
     expect(b.departureId).not.toBeNull();
     const [dep] = await db
       .select()
       .from(schema.departures)
       .where(eq(schema.departures.id, b.departureId!));
-    expect(dep.startTime.slice(0, 5)).toBe("10:00");
+    expect(dep.startTime.slice(0, 5)).toBe("09:30");
   });
 
   it("reprocesar el mismo email no duplica la reserva (idempotencia)", async () => {
@@ -117,7 +118,7 @@ describe("pipeline email → reserva", () => {
 
   it("una reserva con hora fuera de la plantilla crea una salida extra y queda confirmada", async () => {
     const db = await getDb();
-    // 20:15 no existe en la plantilla (ni con tolerancia de 30 min)
+    // 20:15 no existe en la plantilla
     await ingest(
       "msg-bokun-hora-rara",
       "no-reply@bokun.io",

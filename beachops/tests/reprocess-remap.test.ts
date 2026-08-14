@@ -8,7 +8,7 @@ import { getDb, schema } from "../src/server/db";
 import { runMigrations } from "../src/server/db/migrate";
 import { processRawEmail } from "../src/server/ingest/process";
 import { reprocessBookingEmails } from "../src/server/ingest/reprocess";
-import { ensureSantanyiConfig } from "../src/server/config/ensure-santanyi";
+import { ensureBeachConfig } from "../src/server/config/beaches";
 
 let orgId: string;
 
@@ -83,7 +83,7 @@ describe("reprocesar mueve Es Pontàs a Cala Santanyí", () => {
 
   it("tras ensureSantanyiConfig + reprocesar, se mueve a Cala Santanyí / Es Pontàs", async () => {
     // Primera vez que se crea la playa → señal de reprocesar (como en el worker).
-    const created = await ensureSantanyiConfig();
+    const created = await ensureBeachConfig();
     expect(created).toBe(true);
     // Reprocesar todas las reservas (como el botón / el worker al arrancar).
     await reprocessBookingEmails(orgId);

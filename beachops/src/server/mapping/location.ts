@@ -16,11 +16,17 @@ export function normalizeText(s: string): string {
  */
 const ALIASES: Record<string, string[]> = {
   "cala santanyi": ["es pontas", "pontas", "santanyi"],
-  // Ojo: NO se añade "parc natural de mondrago" como alias. Playa Barca está
-  // DENTRO de ese parque, así que el nombre del parque no identifica la playa;
-  // si se usara, "Playa Barca (Parc Natural de Mondragó)" iría a Mondragó.
-  mondrago: ["mondrago"],
-  "playa barca": ["playa barca", "platja barca", "platja de sa barca", "playa de la barca"],
+  // Playa Barca y Mondragó son la misma excursión: las dos menciones valen.
+  // Ojo: NO se añade "parc natural de mondrago". Es el nombre del PARQUE, no de
+  // un punto de salida, y aparece como reclamo en emails de cualquier
+  // excursión; como alias se llevaría a esta playa reservas de Es Pontàs.
+  "playa barca / mondrago": [
+    "playa barca",
+    "platja barca",
+    "platja de sa barca",
+    "playa de la barca",
+    "mondrago",
+  ],
 };
 
 /** Etiquetas del email que anuncian el punto de salida real. */

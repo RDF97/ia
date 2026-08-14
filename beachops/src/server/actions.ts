@@ -348,9 +348,9 @@ export async function retryAllFailed() {
  */
 export async function reprocessAllBookings() {
   const session = await requireSession();
-  const { ensureSantanyiConfig } = await import("./config/ensure-santanyi");
+  const { ensureBeachConfig } = await import("./config/beaches");
   const { reprocessBookingEmails } = await import("./ingest/reprocess");
-  await ensureSantanyiConfig();
+  await ensureBeachConfig();
   await reprocessBookingEmails(session.orgId);
   revalidatePath("/emails");
   revalidatePath("/");

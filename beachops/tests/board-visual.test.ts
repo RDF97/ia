@@ -40,7 +40,7 @@ beforeAll(async () => {
 describe("cuadro más legible", () => {
   it("separa las franjas con reservas de las vacías", async () => {
     const board = await getBoard(orgId, DATE);
-    const barca = board.locations.find((l) => l.name === "Playa Barca")!;
+    const barca = board.locations.find((l) => l.name === "Playa Barca / Mondragó")!;
     // Solo la franja de las 10:00 tiene reservas…
     expect(barca.activeGroups).toHaveLength(1);
     expect(barca.activeGroups[0].startTime).toBe("10:00");
@@ -61,7 +61,7 @@ describe("cuadro más legible", () => {
     // Salida ad-hoc a las 19:30, sin reservas todavía
     await ensureAdHocDeparture(orgId, DATE, "19:30", kayak.productId!, kayak.locationId, slots);
     const board = await getBoard(orgId, DATE);
-    const barca = board.locations.find((l) => l.name === "Playa Barca")!;
+    const barca = board.locations.find((l) => l.name === "Playa Barca / Mondragó")!;
     const adHoc = barca.activeGroups.find((g) => g.startTime === "19:30");
     expect(adHoc).toBeTruthy();
     expect(adHoc!.isAdHoc).toBe(true);

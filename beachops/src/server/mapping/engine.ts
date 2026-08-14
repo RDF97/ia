@@ -65,25 +65,28 @@ export function applyMappingRules(
 }
 
 /**
- * Resuelve la franja horaria por la hora parseada (tolerancia en minutos),
- * restringida a la playa y, si la franja lo especifica, al producto.
+ * La franja de la plantilla que sale EXACTAMENTE a esa hora, en esa playa y
+ * (si la franja lo especifica) para ese producto.
+ *
+ * La hora la manda el email, siempre. Antes había una tolerancia de 30 min para
+ * arrimar la reserva a la franja más cercana, y eso movía gente de sitio: una
+ * reserva de Es Pontàs de las 10:00 acababa listada a las 10:30, que es la hora
+ * de la plantilla. Si no hay franja a esa hora exacta se crea una salida a la
+ * hora del email (ver `ensureAdHocDeparture`); las franjas solo aportan el cupo,
+ * nunca cambian la hora.
  */
 export function resolveTimeSlot(
   slots: TimeSlot[],
   locationId: string,
   productId: string,
   activityTime: string | undefined,
-  // 30 min cubre marketplaces que venden a las 09:30 una salida real de 10:00;
-  // gana siempre la franja más cercana.
-  toleranceMin = 30,
 ): TimeSlot | null {
   if (!activityTime) return null;
   const target = timeToMinutes(activityTime);
-  const candidates = slots
-    .filter((s) => s.active && s.locationId === locationId)
-    .filter((s) => !s.productId || s.productId === productId)
-    .map((s) => ({ slot: s, diff: Math.abs(timeToMinutes(s.startTime) - target) }))
-    .filter((c) => c.diff <= toleranceMin)
-    .sort((a, b) => a.diff - b.diff);
-  return candidates[0]?.slot ?? null;
+  return (
+    slots
+      .filter((s) => s.active && s.locationId === locationId)
+      .filter((s) => !s.productId || s.productId === productId)
+      .find((s) => timeToMinutes(s.startTime) === target) ?? null
+  );
 }
