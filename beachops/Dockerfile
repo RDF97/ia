@@ -17,7 +17,12 @@ ENV NODE_ENV=production
 # Chromium del sistema para generar el PDF del cuadro (Playwright usa este
 # binario: playwright-core NO descarga navegador, y en Alpine hay que usar el
 # del sistema porque los de Playwright son para glibc, no musl).
-RUN apk add --no-cache chromium nss freetype harfbuzz ca-certificates ttf-freefont font-noto
+#
+# font-noto-emoji NO es opcional: sin una fuente de emoji, Chromium pinta
+# cuadraditos en su lugar y el PDF sale sin las banderas de país ni los iconos
+# (💶, ⚓, 📍…). font-noto trae latino y CJK, pero ningún emoji.
+RUN apk add --no-cache chromium nss freetype harfbuzz ca-certificates \
+    ttf-freefont font-noto font-noto-emoji
 ENV PLAYWRIGHT_CHROMIUM_PATH=/usr/bin/chromium-browser
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/.next ./.next
