@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
+import { SectionTitle } from "@/components/ui";
 import { useTheme } from "@/theme/theme";
 import { useKeyboardHeight } from "@/lib/useKeyboard";
 import { Toggle } from "@/components/Toggle";
@@ -57,7 +58,7 @@ export function BudgetModal({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
-      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0" style={{ height: "86%", backgroundColor: t.bg }}>
+      <View className="rounded-t-sheet absolute left-0 right-0 bottom-0" style={{ height: "86%", backgroundColor: t.bg }}>
         <View className="items-center pt-2 pb-1">
           <View style={{ width: 36, height: 5, borderRadius: 999, backgroundColor: t.separator }} />
         </View>
@@ -76,9 +77,7 @@ export function BudgetModal({
             <Toggle value={enabled} onChange={onToggle} />
           </View>
 
-          <Text className="px-4 pt-4 pb-2 text-footnote font-medium uppercase tracking-wide text-secondary">
-            Categorías
-          </Text>
+          <SectionTitle>Categorías</SectionTitle>
 
           {isLoading ? (
             <ActivityIndicator color={t.accent} style={{ marginTop: 16 }} />
@@ -90,10 +89,10 @@ export function BudgetModal({
               <Pressable
                 onPress={seed}
                 disabled={seeding}
-                className="rounded-[14px] py-3.5 items-center"
+                className="rounded-lg2 py-3.5 items-center"
                 style={{ backgroundColor: t.accent, opacity: seeding ? 0.6 : 1 }}
               >
-                {seeding ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-base font-semibold">Usar categorías sugeridas</Text>}
+                {seeding ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-callout font-semibold">Usar categorías sugeridas</Text>}
               </Pressable>
             </View>
           ) : (
@@ -121,7 +120,7 @@ export function BudgetModal({
           {list.length > 0 && (
             <Pressable
               onPress={() => setEditing("new")}
-              className="flex-row items-center justify-center mx-4 mt-3 py-3 rounded-[14px]"
+              className="flex-row items-center justify-center mx-4 mt-3 py-3 rounded-lg2"
               style={{ gap: 8, borderWidth: 1, borderColor: t.separator }}
             >
               <Ionicons name="add" size={20} color={t.accent} />
@@ -227,7 +226,7 @@ function CategoryEditor({
   return (
     <Modal visible={target !== null} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
-      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
+      <View className="rounded-t-sheet absolute left-0 right-0 bottom-0" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
         <SheetHeader
           title={isNew ? "Nueva categoría" : "Editar categoría"}
           onClose={onClose}
@@ -267,7 +266,7 @@ function CategoryEditor({
           <Text className="text-subhead text-secondary">€</Text>
         </View>
 
-        <Text className="text-xs font-medium uppercase tracking-wide text-secondary mb-2">Color</Text>
+        <Text className="text-caption1 font-medium uppercase tracking-wide text-secondary mb-2">Color</Text>
         <View className="flex-row flex-wrap mb-4" style={{ gap: 10 }}>
           {CATEGORY_COLORS.map((c) => (
             <Pressable key={c} onPress={() => setColor(c)} style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: c, alignItems: "center", justifyContent: "center" }}>
@@ -276,7 +275,7 @@ function CategoryEditor({
           ))}
         </View>
 
-        <Text className="text-xs font-medium uppercase tracking-wide text-secondary mb-2">Icono</Text>
+        <Text className="text-caption1 font-medium uppercase tracking-wide text-secondary mb-2">Icono</Text>
         <View className="flex-row flex-wrap mb-5" style={{ gap: 10 }}>
           {CATEGORY_ICONS.map((ic) => {
             const on = ic === icon;

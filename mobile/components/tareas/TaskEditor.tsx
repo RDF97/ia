@@ -145,7 +145,7 @@ export function TaskEditor({
     <Modal visible={target !== null} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
       <View
-        className="rounded-t-[14px] absolute left-0 right-0 bottom-0"
+        className="rounded-t-sheet absolute left-0 right-0 bottom-0"
         style={{ maxHeight: "90%", paddingBottom: kb, backgroundColor: t.bg }}
       >
         <SheetHeader
@@ -168,7 +168,7 @@ export function TaskEditor({
           />
 
           {/* Asignar. Sin asignar = tarea de todos, no "de nadie". */}
-          <Text className="text-xs font-medium uppercase tracking-wide text-secondary mb-2">Asignar a</Text>
+          <Text className="text-caption1 font-medium uppercase tracking-wide text-secondary mb-2">Asignar a</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4" contentContainerStyle={{ gap: 8, paddingRight: 8 }}>
             <Pressable
               onPress={() => setAssigned(null)}
@@ -216,7 +216,7 @@ export function TaskEditor({
               )}
 
               {/* Repetir */}
-              <Text className="text-xs font-medium uppercase tracking-wide text-secondary mb-2 mt-1">Repetir</Text>
+              <Text className="text-caption1 font-medium uppercase tracking-wide text-secondary mb-2 mt-1">Repetir</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3" contentContainerStyle={{ gap: 8, paddingRight: 8 }}>
                 {REPEAT_OPTIONS.map((o) => (
                   <Chip key={o.key} on={repeat === o.key} label={o.label} onPress={() => setRepeat(o.key)} />

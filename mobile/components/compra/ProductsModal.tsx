@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { SectionTitle } from "@/components/ui";
 import { useTheme } from "@/theme/theme";
 import { useKeyboardHeight } from "@/lib/useKeyboard";
 import {
@@ -69,18 +70,18 @@ export function ProductsModal({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
-      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0" style={{ height: "82%", backgroundColor: t.bg, paddingBottom: kb }}>
+      <View className="rounded-t-sheet absolute left-0 right-0 bottom-0" style={{ height: "82%", backgroundColor: t.bg, paddingBottom: kb }}>
         <View className="items-center pt-2 pb-1">
           <View style={{ width: 36, height: 5, borderRadius: 999, backgroundColor: t.separator }} />
         </View>
         <View className="flex-row items-center justify-between px-5 py-3" style={{ borderBottomWidth: 0.5, borderBottomColor: t.separator }}>
           {selected ? (
             <Pressable onPress={() => setSelected(null)}>
-              <Text className="text-base text-accent">‹ Volver</Text>
+              <Text className="text-callout text-accent">‹ Volver</Text>
             </Pressable>
           ) : (
             <Pressable onPress={onClose}>
-              <Text className="text-base text-accent">Cerrar</Text>
+              <Text className="text-callout text-accent">Cerrar</Text>
             </Pressable>
           )}
           <Text className="text-headline font-semibold text-label">
@@ -154,9 +155,7 @@ function ProductDetail({ points }: { points: PricePoint[] }) {
   const byStore = latestByStore(points);
   return (
     <>
-      <Text className="px-4 pt-4 pb-2 text-footnote font-medium uppercase tracking-wide text-secondary">
-        Comparativa por supermercado
-      </Text>
+      <SectionTitle>Comparativa por supermercado</SectionTitle>
       {byStore.length === 0 ? (
         <Text className="text-center text-tertiary mt-2">Sin precios registrados.</Text>
       ) : (
@@ -185,9 +184,7 @@ function ProductDetail({ points }: { points: PricePoint[] }) {
         </View>
       )}
 
-      <Text className="px-4 pt-4 pb-2 text-footnote font-medium uppercase tracking-wide text-secondary">
-        Últimas compras
-      </Text>
+      <SectionTitle>Últimas compras</SectionTitle>
       <View className="bg-card rounded-lg2 mx-4 mb-4 overflow-hidden">
         {points.slice(0, 15).map((p, i) => (
           <View

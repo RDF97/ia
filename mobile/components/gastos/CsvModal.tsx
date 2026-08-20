@@ -155,13 +155,13 @@ export function CsvModal({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={close}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={close} />
-      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0" style={{ height: "88%", backgroundColor: t.bg }}>
+      <View className="rounded-t-sheet absolute left-0 right-0 bottom-0" style={{ height: "88%", backgroundColor: t.bg }}>
         <View className="flex-row items-center justify-between px-5 py-3" style={{ borderBottomWidth: 0.5, borderBottomColor: t.separator }}>
           {step === "pick" ? (
-            <Pressable onPress={close} hitSlop={8}><Text className="text-base text-accent">Cerrar</Text></Pressable>
+            <Pressable onPress={close} hitSlop={8}><Text className="text-callout text-accent">Cerrar</Text></Pressable>
           ) : (
             <Pressable onPress={() => setStep(step === "review" ? "map" : "pick")} hitSlop={8}>
-              <Text className="text-base text-accent">‹ Atrás</Text>
+              <Text className="text-callout text-accent">‹ Atrás</Text>
             </Pressable>
           )}
           <Text className="text-headline font-semibold text-label">Conciliar CSV</Text>
@@ -170,7 +170,7 @@ export function CsvModal({
 
         {step === "pick" && (
           <View className="px-6 pt-8 items-center">
-            <View className="rounded-full items-center justify-center mb-4" style={{ width: 64, height: 64, backgroundColor: t.accentSoft }}>
+            <View className="rounded-pill items-center justify-center mb-4" style={{ width: 64, height: 64, backgroundColor: t.accentSoft }}>
               <Ionicons name="document-text-outline" size={30} color={t.accent} />
             </View>
             <Text className="text-headline font-semibold text-label text-center mb-2">Importa el CSV de tu banco</Text>
@@ -178,9 +178,9 @@ export function CsvModal({
               Casamos cada movimiento con tus gastos por importe y fecha, te marcamos los que faltan por
               registrar y los añades de un toque.
             </Text>
-            <Pressable onPress={pick} className="rounded-[14px] py-3.5 px-6 items-center flex-row" style={{ backgroundColor: t.accent, gap: 8 }}>
+            <Pressable onPress={pick} className="rounded-lg2 py-3.5 px-6 items-center flex-row" style={{ backgroundColor: t.accent, gap: 8 }}>
               <Ionicons name="folder-open-outline" size={18} color="#fff" />
-              <Text className="text-white text-base font-semibold">Elegir archivo CSV</Text>
+              <Text className="text-white text-callout font-semibold">Elegir archivo CSV</Text>
             </Pressable>
           </View>
         )}
@@ -226,8 +226,8 @@ export function CsvModal({
                 </ScrollView>
               </View>
             ))}
-            <Pressable onPress={toReview} className="rounded-[14px] py-3.5 items-center mt-2" style={{ backgroundColor: t.accent }}>
-              <Text className="text-white text-base font-semibold">Conciliar</Text>
+            <Pressable onPress={toReview} className="rounded-lg2 py-3.5 items-center mt-2" style={{ backgroundColor: t.accent }}>
+              <Text className="text-white text-callout font-semibold">Conciliar</Text>
             </Pressable>
           </ScrollView>
         )}
@@ -296,10 +296,10 @@ export function CsvModal({
               <Pressable
                 onPress={importSelected}
                 disabled={busy || selected.size === 0}
-                className="rounded-[14px] py-3.5 items-center"
+                className="rounded-lg2 py-3.5 items-center"
                 style={{ backgroundColor: t.accent, opacity: busy || selected.size === 0 ? 0.5 : 1 }}
               >
-                {busy ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-base font-semibold">Importar {selected.size} {selected.size === 1 ? "gasto" : "gastos"}</Text>}
+                {busy ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-callout font-semibold">Importar {selected.size} {selected.size === 1 ? "gasto" : "gastos"}</Text>}
               </Pressable>
             </View>
           </View>

@@ -19,7 +19,13 @@ export function Segmented<T extends string>({
 }) {
   const t = useTheme();
   return (
-    <View className="flex-row rounded-[9px] p-0.5 mx-4 mb-3" style={{ backgroundColor: t.fill }}>
+    // El control segmentado de iOS mide 32 pt de alto y el pulgar de dentro va
+    // separado 2 pt del carril. Con menos alto el texto queda apretado y el
+    // control se lee como una fila de botones sueltos.
+    <View
+      className="flex-row rounded-ctl mx-4 mb-3"
+      style={{ backgroundColor: t.fill, padding: 2, minHeight: 32 }}
+    >
       {options.map((o) => {
         const on = o.key === value;
         return (
@@ -30,7 +36,7 @@ export function Segmented<T extends string>({
               hSelect();
               onChange(o.key);
             }}
-            className="flex-1 py-1.5 rounded-[7px] items-center"
+            className="flex-1 rounded-ctl items-center justify-center"
             style={
               on
                 ? {

@@ -7,6 +7,7 @@ import { Screen } from "@/components/Screen";
 import { Card, PhaseCard, cardShadow } from "@/components/Card";
 import { AddFab, Avatar, IconTile, Money, SectionTitle } from "@/components/ui";
 import { SwipeToDelete } from "@/components/SwipeToDelete";
+import { ListGroup, Row } from "@/components/List";
 import { SheetHeader } from "@/components/SheetHeader";
 import { UploadCard } from "@/components/UploadCard";
 import { Segmented } from "@/components/Segmented";
@@ -255,7 +256,7 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
       <Modal visible={breakdownOpen} transparent animationType="slide" onRequestClose={() => setBreakdownOpen(false)}>
         <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={() => setBreakdownOpen(false)} />
         <View
-          className="rounded-t-[14px] absolute left-0 right-0 bottom-0"
+          className="rounded-t-sheet absolute left-0 right-0 bottom-0"
           style={{ maxHeight: "80%", paddingBottom: 24, backgroundColor: t.bg }}
         >
           <SheetHeader title={`Gasto de ${monthLabel}`} onClose={() => setBreakdownOpen(false)} closeLabel="Listo" />
@@ -399,7 +400,7 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
               : "Sin movimientos en esta cuenta."}
         </Text>
       ) : (
-        <View className="bg-card rounded-lg2 mx-4 mb-3 overflow-hidden" style={cardShadow(t.dark)}>
+        <ListGroup>
           {movements.map((e, i) => {
             const joint = effectiveAccount(e) === "joint";
             const icon = joint ? "wallet" : e.shared ? "people" : "person";
@@ -415,27 +416,23 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
                   : `de ${owner}`;
             return (
               <SwipeToDelete key={e.$id} onDelete={() => remove(e.$id)}>
-              <Pressable
-                onPress={() => setEditing(e)}
-                className="flex-row items-center px-4 py-3"
-                style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}
-              >
-                <IconTile icon={icon} color={color} />
-                <View className="flex-1">
-                  <Text className="text-callout text-label">{e.concept}</Text>
-                  <Text className="text-footnote text-secondary mt-0.5">
-                    {e.paidByName} · {source}
-                    {e.category ? ` · ${e.category}` : ""}
-                  </Text>
-                </View>
-                <Money size={15} weight="500" color={t.red}>
-                  −{eur(e.amount)}
-                </Money>
-              </Pressable>
+                <Row
+                  first={i === 0}
+                  leading={<IconTile icon={icon} color={color} />}
+                  leadingWidth={32}
+                  title={e.concept}
+                  subtitle={`${e.paidByName} · ${source}${e.category ? ` · ${e.category}` : ""}`}
+                  trailing={
+                    <Money size={15} weight="500" color={t.red}>
+                      −{eur(e.amount)}
+                    </Money>
+                  }
+                  onPress={() => setEditing(e)}
+                />
               </SwipeToDelete>
             );
           })}
-        </View>
+        </ListGroup>
       )}
       <Text className="text-center text-caption1 text-tertiary mb-2">Toca un gasto para editarlo · desliza para borrarlo</Text>
 
@@ -603,7 +600,7 @@ function IncomeCard({
 
       <Modal visible={editing} transparent animationType="slide" onRequestClose={() => setEditing(false)}>
         <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={() => setEditing(false)} />
-        <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
+        <View className="rounded-t-sheet absolute left-0 right-0 bottom-0" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
           <SheetHeader
             title="Ingreso mensual"
             onClose={() => setEditing(false)}
@@ -902,7 +899,7 @@ function AddExpense({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
-      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
+      <View className="rounded-t-sheet absolute left-0 right-0 bottom-0" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
         <SheetHeader
           title={expense ? "Editar gasto" : "Nuevo gasto"}
           onClose={onClose}

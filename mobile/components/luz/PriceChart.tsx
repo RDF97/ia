@@ -12,7 +12,7 @@ function Legend({ color, label }: { color: string; label: string }) {
   return (
     <View className="flex-row items-center" style={{ gap: 5 }}>
       <View style={{ width: 9, height: 9, borderRadius: 3, backgroundColor: color }} />
-      <Text className="text-xs text-secondary">{label}</Text>
+      <Text className="text-caption1 text-secondary">{label}</Text>
     </View>
   );
 }
@@ -36,7 +36,7 @@ export function PriceChart({ prices, isToday }: { prices: number[]; isToday: boo
           <Text className="text-title2 font-bold text-label" style={{ lineHeight: 27, fontVariant: ["tabular-nums"] }}>
             {fmtKwh(prices[sel])} €/kWh
           </Text>
-          <Text className="text-xs font-bold text-white rounded-pill px-2.5 py-1" style={{ backgroundColor: tierColor(tier) }}>
+          <Text className="text-caption1 font-bold text-white rounded-pill px-2.5 py-1" style={{ backgroundColor: tierColor(tier) }}>
             {tierText(tier)}
           </Text>
         </View>

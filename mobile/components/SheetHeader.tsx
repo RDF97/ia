@@ -47,7 +47,7 @@ export function SheetHeader({
       style={{ borderBottomWidth: 0.5, borderBottomColor: t.separator }}
     >
       <Pressable onPress={close} hitSlop={8} style={{ minWidth: 64 }}>
-        <Text className="text-base" style={{ color: t.accent }}>{closeLabel}</Text>
+        <Text className="text-callout" style={{ color: t.accent }}>{closeLabel}</Text>
       </Pressable>
 
       <Text className="text-headline font-semibold text-label" numberOfLines={1} style={{ flex: 1, textAlign: "center" }}>
@@ -61,7 +61,7 @@ export function SheetHeader({
           hitSlop={8}
           style={{ minWidth: 64, alignItems: "flex-end", opacity: saving || saveDisabled ? 0.4 : 1 }}
         >
-          <Text className="text-base font-semibold" style={{ color: t.accent }}>{saveLabel}</Text>
+          <Text className="text-callout font-semibold" style={{ color: t.accent }}>{saveLabel}</Text>
         </Pressable>
       ) : (
         <View style={{ minWidth: 64 }} />

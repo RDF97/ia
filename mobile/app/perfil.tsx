@@ -7,7 +7,8 @@ import Constants from "expo-constants";
 import { useAuth } from "@/lib/auth";
 import { useHogar } from "@/lib/hogar";
 import { InviteModal } from "@/components/InviteModal";
-import { Avatar } from "@/components/ui";
+import { Avatar, type IoniconName, SectionTitle } from "@/components/ui";
+import { ListGroup, Row, RowIcon } from "@/components/List";
 import { IconPickerModal } from "@/components/IconPickerModal";
 import { Segmented } from "@/components/Segmented";
 import { getThemeChoice, setThemeChoice, THEME_OPTIONS, type ThemeChoice } from "@/lib/themePref";
@@ -22,39 +23,6 @@ import {
 } from "@/lib/appearance";
 import { useHogarIcon, usePerfilIcon, useRefreshAppearance } from "@/lib/useAppearance";
 import { useTheme } from "@/theme/theme";
-
-function Row({
-  icon,
-  color,
-  label,
-  danger,
-  onPress,
-  first,
-}: {
-  icon: React.ComponentProps<typeof Ionicons>["name"];
-  color: string;
-  label: string;
-  danger?: boolean;
-  onPress: () => void;
-  first?: boolean;
-}) {
-  const t = useTheme();
-  return (
-    <Pressable
-      onPress={onPress}
-      className="flex-row items-center px-4 py-3"
-      style={{ gap: 12, borderTopWidth: first ? 0 : 0.5, borderTopColor: t.separator }}
-    >
-      <View className="rounded-lg items-center justify-center" style={{ width: 30, height: 30, backgroundColor: color }}>
-        <Ionicons name={icon} size={15} color="#fff" />
-      </View>
-      <Text className="flex-1 text-subhead" style={{ color: danger ? t.red : t.label }}>
-        {label}
-      </Text>
-      <Ionicons name="chevron-forward" size={16} color={t.tabInactive} />
-    </Pressable>
-  );
-}
 
 export default function Perfil() {
   const t = useTheme();
@@ -203,71 +171,77 @@ export default function Perfil() {
         {/* Hogar */}
         {active && (
           <>
-            <Text className="px-4 pt-2 pb-2 text-footnote font-medium uppercase tracking-wide text-secondary">
-              Tu hogar
-            </Text>
-            <View className="bg-card rounded-lg2 mx-4 mb-3 overflow-hidden">
-              <Pressable onPress={() => setPick("hogar")} className="flex-row items-center px-4 py-3" style={{ gap: 12 }}>
-                <View className="rounded-lg items-center justify-center" style={{ width: 30, height: 30, backgroundColor: hogarIcon.color }}>
-                  <Ionicons name={hogarIcon.icon} size={15} color="#fff" />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-subhead text-label">{active.name}</Text>
-                  <Text className="text-caption1 text-secondary">
-                    {active.total} {active.total === 1 ? "miembro" : "miembros"}
-                  </Text>
-                </View>
-                <Text className="text-footnote" style={{ color: t.accent }}>Cambiar icono</Text>
-              </Pressable>
+            <SectionTitle>Tu hogar</SectionTitle>
+            <ListGroup>
+              <Row
+                first
+                leading={<RowIcon icon={hogarIcon.icon} color={hogarIcon.color} />}
+                title={active.name}
+                subtitle={`${active.total} ${active.total === 1 ? "miembro" : "miembros"}`}
+                trailing={<Text className="text-footnote" style={{ color: t.accent }}>Cambiar icono</Text>}
+                onPress={() => setPick("hogar")}
+              />
               {(members ?? []).map((m) => {
                 const isMe = m.email && user?.email ? m.email === user.email : m.name === user?.name;
                 return (
-                  <View
+                  <Row
                     key={m.id}
-                    className="flex-row items-center px-4 py-2.5"
-                    style={{ gap: 12, borderTopWidth: 0.5, borderTopColor: t.separator }}
-                  >
-                    {m.icon && m.iconColor ? (
-                      <View
-                        className="items-center justify-center"
-                        style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: m.iconColor }}
-                      >
-                        <Ionicons name={m.icon as React.ComponentProps<typeof Ionicons>["name"]} size={15} color="#fff" />
-                      </View>
-                    ) : (
-                      <Avatar name={memberLabel(m)} size={30} />
-                    )}
-                    <View className="flex-1">
-                      <Text className="text-subhead text-label">
+                    leading={
+                      m.icon && m.iconColor ? (
+                        <View
+                          className="items-center justify-center"
+                          style={{ width: 29, height: 29, borderRadius: 15, backgroundColor: m.iconColor }}
+                        >
+                          <Ionicons name={m.icon as IoniconName} size={15} color="#fff" />
+                        </View>
+                      ) : (
+                        <Avatar name={memberLabel(m)} size={29} />
+                      )
+                    }
+                    title={
+                      <Text className="text-body text-label" numberOfLines={1}>
                         {memberLabel(m)}
                         {isMe ? <Text className="text-secondary"> · tú</Text> : null}
                       </Text>
-                      {m.email ? (
-                        <Text className="text-caption1 text-secondary" numberOfLines={1}>{m.email}</Text>
+                    }
+                    subtitle={
+                      m.email ? (
+                        <Text className="text-footnote text-secondary mt-0.5" numberOfLines={1}>{m.email}</Text>
                       ) : !m.name ? (
-                        // Appwrite no nos deja leer su nombre: solo aparecerá cuando
-                        // esa persona abra la app y publique su ficha en el hogar.
-                        <Text className="text-caption1" style={{ color: t.orange }}>
-                          Aún no ha abierto esta versión · no cuenta para repartir gastos
+                        // Appwrite no nos deja leer su nombre: solo aparece cuando esa
+                        // persona abre la app y publica su ficha en el hogar.
+                        <Text className="text-footnote mt-0.5" style={{ color: t.orange }}>
+                          Aún no ha abierto esta versión
                         </Text>
-                      ) : null}
-                    </View>
-                    {!m.confirmed && (
-                      <Text className="text-caption2 font-medium" style={{ color: t.orange }}>pendiente</Text>
-                    )}
-                  </View>
+                      ) : null
+                    }
+                    trailing={
+                      !m.confirmed ? (
+                        <Text className="text-caption1 font-medium" style={{ color: t.orange }}>pendiente</Text>
+                      ) : undefined
+                    }
+                  />
                 );
               })}
-              <Row icon="person-add" color={t.green} label="Invitar a alguien" onPress={() => setInviteOpen(true)} />
-              <Row icon="exit-outline" color={t.red} label="Salir del hogar" danger onPress={confirmLeave} />
-            </View>
+              <Row
+                leading={<RowIcon icon="person-add" color={t.green} />}
+                title="Invitar a alguien"
+                chevron
+                onPress={() => setInviteOpen(true)}
+              />
+              <Row
+                leading={<RowIcon icon="exit-outline" color={t.red} />}
+                title="Salir del hogar"
+                destructive
+                chevron
+                onPress={confirmLeave}
+              />
+            </ListGroup>
           </>
         )}
 
         {/* Apariencia */}
-        <Text className="px-4 pt-2 pb-2 text-footnote font-medium uppercase tracking-wide text-secondary">
-          Apariencia
-        </Text>
+        <SectionTitle>Apariencia</SectionTitle>
         <Segmented
           value={theme}
           onChange={(k) => {
@@ -282,12 +256,17 @@ export default function Perfil() {
         </Text>
 
         {/* Sesión */}
-        <Text className="px-4 pt-2 pb-2 text-footnote font-medium uppercase tracking-wide text-secondary">
-          Cuenta
-        </Text>
-        <View className="bg-card rounded-lg2 mx-4 mb-3 overflow-hidden">
-          <Row first icon="log-out-outline" color={t.gray} label="Cerrar sesión" danger onPress={confirmLogout} />
-        </View>
+        <SectionTitle>Cuenta</SectionTitle>
+        <ListGroup>
+          <Row
+            first
+            leading={<RowIcon icon="log-out-outline" color={t.gray} />}
+            title="Cerrar sesión"
+            destructive
+            chevron
+            onPress={confirmLogout}
+          />
+        </ListGroup>
 
         <Text className="text-center text-caption1 text-tertiary mt-4">
           Homie v{Constants.expoConfig?.version ?? "0.1.0"} · hecho con ♥

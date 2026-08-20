@@ -341,7 +341,7 @@ function ShopRow({
       <Pressable
         onPress={onToggle}
         hitSlop={8}
-        className="items-center justify-center rounded-full"
+        className="items-center justify-center rounded-pill"
         style={{ width: 22, height: 22, backgroundColor: item.done ? t.accent : "transparent", borderWidth: item.done ? 0 : 1.7, borderColor: t.labelTertiary }}
       >
         {item.done && <Ionicons name="checkmark" size={13} color="#fff" />}
@@ -406,7 +406,7 @@ function PricePrompt({
   return (
     <Modal visible={item !== null} transparent animationType="slide" onRequestClose={onCancel}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onCancel} />
-      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
+      <View className="rounded-t-sheet absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
         <Text className="text-headline font-semibold mb-1 text-label">¿A cuánto lo has comprado?</Text>
         <Text className="text-footnote text-secondary mb-4">
           {item?.name} · alimenta la base de precios para comparar supermercados.
@@ -432,10 +432,10 @@ function PricePrompt({
         <Pressable
           onPress={() => finish(true)}
           disabled={busy}
-          className="rounded-[14px] py-3.5 items-center"
+          className="rounded-lg2 py-3.5 items-center"
           style={{ backgroundColor: t.accent, opacity: busy ? 0.6 : 1 }}
         >
-          {busy ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-base font-semibold">Guardar precio</Text>}
+          {busy ? <ActivityIndicator color="#fff" /> : <Text className="text-white text-callout font-semibold">Guardar precio</Text>}
         </Pressable>
         <Pressable onPress={() => finish(false)} disabled={busy} className="mt-3 items-center py-1">
           <Text className="text-subhead" style={{ color: t.accent }}>Omitir · solo marcar comprado</Text>

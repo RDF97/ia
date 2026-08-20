@@ -57,7 +57,7 @@ export function InviteModal({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
-      <View className="rounded-t-[14px] absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
+      <View className="rounded-t-sheet absolute left-0 right-0 bottom-0 p-5" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
         <Text className="text-headline font-semibold mb-1 text-label">Invitar al hogar</Text>
         <Text className="text-footnote text-secondary mb-4">
           Crea un código y compártelo por WhatsApp. El mensaje incluye el enlace para descargar
@@ -68,7 +68,7 @@ export function InviteModal({
           <Pressable
             onPress={generate}
             disabled={busy}
-            className="rounded-[14px] py-3.5 items-center flex-row justify-center"
+            className="rounded-lg2 py-3.5 items-center flex-row justify-center"
             style={{ backgroundColor: t.accent, gap: 8, opacity: busy ? 0.6 : 1 }}
           >
             {busy ? (
@@ -76,7 +76,7 @@ export function InviteModal({
             ) : (
               <>
                 <Ionicons name="link" size={18} color="#fff" />
-                <Text className="text-white text-base font-semibold">Crear enlace de invitación</Text>
+                <Text className="text-white text-callout font-semibold">Crear enlace de invitación</Text>
               </>
             )}
           </Pressable>
@@ -90,11 +90,11 @@ export function InviteModal({
             </View>
             <Pressable
               onPress={share}
-              className="rounded-[14px] py-3.5 items-center flex-row justify-center"
+              className="rounded-lg2 py-3.5 items-center flex-row justify-center"
               style={{ backgroundColor: t.accent, gap: 8 }}
             >
               <Ionicons name="share-social" size={18} color="#fff" />
-              <Text className="text-white text-base font-semibold">Compartir enlace</Text>
+              <Text className="text-white text-callout font-semibold">Compartir enlace</Text>
             </Pressable>
             <Pressable onPress={generate} disabled={busy} className="mt-3 items-center py-1">
               <Text className="text-subhead" style={{ color: t.accent }}>Crear otro código</Text>
