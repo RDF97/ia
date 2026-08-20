@@ -228,7 +228,12 @@ function CategoryEditor({
   return (
     <Modal visible={target !== null} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
-      <View className="rounded-t-sheet absolute left-0 right-0 bottom-0" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
+      {/* Con la paleta y los iconos ampliados la hoja se pasaría de alto y la
+          cuadrícula se saldría por arriba: con el tope, el ScrollView scrollea. */}
+      <View
+        className="rounded-t-sheet absolute left-0 right-0 bottom-0"
+        style={{ maxHeight: "88%", paddingBottom: 32 + kb, backgroundColor: t.bg }}
+      >
         <SheetHeader
           title={isNew ? "Nueva categoría" : "Editar categoría"}
           onClose={onClose}
@@ -271,8 +276,23 @@ function CategoryEditor({
         <Text className="text-caption1 font-medium uppercase tracking-wide text-secondary mb-2">Color</Text>
         <View className="flex-row flex-wrap mb-4" style={{ gap: 10 }}>
           {CATEGORY_COLORS.map((c) => (
-            <Pressable key={c} onPress={() => setColor(c)} style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: c, alignItems: "center", justifyContent: "center" }}>
-              {c === color && <Ionicons name="checkmark" size={16} color="#fff" />}
+            <Pressable
+              key={c}
+              onPress={() => setColor(c)}
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 19,
+                backgroundColor: c,
+                alignItems: "center",
+                justifyContent: "center",
+                // El borde marca cuál está elegido también cuando el color es
+                // claro y el check blanco se pierde encima.
+                borderWidth: c === color ? 3 : 0,
+                borderColor: t.label,
+              }}
+            >
+              {c === color && <Ionicons name="checkmark" size={17} color="#fff" />}
             </Pressable>
           ))}
         </View>

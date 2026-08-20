@@ -27,15 +27,62 @@ export const DEFAULT_CATEGORIES: { name: string; color: string; icon: string }[]
   { name: "Otros", color: "#8E8E93", icon: "ellipsis-horizontal" },
 ];
 
-// Paletas para el editor.
+/**
+ * Paleta del editor de categorías, ordenada por tono (verdes → turquesas →
+ * azules → morados → rosas → rojos → naranjas → tierra → neutros) para que la
+ * cuadrícula se lea como un degradado y no como una bolsa de colores sueltos.
+ *
+ * Los tonos añadidos van oscurecidos para que el icono blanco de encima se lea
+ * (3:1 o más). Los cinco claros que quedan por debajo —#34C759, #5AC8FA,
+ * #FF9500, #00C7BE y #E67E22— se quedan a propósito: los cuatro primeros son
+ * colores de sistema de Apple que ya usan las categorías por defecto, y es lo
+ * que hace iOS en sus iconos de Ajustes. El amarillo puro sí se queda fuera:
+ * ahí el blanco directamente no se ve.
+ */
 export const CATEGORY_COLORS = [
-  "#34C759", "#30D158", "#5AC8FA", "#007AFF", "#5856D6", "#AF52DE",
-  "#FF2D55", "#FF3B30", "#FF9500", "#FFCC00", "#8E8E93", "#1F4D52",
+  // Verdes y turquesas
+  "#1F8C4D", "#34C759", "#2E7D32", "#5B8C00", "#00796B", "#00C7BE",
+  "#1F4D52", "#2A6E75",
+  // Azules
+  "#5AC8FA", "#0A84FF", "#007AFF", "#0055B8", "#1B3A6B", "#3F7CAC",
+  // Morados y rosas
+  "#5856D6", "#7D5FFF", "#AF52DE", "#BF5AF2", "#8E44AD", "#C2185B",
+  "#FF2D55", "#D81B60",
+  // Rojos, naranjas y dorados
+  "#FF3B30", "#C0392B", "#E05A2B", "#FF9500", "#E67E22", "#A67C00",
+  // Tierra y neutros
+  "#A2845E", "#6D4C41", "#5D4037", "#7D6608", "#48484A", "#8E8E93",
 ];
+
+/**
+ * Iconos del editor, agrupados por el tipo de gasto que suele nombrar cada uno:
+ * casa y suministros, comida, transporte, salud, ocio, compras, dinero y viajes.
+ * Buscar el icono de "gimnasio" o el de "farmacia" tiene que ser mirar donde
+ * corresponde, no recorrer una lista suelta.
+ */
 export const CATEGORY_ICONS = [
-  "cart", "flash", "home", "game-controller", "car", "restaurant",
-  "medkit", "gift", "paw", "fitness", "airplane", "school",
-  "shirt", "cafe", "wifi", "ellipsis-horizontal",
+  // Casa y suministros
+  "home", "bed", "flash", "water", "flame", "wifi",
+  "tv", "hammer", "construct", "bulb", "trash", "leaf",
+  // Comida
+  "cart", "basket", "restaurant", "fast-food", "cafe", "pizza",
+  "beer", "wine", "ice-cream", "nutrition",
+  // Transporte
+  "car", "car-sport", "bus", "train", "subway", "bicycle",
+  "airplane", "boat", "walk",
+  // Salud y cuidado personal
+  "medkit", "bandage", "fitness", "barbell", "heart", "cut",
+  // Ocio y cultura
+  "game-controller", "musical-notes", "film", "football", "basketball", "tennisball",
+  "book", "school", "library", "camera", "headset", "ticket",
+  // Compras y servicios
+  "shirt", "bag-handle", "storefront", "gift", "paw", "briefcase",
+  "phone-portrait", "laptop", "print", "shield",
+  // Dinero
+  "card", "cash", "wallet", "pricetag", "trending-up", "receipt",
+  // Viajes y varios
+  "earth", "map", "umbrella", "sunny", "snow", "star",
+  "ellipsis-horizontal",
 ];
 
 export const normalizeName = (name: string): string => name.trim().replace(/\s+/g, " ");
