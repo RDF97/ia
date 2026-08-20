@@ -50,6 +50,10 @@ const SCHEMA = {
   },
 };
 
+// Tope por modelo. Sin esto, un modelo que se cuelga se lleva por delante todo
+// el tiempo de la función y el usuario ve una respuesta vacía sin explicación.
+const MODEL_TIMEOUT_MS = 25_000;
+
 function callGemini(model, base64, mime, apiKey) {
   const payload = JSON.stringify({
     contents: [
@@ -77,11 +81,17 @@ function callGemini(model, base64, mime, apiKey) {
         r.on("end", () => resolve(d));
       },
     );
+    req.setTimeout(MODEL_TIMEOUT_MS, () => {
+      req.destroy(new Error(`sin respuesta en ${MODEL_TIMEOUT_MS / 1000} s`));
+    });
     req.on("error", reject);
     req.write(payload);
     req.end();
   });
 }
+
+/** Tamaño aproximado en KB de una cadena base64, para poder decirlo si falla. */
+const kb = (b64) => Math.round((b64.length * 3) / 4 / 1024);
 
 export default async ({ req, res, log, error }) => {
   try {
@@ -98,7 +108,12 @@ export default async ({ req, res, log, error }) => {
     if (!image) return res.json({ ok: false, error: "no-image" }, 400);
 
     const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) return res.json({ ok: false, error: "no-key" }, 500);
+    if (!apiKey) {
+      return res.json(
+        { ok: false, error: "no-key", detail: "La variable GEMINI_API_KEY no está puesta en la función." },
+        500,
+      );
+    }
 
     const mime = body.mime || "image/jpeg";
     const preferred = (process.env.GEMINI_MODEL || "").split(",").map((s) => s.trim()).filter(Boolean);
@@ -156,10 +171,12 @@ export default async ({ req, res, log, error }) => {
       });
     }
 
-    error(`Ningún modelo funcionó. Último: ${lastDetail}`);
-    return res.json({ ok: false, error: "ocr", detail: lastDetail }, 502);
+    const resumen = `Probados: ${models.join(", ")}. Último fallo → ${lastDetail}. Imagen ~${kb(image)} KB.`;
+    error(`Ningún modelo funcionó. ${resumen}`);
+    return res.json({ ok: false, error: "ocr", detail: resumen }, 502);
   } catch (e) {
-    error(e?.message || String(e));
-    return res.json({ ok: false, error: "ocr" }, 500);
+    const detail = e?.message || String(e);
+    error(detail);
+    return res.json({ ok: false, error: "ocr", detail }, 500);
   }
 };

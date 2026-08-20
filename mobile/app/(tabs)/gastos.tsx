@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Modal, Platform, Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
@@ -31,6 +31,7 @@ import {
   budgetStatus,
   budgetTotals,
   getBudgetEnabled,
+  normalizeName,
   setBudgetEnabled,
   type Category,
   type CategorySpend,
@@ -40,6 +41,8 @@ import { useKeyboardHeight } from "@/lib/useKeyboard";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 const eur = (v: number) => `${v.toFixed(2).replace(".", ",")} €`;
+/** Ancho de la tarjeta de categoría del carrusel. */
+const CAT_CARD_W = 152;
 const MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
 export default function Gastos() {
@@ -88,6 +91,7 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
     getBudgetEnabled(hogarId).then(setBudgetOn).catch(() => undefined);
   }, [hogarId]);
 
+
   const toggleBudget = (on: boolean) => {
     setBudgetOn(on);
     setBudgetEnabled(hogarId, on).catch(() => setBudgetOn(!on));
@@ -101,30 +105,81 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
     ]);
   const all = expenses ?? [];
   const cats = categories ?? [];
-  const monthDate = new Date(month.y, month.m, 15);
+
+  // TODO lo que sigue se recalculaba en cada render, y esta pantalla se repinta
+  // con cada tecla que escribes en cualquiera de sus hojas. Con doscientos gastos
+  // eso son varios recorridos completos de la lista por pulsación, y se nota.
+  // Memoizado, solo se rehace cuando cambian los datos de verdad.
+  const memberKey = memberNames.join("|");
+  const monthDate = useMemo(() => new Date(month.y, month.m, 15), [month.y, month.m]);
+
   // Solo los gastos del mes que se está viendo.
-  const list = all.filter((e) => {
-    const d = new Date(expenseDate(e));
-    return d.getFullYear() === month.y && d.getMonth() === month.m;
-  });
-  const total = list.reduce((s, e) => s + e.amount, 0);
-  const bal = balances(all, members, settlements ?? [], memberNames);
-  const accTotals = accountTotals(list, monthDate);
+  const list = useMemo(
+    () =>
+      all.filter((e) => {
+        const d = new Date(expenseDate(e));
+        return d.getFullYear() === month.y && d.getMonth() === month.m;
+      }),
+    [all, month.y, month.m],
+  );
+  const total = useMemo(() => list.reduce((s, e) => s + e.amount, 0), [list]);
+  const bal = useMemo(
+    () => balances(all, members, settlements ?? [], memberNames),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [all, members, settlements, memberKey],
+  );
+  const accTotals = useMemo(() => accountTotals(list, monthDate), [list, monthDate]);
   // Gasto individual DE CADA UNO: se atribuye a su titular, no a quien lo pagó.
-  const perPerson = individualByPerson(list, memberNames.length ? memberNames : [userName]);
-  const people = Object.keys(perPerson).sort((a, b) => (a === userName ? -1 : b === userName ? 1 : a.localeCompare(b)));
+  const perPerson = useMemo(
+    () => individualByPerson(list, memberNames.length ? memberNames : [userName]),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [list, memberKey, userName],
+  );
+  const people = useMemo(
+    () =>
+      Object.keys(perPerson).sort((a, b) => (a === userName ? -1 : b === userName ? 1 : a.localeCompare(b))),
+    [perPerson, userName],
+  );
   // Lo que sale del bolsillo de cada uno este mes: su parte de la cuenta
   // conjunta más lo que es suyo. Es la cifra que se descuenta de su ingreso.
   const myJointShare = members > 0 ? accTotals.joint / members : 0;
-  const shareByPerson: Record<string, number> = {};
-  for (const [name, own] of Object.entries(perPerson)) shareByPerson[name] = own + myJointShare;
-  const byAccount = filter === "all" ? list : list.filter((e) => effectiveAccount(e) === filter);
-  const byCat = catFilter ? byAccount.filter((e) => e.category === catFilter) : byAccount;
-  const movements = who ? byCat.filter((e) => expenseInvolves(e, who)) : byCat;
+  const shareByPerson = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const [name, own] of Object.entries(perPerson)) out[name] = own + myJointShare;
+    return out;
+  }, [perPerson, myJointShare]);
 
-  const rows = budgetStatus(cats, list, monthDate);
-  const budgeted = rows.filter((r) => r.hasBudget);
-  const totals = budgetTotals(rows);
+  const movements = useMemo(() => {
+    const byAccount = filter === "all" ? list : list.filter((e) => effectiveAccount(e) === filter);
+    // Ojo: `budgetStatus` agrega por nombre normalizado y en minúsculas, así que
+    // aquí hay que comparar igual. Si no, una tarjeta puede decir 80 € y la lista
+    // salir vacía por una mayúscula o un espacio de más.
+    const catKey = catFilter ? normalizeName(catFilter).toLowerCase() : null;
+    const byCat = catKey
+      ? byAccount.filter((e) => normalizeName(e.category ?? "").toLowerCase() === catKey)
+      : byAccount;
+    return who ? byCat.filter((e) => expenseInvolves(e, who)) : byCat;
+  }, [list, filter, catFilter, who]);
+
+  const rows = useMemo(() => budgetStatus(cats, list, monthDate), [cats, list, monthDate]);
+  // Se muestran las categorías donde HA HABIDO gasto este mes, de mayor a menor.
+  // Antes se listaban las que tenían presupuesto asignado, que es otra cosa: una
+  // categoría con límite y cero gasto ocupaba sitio, y en la que más te has
+  // gastado no salía por no tener límite puesto.
+  const spentRows = useMemo(
+    () => rows.filter((r) => r.spent > 0).sort((a, b) => b.spent - a.spent),
+    [rows],
+  );
+  const totals = useMemo(() => budgetTotals(rows), [rows]);
+  // Si la categoría filtrada deja de estar en pantalla (cambias de mes, o la
+  // borras), el filtro se quedaba activo sin nada que lo indicara ni forma de
+  // quitarlo: la lista salía vacía y parecía que no había gastos.
+  // Se depende de un booleano y no de `spentRows`: el array es nuevo en cada
+  // render y haría que el efecto se reevaluara sin parar para nada.
+  const catFilterVisible = !catFilter || spentRows.some((r) => r.name === catFilter);
+  useEffect(() => {
+    if (!catFilterVisible) setCatFilter(null);
+  }, [catFilterVisible]);
   const monthLabel = MONTHS[month.m];
   const isCurrentMonth = month.y === new Date().getFullYear() && month.m === new Date().getMonth();
   const shiftMonth = (delta: number) =>
@@ -307,17 +362,18 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
         monthLabel={monthLabel}
       />
 
-      {budgetOn && (
-        <BudgetSection
-          rows={budgeted}
-          totals={totals}
-          monthLabel={monthLabel}
-          hasCategories={cats.length > 0}
-          onManage={() => setBudgetOpen(true)}
-          selected={catFilter}
-          onSelect={setCatFilter}
-        />
-      )}
+      <BudgetSection
+        rows={spentRows}
+        totals={totals}
+        monthLabel={monthLabel}
+        hasCategories={cats.length > 0}
+        // La tarjeta grande solo tiene sentido si hay algún límite puesto: si no,
+        // saldría un "0,00 € de 0,00 €" que no dice nada.
+        showBudgetCard={budgetOn && totals.budget > 0}
+        onManage={() => setBudgetOpen(true)}
+        selected={catFilter}
+        onSelect={setCatFilter}
+      />
 
       {bal.length > 0 && (
         <>
@@ -341,7 +397,12 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
         </>
       )}
 
-      <SectionTitle>Movimientos recientes</SectionTitle>
+      <SectionTitle
+        action={catFilter ? "Quitar filtro" : undefined}
+        onAction={() => setCatFilter(null)}
+      >
+        {catFilter ? `Movimientos · ${catFilter}` : "Movimientos recientes"}
+      </SectionTitle>
       {list.length > 0 && (
         <>
           <Segmented
@@ -634,14 +695,18 @@ function BudgetSection({
   totals,
   monthLabel,
   hasCategories,
+  showBudgetCard,
   onManage,
   selected,
   onSelect,
 }: {
+  /** Categorías CON gasto este mes, de mayor a menor. */
   rows: CategorySpend[];
   totals: { budget: number; spent: number };
   monthLabel: string;
   hasCategories: boolean;
+  /** Hay algún límite puesto: se pinta la tarjeta grande de presupuesto. */
+  showBudgetCard: boolean;
   onManage: () => void;
   /** Categoría por la que se están filtrando los movimientos. */
   selected: string | null;
@@ -649,17 +714,53 @@ function BudgetSection({
 }) {
   const t = useTheme();
   const stateColor = (s: CategorySpend["state"]) => (s === "over" ? t.red : s === "warn" ? t.orange : t.accent);
+  // Sin límite no hay porcentaje que enseñar, así que la barra compara con la
+  // categoría en la que más se ha gastado. Da la misma lectura de un vistazo
+  // ("en esto es donde se va el dinero") sin inventarse un presupuesto.
+  const maxSpent = rows.reduce((m, r) => Math.max(m, r.spent), 0);
+
+  // La tarjeta grande se calcula antes del corte por lista vacía: si no, un mes
+  // sin gastos con categoría escondía también el presupuesto, y quien tiene
+  // límites puestos dejaba de ver cuánto le queda justo cuando más sirve.
+  const totalPct = totals.budget > 0 ? totals.spent / totals.budget : 0;
+  const totalCol = totals.spent > totals.budget ? t.red : totalPct >= 0.85 ? t.orange : t.accent;
+  const remaining = totals.budget - totals.spent;
+  const budgetCard = showBudgetCard ? (
+    <View className="bg-card rounded-card mx-4 mb-3 p-4" style={cardShadow(t.dark)}>
+      <View className="flex-row items-end justify-between mb-3.5">
+        <View>
+          <Text className="text-caption1 text-secondary mb-1" style={{ textTransform: "uppercase", letterSpacing: 0.4 }}>
+            Presupuesto · {monthLabel}
+          </Text>
+          <Text className="text-title2 font-bold text-label" style={{ letterSpacing: -0.5, fontVariant: ["tabular-nums"] }}>
+            {eur(totals.spent)}
+          </Text>
+        </View>
+        <Text className="text-subhead text-secondary mb-1">de {eur(totals.budget)}</Text>
+      </View>
+      <ProgressBar pct={totalPct} color={totalCol} />
+      <View className="flex-row justify-between mt-2">
+        <Text className="text-caption1 text-secondary">{Math.round(totalPct * 100)}% usado</Text>
+        <Text className="text-caption1" style={{ color: remaining < 0 ? t.red : t.labelSecondary }}>
+          {remaining >= 0 ? `${eur(remaining)} restantes` : `${eur(-remaining)} de más`}
+        </Text>
+      </View>
+    </View>
+  ) : null;
 
   if (rows.length === 0) {
     return (
       <>
-        <SectionTitle>Presupuesto · {monthLabel}</SectionTitle>
+        {budgetCard}
+        <SectionTitle>Por categoría · {monthLabel}</SectionTitle>
         <Pressable onPress={onManage} className="bg-card rounded-lg2 mx-4 mb-3 px-4 py-3 flex-row items-center" style={{ gap: 12, ...cardShadow(t.dark) }}>
           <View className="rounded-lg items-center justify-center" style={{ width: 30, height: 30, backgroundColor: t.accent }}>
             <Ionicons name="pie-chart" size={16} color="#fff" />
           </View>
           <Text className="flex-1 text-subhead text-secondary">
-            {hasCategories ? "Ponle un límite mensual a tus categorías" : "Crea categorías para empezar a presupuestar"}
+            {hasCategories
+              ? "Sin gasto por categoría este mes. Ponle categoría a un gasto y aparecerá aquí."
+              : "Crea categorías para ver en qué se te va el dinero"}
           </Text>
           <Ionicons name="chevron-forward" size={16} color={t.tabInactive} />
         </Pressable>
@@ -667,29 +768,9 @@ function BudgetSection({
     );
   }
 
-  const totalPct = totals.budget > 0 ? totals.spent / totals.budget : 0;
-  const totalCol = totals.spent > totals.budget ? t.red : totalPct >= 0.85 ? t.orange : t.accent;
-  const remaining = totals.budget - totals.spent;
-
   return (
     <>
-      {/* Tarjeta grande "presupuesto mensual" (como el mockup) */}
-      <View className="bg-card rounded-card mx-4 mb-3 p-4" style={cardShadow(t.dark)}>
-        <View className="flex-row items-end justify-between mb-3.5">
-          <View>
-            <Text className="text-caption1 text-secondary mb-1" style={{ textTransform: "uppercase", letterSpacing: 0.4 }}>Presupuesto · {monthLabel}</Text>
-            <Text className="text-title2 font-bold text-label" style={{ letterSpacing: -0.5, fontVariant: ["tabular-nums"] }}>{eur(totals.spent)}</Text>
-          </View>
-          <Text className="text-subhead text-secondary mb-1">de {eur(totals.budget)}</Text>
-        </View>
-        <ProgressBar pct={totalPct} color={totalCol} />
-        <View className="flex-row justify-between mt-2">
-          <Text className="text-caption1 text-secondary">{Math.round(totalPct * 100)}% usado</Text>
-          <Text className="text-caption1" style={{ color: remaining < 0 ? t.red : t.labelSecondary }}>
-            {remaining >= 0 ? `${eur(remaining)} restantes` : `${eur(-remaining)} de más`}
-          </Text>
-        </View>
-      </View>
+      {budgetCard}
 
       <View className="flex-row items-center justify-between px-4 pt-4 pb-2">
         <Text
@@ -707,18 +788,33 @@ function BudgetSection({
           <Text className="text-footnote font-semibold" style={{ color: t.accent }}>Editar</Text>
         </Pressable>
       </View>
-      <View className="flex-row flex-wrap mx-4 mb-2" style={{ gap: 8 }}>
+      {/* Carrusel horizontal: la rejilla de dos columnas crecía hacia abajo y con
+          seis categorías se comía la pantalla entera. En horizontal ocupa una
+          fila fija, se recorre deslizando y la siguiente tarjeta asoma para que
+          se vea que hay más. El paso del snap incluye la separación, si no el
+          carrusel se va desalineando tarjeta a tarjeta. */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={CAT_CARD_W + 10}
+        decelerationRate="fast"
+        // paddingVertical y no solo abajo: cardShadow usa un radio de 10 y sin
+        // holgura arriba la sombra se recorta y la tira se ve cortada.
+        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 4, gap: 10 }}
+      >
         {rows.map((r) => {
-          const col = stateColor(r.state);
+          const col = r.hasBudget ? stateColor(r.state) : r.color;
           const on = selected === r.name;
+          // Con límite, la barra es el % consumido. Sin él, cuánto pesa esta
+          // categoría frente a la que más se lleva este mes.
+          const pct = r.hasBudget ? r.pct : maxSpent > 0 ? r.spent / maxSpent : 0;
           return (
             <Pressable
               key={r.$id}
               onPress={() => onSelect(on ? null : r.name)}
               className="bg-card rounded-lg2 p-3"
               style={{
-                flexGrow: 1,
-                flexBasis: "46%",
+                width: CAT_CARD_W,
                 borderWidth: on ? 1.5 : 0,
                 borderColor: on ? r.color : "transparent",
                 ...cardShadow(t.dark),
@@ -731,13 +827,21 @@ function BudgetSection({
                 <Text className="text-footnote font-medium text-label" numberOfLines={1} style={{ flex: 1 }}>{r.name}</Text>
               </View>
               <Text className="text-subhead font-semibold text-label mb-1.5" style={{ fontVariant: ["tabular-nums"], letterSpacing: -0.2 }}>
-                {eur(r.spent)} <Text className="text-caption1 text-secondary font-normal">/ {eur(r.budget)}</Text>
+                {eur(r.spent)}
+                {r.hasBudget ? (
+                  <Text className="text-caption1 text-secondary font-normal"> / {eur(r.budget)}</Text>
+                ) : null}
               </Text>
-              <ProgressBar pct={r.pct} color={col} />
+              <ProgressBar pct={pct} color={col} />
+              {!r.hasBudget && (
+                <Text className="text-caption2 text-tertiary mt-1.5" numberOfLines={1}>
+                  sin límite
+                </Text>
+              )}
             </Pressable>
           );
         })}
-      </View>
+      </ScrollView>
     </>
   );
 }

@@ -39,11 +39,20 @@ export async function ensureNotificationPermissions(): Promise<boolean> {
   return req.granted;
 }
 
-/** Programa una notificación local para una fecha concreta. Devuelve su id o null si la fecha ya pasó. */
+/**
+ * Programa una notificación local para una fecha concreta. Devuelve su id, o
+ * null si la fecha ya pasó.
+ *
+ * El canal se puede elegir: en Android es lo que decide en qué grupo de los
+ * ajustes del sistema cae el aviso. Tareas y eventos van al canal del hogar; si
+ * fueran todos por el de la luz, silenciar los precios de la luz silenciaría
+ * también los recordatorios de las tareas.
+ */
 export async function scheduleAt(
   date: Date,
   title: string,
   body: string,
+  channel: string = "luz",
 ): Promise<string | null> {
   if (date.getTime() <= Date.now() + 5000) return null;
   return Notifications.scheduleNotificationAsync({
@@ -51,7 +60,7 @@ export async function scheduleAt(
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DATE,
       date,
-      channelId: Platform.OS === "android" ? "luz" : undefined,
+      channelId: Platform.OS === "android" ? channel : undefined,
     },
   });
 }

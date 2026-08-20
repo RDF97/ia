@@ -54,6 +54,31 @@ export async function addEvent(
   }
 }
 
+/**
+ * Edita un evento. `endAt`/`allDay` van aparte porque puede que la colección
+ * todavía no los tenga: si se mandan y no existen, Appwrite rechaza el
+ * documento entero y se perdería también el cambio de título o de hora.
+ */
+export async function updateEvent(
+  id: string,
+  data: { title: string; startAt: string; place?: string | null; endAt?: string | null; allDay?: boolean },
+): Promise<Event> {
+  const base = {
+    title: data.title,
+    startAt: data.startAt,
+    place: data.place || null,
+  };
+  try {
+    return await databases.updateDocument<Event>(DB_ID, EVENTS_COL, id, {
+      ...base,
+      endAt: data.endAt ?? null,
+      allDay: data.allDay ?? false,
+    });
+  } catch {
+    return databases.updateDocument<Event>(DB_ID, EVENTS_COL, id, base);
+  }
+}
+
 export async function deleteEvent(id: string): Promise<void> {
   await databases.deleteDocument(DB_ID, EVENTS_COL, id);
 }
@@ -99,13 +124,15 @@ export function eventDays(e: Span): string[] {
 /** ¿Cae este día dentro del evento? (vale también para los de varios días) */
 export const eventCoversDay = (e: Span, day: Date): boolean => eventDays(e).includes(ymd(day));
 
-export function eventsOfDay(events: Event[], day: Date): Event[] {
+// Genéricas sobre `Span` (lo único que miran es startAt/endAt) para que valgan
+// igual con eventos y con la agenda mezclada de eventos y tareas.
+export function eventsOfDay<T extends Span>(events: T[], day: Date): T[] {
   return events
     .filter((e) => eventCoversDay(e, day))
     .sort((a, b) => a.startAt.localeCompare(b.startAt));
 }
 
-export function daysWithEvents(events: Event[]): Set<string> {
+export function daysWithEvents<T extends Span>(events: T[]): Set<string> {
   const out = new Set<string>();
   for (const e of events) for (const d of eventDays(e)) out.add(d);
   return out;

@@ -8,6 +8,7 @@ import { useKeyboardHeight } from "@/lib/useKeyboard";
 import { Toggle } from "@/components/Toggle";
 import { Avatar, AvatarStack } from "@/components/ui";
 import { REPEAT_OPTIONS, type Repeat } from "@/lib/taskLogic";
+import { DEFAULT_LEAD, LEAD_OPTIONS, normalizeLead } from "@/lib/leadTime";
 import { createTask, deleteTask, updateTask, type Task } from "@/lib/tasks";
 import { ensureNotificationPermissions } from "@/lib/notifications";
 
@@ -41,6 +42,8 @@ export function TaskEditor({
   });
   const [repeat, setRepeat] = useState<Repeat>("none");
   const [notify, setNotify] = useState(false);
+  // Antelación del aviso, por tarea (los eventos la tienen global).
+  const [lead, setLead] = useState<number>(DEFAULT_LEAD);
   const [picker, setPicker] = useState<null | "date" | "time" | "until">(null);
   const [busy, setBusy] = useState(false);
   // Fecha límite de la repetición (p. ej. el ING se repite cada mes hasta septiembre).
@@ -58,6 +61,7 @@ export function TaskEditor({
       setAssigned(task.assignedToName ?? null);
       setRepeat(task.repeat ?? "none");
       setNotify(task.notify ?? false);
+      setLead(normalizeLead(task.notifyLead));
       if (task.dueAt) {
         setHasDate(true);
         setWhen(new Date(task.dueAt));
@@ -75,6 +79,7 @@ export function TaskEditor({
       setAssigned(null);
       setRepeat("none");
       setNotify(false);
+      setLead(DEFAULT_LEAD);
       setHasDate(false);
       setHasUntil(false);
       const d = new Date();
@@ -107,6 +112,7 @@ export function TaskEditor({
         repeat: hasDate ? repeat : "none",
         repeatUntil: repeats && hasUntil ? until.toISOString() : null,
         notify: hasDate ? notify : false,
+        notifyLead: hasDate && notify ? lead : DEFAULT_LEAD,
       } as const;
       if (task) await updateTask(task.$id, payload);
       else await createTask(hogarId, { createdByName: userName, ...payload });
@@ -248,9 +254,27 @@ export function TaskEditor({
               {/* Aviso */}
               <View className="bg-card rounded-lg2 px-4 py-3 mb-2 flex-row items-center" style={{ gap: 12 }}>
                 <Ionicons name="notifications-outline" size={19} color={t.accent} />
-                <Text className="flex-1 text-subhead text-label">Avisarme a esa hora</Text>
+                <Text className="flex-1 text-subhead text-label">Avisarme</Text>
                 <Toggle value={notify} onChange={setNotify} />
               </View>
+
+              {notify && (
+                <>
+                  <Text className="text-caption1 font-medium uppercase tracking-wide text-secondary mb-2 mt-1">
+                    Con cuánta antelación
+                  </Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    className="mb-2"
+                    contentContainerStyle={{ gap: 8, paddingRight: 8 }}
+                  >
+                    {LEAD_OPTIONS.map((o) => (
+                      <Chip key={o.key} on={lead === o.key} label={o.label} onPress={() => setLead(o.key)} />
+                    ))}
+                  </ScrollView>
+                </>
+              )}
             </>
           )}
 

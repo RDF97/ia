@@ -1,5 +1,7 @@
 // Lógica pura de tareas (fechas, recurrencia y recordatorios). Testeable sin backend.
 
+import { normalizeLead } from "./leadTime";
+
 export type Repeat = "none" | "daily" | "weekdays" | "weekly" | "monthly";
 
 export const REPEAT_OPTIONS: { key: Repeat; label: string }[] = [
@@ -91,7 +93,8 @@ export interface TaskReminder {
   date: Date;
   title: string;
   body: string;
-  sig: string; // firma para detectar cambios (fecha + título)
+  /** Firma para detectar cambios: fecha, título y antelación. */
+  sig: string;
 }
 
 type TaskLike = {
@@ -100,23 +103,63 @@ type TaskLike = {
   done: boolean;
   dueAt?: string | null;
   notify?: boolean;
+  /** Minutos de antelación del aviso. Ausente = a la hora. */
+  notifyLead?: number | null;
+  repeat?: Repeat;
+  repeatUntil?: string | null;
   assignedToName?: string | null;
 };
 
 /**
  * Recordatorios que ESTE dispositivo debe programar: tareas con aviso y fecha
  * futura, sin completar, que estén sin asignar o asignadas a mí.
+ *
+ * El aviso salta `notifyLead` minutos ANTES de la hora de la tarea. Lo que se
+ * comprueba para descartarlo es la hora del AVISO, no la de la tarea: una tarea
+ * dentro de media hora con "1 h antes" ya no llega a tiempo, y programarla
+ * generaría un aviso que `scheduleAt` rechaza y que se reintentaría en cada
+ * sincronización.
  */
 export function taskReminderPlan(tasks: TaskLike[], myName: string, now: Date = new Date()): TaskReminder[] {
   const out: TaskReminder[] = [];
   for (const t of tasks) {
     if (!t.notify || t.done || !t.dueAt) continue;
-    const date = new Date(t.dueAt);
-    if (date.getTime() <= now.getTime()) continue;
+    let dueISO = t.dueAt;
+    let due = new Date(dueISO);
+    if (!isFinite(due.getTime())) continue;
+    const lead = normalizeLead(t.notifyLead);
+    let when = new Date(due.getTime() - lead * 60_000);
+
+    // Si el aviso de esta ocurrencia ya pasó pero la tarea se repite, se salta a
+    // la primera cuyo aviso siga llegando a tiempo. Sin esto, una tarea diaria
+    // con "1 día antes" no avisaba NUNCA: cada vez que rueda, su aviso queda ya
+    // vencido, así que se descartaba una y otra vez.
+    const repeat = t.repeat ?? "none";
+    for (let guard = 0; when.getTime() <= now.getTime() && repeat !== "none" && guard < 750; guard++) {
+      const next = nextDue(dueISO, repeat);
+      if (!next) break;
+      if (t.repeatUntil) {
+        const limit = new Date(t.repeatUntil);
+        limit.setHours(23, 59, 59, 999);
+        if (isFinite(limit.getTime()) && new Date(next).getTime() > limit.getTime()) break;
+      }
+      dueISO = next;
+      due = new Date(dueISO);
+      when = new Date(due.getTime() - lead * 60_000);
+    }
+    if (when.getTime() <= now.getTime()) continue;
     const assignee = (t.assignedToName ?? "").trim();
     if (assignee && assignee.toLowerCase() !== myName.trim().toLowerCase()) continue;
-    const body = assignee ? `Te toca: ${t.title}` : `Tarea del hogar: ${t.title}`;
-    out.push({ id: t.$id, date, title: "✅ Recordatorio", body, sig: `${t.dueAt}|${t.title}` });
+    // Con antelación, el cuerpo tiene que decir para cuándo es: si no, un aviso
+    // "1 día antes" parece que la tarea toca ahora mismo.
+    const hhmm = `${z(due.getHours())}:${z(due.getMinutes())}`;
+    const quien = assignee ? `Te toca: ${t.title}` : `Tarea del hogar: ${t.title}`;
+    const body = lead > 0 ? `${quien} · a las ${hhmm}` : quien;
+    // La antelación entra en la firma: sin ella, cambiarla de "a la hora" a
+    // "1 día antes" no reprogramaría nada y el aviso seguiría saltando tarde.
+    // La firma lleva la fecha que se va a avisar (`dueISO`), no la guardada:
+    // en una recurrente son distintas, y si no cambiara no se reprogramaría.
+    out.push({ id: t.$id, date: when, title: "✅ Recordatorio", body, sig: `${dueISO}|${t.title}|${lead}` });
   }
   return out;
 }
@@ -161,11 +204,7 @@ export function groupTasks<T extends { done: boolean; dueAt?: string | null; $cr
   const buckets: Record<string, T[]> = { overdue: [], today: [], tomorrow: [], week: [], later: [], noDate: [] };
   for (const t of pending) {
     if (!t.dueAt) {
-      // Una tarea sin fecha es algo que hay que hacer y punto, así que en "Hoy"
-      // y "Semana" va dentro de Hoy. En "Todas" sí se separa, porque ahí sí
-      // interesa distinguir lo que tiene fecha de lo que no.
-      if (filter === "all") buckets.noDate.push(t);
-      else buckets.today.push(t);
+      buckets.noDate.push(t);
       continue;
     }
     const diff = Math.round((startOfDay(new Date(t.dueAt)) - today0) / DAY_MS);
@@ -176,13 +215,16 @@ export function groupTasks<T extends { done: boolean; dueAt?: string | null; $cr
     else buckets.later.push(t);
   }
 
+  // El orden del array ES el orden en pantalla. "Sin fecha" va primero y solo en
+  // "Todas": son las que no tienen cuándo, así que no encajan en ningún periodo,
+  // pero son también las más fáciles de olvidar y por eso encabezan la lista.
   const order: { key: string; title: string; in: TaskFilter[] }[] = [
+    { key: "noDate", title: "Sin fecha", in: ["all"] },
     { key: "overdue", title: "Atrasadas", in: ["today", "week", "all"] },
     { key: "today", title: "Hoy", in: ["today", "week", "all"] },
     { key: "tomorrow", title: "Mañana", in: ["week", "all"] },
     { key: "week", title: "Esta semana", in: ["week", "all"] },
     { key: "later", title: "Más adelante", in: ["all"] },
-    { key: "noDate", title: "Sin fecha", in: ["all"] },
   ];
 
   const groups: TaskGroup<T>[] = [];
@@ -193,4 +235,19 @@ export function groupTasks<T extends { done: boolean; dueAt?: string | null; $cr
   }
   if (filter === "all" && done.length) groups.push({ key: "done", title: "Completadas", tasks: done });
   return groups;
+}
+
+/**
+ * Pendientes sin fecha que el filtro actual NO está enseñando.
+ *
+ * Existe para que la pantalla pueda decirlo. Una tarea añadida deprisa nace sin
+ * fecha y solo se ve en "Todas": sin este aviso, escribes en la barra, la tarea
+ * se guarda, y da la sensación de que la app se la ha tragado.
+ */
+export function hiddenNoDate<T extends { done: boolean; dueAt?: string | null }>(
+  tasks: T[],
+  filter: TaskFilter,
+): number {
+  if (filter === "all") return 0;
+  return tasks.filter((t) => !t.done && !t.dueAt).length;
 }

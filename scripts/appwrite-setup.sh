@@ -79,6 +79,9 @@ attr tasks string   '{"key":"repeat","size":20,"required":false,"default":"none"
 attr tasks boolean  '{"key":"notify","required":false,"default":false}'
 # Hasta cuándo se repite una tarea recurrente (p. ej. el recibo del ING, hasta septiembre).
 attr tasks datetime '{"key":"repeatUntil","required":false}'
+# Minutos de antelación del aviso: 0 = a la hora, 60 = una hora antes, 1440 = un día.
+# `default` solo es legal con required:false, que es el caso.
+attr tasks integer  '{"key":"notifyLead","required":false,"default":0,"min":0,"max":10080}'
 
 echo "== expenses (atributos nuevos) =="
 attr expenses string   '{"key":"account","size":20,"required":false,"default":"individual"}'

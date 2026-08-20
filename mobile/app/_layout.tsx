@@ -9,7 +9,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { initThemeChoice } from "@/lib/themePref";
 import { wireAppState } from "@/lib/appState";
 import { installCrashGuard } from "@/lib/crashGuard";
-import { useResumeKey } from "@/lib/useResumeKey";
+import { installRealtimeGuard } from "@/lib/realtimeGuard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -22,9 +22,6 @@ const queryClient = new QueryClient();
 
 function RootNavigator() {
   const t = useTheme();
-  // Al volver del segundo plano tras un rato fuera, se vuelve a montar la vista.
-  // Es lo que evita la pantalla en blanco que obligaba a forzar el cierre.
-  const resumeKey = useResumeKey();
   const { user, loading: authLoading } = useAuth();
   const { active, loading: hogarLoading } = useHogar();
   const segments = useSegments();
@@ -65,7 +62,7 @@ function RootNavigator() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }} key={resumeKey}>
+    <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="login" />
       <Stack.Screen name="hogar" />
@@ -78,6 +75,9 @@ function RootNavigator() {
 // Se instala al cargar el módulo, antes de pintar nada: un error temprano
 // también tiene que acabar en la pantalla de error y no en una blanca.
 installCrashGuard();
+// Evita el INVALID_STATE_ERR del ping de Appwrite sobre un socket que aún se
+// está conectando, que era lo que dejaba la pantalla en blanco al volver.
+installRealtimeGuard();
 
 export default function RootLayout() {
   // Aplica el tema guardado (Sistema/Claro/Oscuro) antes de pintar.

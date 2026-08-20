@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
+import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Screen } from "@/components/Screen";
 import { PhaseCard } from "@/components/Card";
@@ -19,7 +20,10 @@ import { useHogar } from "@/lib/hogar";
 import { useAuth } from "@/lib/auth";
 import { appwriteConfigured } from "@/lib/appwrite";
 import { useEvents } from "@/lib/useEvents";
-import { addEvent, dayIndexLabel, daysWithEvents, deleteEvent, eventsOfDay, hhmm, ymd, type Event } from "@/lib/events";
+import { useTasks } from "@/lib/useTasks";
+import { agendaItems, agendaSubtitle, upcomingCount, type AgendaItem } from "@/lib/agenda";
+import { completeTask, deleteTask } from "@/lib/tasks";
+import { addEvent, dayIndexLabel, daysWithEvents, deleteEvent, eventsOfDay, hhmm, updateEvent, ymd, type Event } from "@/lib/events";
 import { SwipeToDelete } from "@/components/SwipeToDelete";
 import { ListGroup } from "@/components/List";
 import { SheetHeader } from "@/components/SheetHeader";
@@ -62,12 +66,17 @@ export default function Calendario() {
 
 function CalendarView({ hogarId, userName }: { hogarId: string; userName: string }) {
   const t = useTheme();
+  const router = useRouter();
   const qc = useQueryClient();
-  const { data: events, isLoading } = useEvents(hogarId);
+  const { data: events, isLoading: loadingEvents } = useEvents(hogarId);
+  const { data: tasks, isLoading: loadingTasks } = useTasks(hogarId);
+  const isLoading = loadingEvents || loadingTasks;
   const today = new Date();
   const [view, setView] = useState({ y: today.getFullYear(), m: today.getMonth() });
   const [selected, setSelected] = useState(new Date());
   const [addOpen, setAddOpen] = useState(false);
+  // Evento que se está editando (null = se está creando uno nuevo).
+  const [editing, setEditing] = useState<Event | null>(null);
   const [lead, setLead] = useState(15);
   const [leadOpen, setLeadOpen] = useState(false);
 
@@ -87,8 +96,13 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
   };
 
   const list = events ?? [];
-  const marked = useMemo(() => daysWithEvents(list), [list]);
-  const dayEvents = useMemo(() => eventsOfDay(list, selected), [list, selected]);
+  // OJO: los avisos de arriba reciben `events`, NUNCA `agenda`. Las tareas ya
+  // tienen su propio planificador de avisos y mezclarlas aquí las duplicaría.
+  // El tipo `AgendaItem` no es asignable a `Event`, así que el compilador lo
+  // impide, pero conviene que quede dicho.
+  const agenda = useMemo(() => agendaItems(list, tasks ?? []), [list, tasks]);
+  const marked = useMemo(() => daysWithEvents(agenda), [agenda]);
+  const dayEvents = useMemo(() => eventsOfDay(agenda, selected), [agenda, selected]);
 
   // La rejilla se arma en FILAS de 7. Antes era una sola lista con `flex-wrap` y
   // celdas al 100/7 %: por redondeo de píxeles la séptima columna se iba a la
@@ -113,16 +127,24 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
 
   const isSameDay = (a: Date, b: Date) => ymd(a) === ymd(b);
 
-  const refresh = () => qc.invalidateQueries({ queryKey: ["events", hogarId] });
-  const remove = (id: string) =>
-    Alert.alert("Borrar evento", "¿Seguro?", [
+  // Se invalidan las dos: en la agenda hay eventos y tareas.
+  const refresh = () =>
+    Promise.all([
+      qc.invalidateQueries({ queryKey: ["events", hogarId] }),
+      qc.invalidateQueries({ queryKey: ["tasks", hogarId] }),
+    ]);
+
+  const remove = (item: AgendaItem) => {
+    const esTarea = item.kind === "task";
+    Alert.alert(esTarea ? "Borrar tarea" : "Borrar evento", `¿Borrar “${item.title}”?`, [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Borrar",
         style: "destructive",
         onPress: async () => {
           try {
-            await deleteEvent(id);
+            if (item.kind === "task") await deleteTask(item.task.$id);
+            else await deleteEvent(item.event.$id);
             refresh();
           } catch (e) {
             Alert.alert("No se pudo borrar", e instanceof Error ? e.message : "Inténtalo de nuevo.");
@@ -130,9 +152,21 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
         },
       },
     ]);
+  };
+
+  // Desde el calendario también se puede dar una tarea por hecha: si no, verla
+  // aquí solo sirve para recordar que hay que ir a la otra pestaña.
+  const complete = async (item: Extract<AgendaItem, { kind: "task" }>) => {
+    try {
+      await completeTask(item.task);
+      refresh();
+    } catch (e) {
+      Alert.alert("No se pudo completar", e instanceof Error ? e.message : "Inténtalo de nuevo.");
+    }
+  };
 
   return (
-    <Screen title="Calendario" subtitle={upcomingLabel(list)} onRefresh={refresh}>
+    <Screen title="Calendario" subtitle={`${upcomingCount(agenda)} cosas próximas`} onRefresh={refresh}>
       {/* Cabecera de mes */}
       <View className="flex-row items-center justify-between px-4 pb-2">
         <Text className="text-title2 font-bold text-label">
@@ -211,11 +245,11 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
       {isLoading ? (
         <ActivityIndicator color={t.accent} style={{ marginTop: 12 }} />
       ) : dayEvents.length === 0 ? (
-        <Text className="text-center text-tertiary mt-4 mb-4">Sin eventos este día.</Text>
+        <Text className="text-center text-tertiary mt-4 mb-4">Nada este día.</Text>
       ) : (
         <ListGroup>
-          {dayEvents.map((e, i) => (
-            <SwipeToDelete key={e.$id} onDelete={() => remove(e.$id)}>
+          {dayEvents.map((item, i) => (
+            <SwipeToDelete key={item.id} onDelete={() => remove(item)}>
               <View
                 className="flex-row items-center px-4 py-3"
                 style={{ gap: 12, minHeight: 44, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}
@@ -224,23 +258,50 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
                   className="text-subhead font-semibold text-secondary"
                   style={{ width: 48, fontVariant: ["tabular-nums"] }}
                 >
-                  {e.allDay ? "Todo\nel día" : hhmm(e.startAt)}
+                  {item.allDay ? "Todo\nel día" : hhmm(item.startAt)}
                 </Text>
-                <View style={{ width: 3, height: 34, borderRadius: 2, backgroundColor: t.accent }} />
-                <View className="flex-1">
-                  <Text className="text-body text-label">{e.title}</Text>
-                  <Text className="text-caption1 text-secondary mt-0.5">
-                    {[dayIndexLabel(e, selected), e.ownerName, e.place].filter(Boolean).join(" · ")}
-                  </Text>
-                </View>
+                {/* La raya de color distingue de un vistazo tarea de evento. */}
+                <View
+                  style={{
+                    width: 3,
+                    height: 34,
+                    borderRadius: 2,
+                    backgroundColor: item.kind === "task" ? t.purple : t.accent,
+                  }}
+                />
+                {/* Tocar abre el editor: un evento solo se podía borrar, y
+                    cambiar la hora obligaba a borrarlo y volver a crearlo. */}
                 <Pressable
-                  onPress={() => addToGoogleCalendar(e).catch(() => undefined)}
-                  hitSlop={8}
-                  className="rounded-pill items-center justify-center"
-                  style={{ width: 44, height: 44, backgroundColor: t.fill }}
+                  className="flex-1"
+                  onPress={() => {
+                    if (item.kind === "event") setEditing(item.event);
+                    else router.navigate("/tareas");
+                  }}
                 >
-                  <Ionicons name="logo-google" size={15} color={t.accent} />
+                  <Text className="text-body text-label">{item.title}</Text>
+                  <Text className="text-caption1 text-secondary mt-0.5">
+                    {[dayIndexLabel(item, selected), agendaSubtitle(item)].filter(Boolean).join(" · ")}
+                  </Text>
                 </Pressable>
+                {item.kind === "task" ? (
+                  <Pressable
+                    onPress={() => complete(item)}
+                    hitSlop={8}
+                    className="rounded-pill items-center justify-center"
+                    style={{ width: 44, height: 44, backgroundColor: t.fill }}
+                  >
+                    <Ionicons name="checkmark" size={17} color={t.accent} />
+                  </Pressable>
+                ) : (
+                  <Pressable
+                    onPress={() => addToGoogleCalendar(item.event).catch(() => undefined)}
+                    hitSlop={8}
+                    className="rounded-pill items-center justify-center"
+                    style={{ width: 44, height: 44, backgroundColor: t.fill }}
+                  >
+                    <Ionicons name="logo-google" size={15} color={t.accent} />
+                  </Pressable>
+                )}
               </View>
             </SwipeToDelete>
           ))}
@@ -257,7 +318,7 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
       </Pressable>
 
       <Text className="px-4 pt-3 pb-2 text-caption1 text-tertiary">
-        Desliza un evento para borrarlo; el botón de Google lo añade a tu Google Calendar.
+        Las tareas con fecha salen aquí en morado; el check las da por hechas. Desliza para borrar, y el botón de Google añade el evento a tu Google Calendar.
       </Text>
 
       {/* Los minutos de aviso son un ajuste, no algo que mirar cada día: viven
@@ -280,8 +341,16 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
       </Modal>
 
       <AddEvent
-        visible={addOpen}
-        onClose={() => setAddOpen(false)}
+        visible={addOpen || editing !== null}
+        event={editing}
+        onClose={() => {
+          setAddOpen(false);
+          setEditing(null);
+        }}
+        onDelete={(ev) => {
+          setEditing(null);
+          remove({ kind: "event", id: `event:${ev.$id}`, title: ev.title, startAt: ev.startAt, endAt: ev.endAt ?? null, allDay: !!ev.allDay, event: ev });
+        }}
         hogarId={hogarId}
         userName={userName}
         initialDay={selected}
@@ -291,23 +360,21 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
   );
 }
 
-// Subtítulo con el nº de eventos próximos
-function upcomingLabel(list: Event[]): string {
-  const now = new Date();
-  const upcoming = list.filter((e) => new Date(e.startAt) >= new Date(now.getFullYear(), now.getMonth(), now.getDate()));
-  return `${upcoming.length} eventos próximos`;
-}
-
 function AddEvent({
   visible,
+  event,
   onClose,
+  onDelete,
   hogarId,
   userName,
   initialDay,
   onAdded,
 }: {
   visible: boolean;
+  /** Si viene un evento, el formulario edita en vez de crear. */
+  event?: Event | null;
   onClose: () => void;
+  onDelete?: (event: Event) => void;
   hogarId: string;
   userName: string;
   initialDay: Date;
@@ -329,14 +396,28 @@ function AddEvent({
   // que abriste la app por primera vez.
   useEffect(() => {
     if (!visible) return;
+    setPicker(null);
+    if (event) {
+      const start = new Date(event.startAt);
+      const end = event.endAt ? new Date(event.endAt) : null;
+      setTitle(event.title);
+      setPlace(event.place ?? "");
+      setWhen(start);
+      setAllDay(!!event.allDay);
+      // Solo es "de varios días" si el fin cae en OTRO día que el inicio: a un
+      // evento de todo el día también se le guarda un fin, el de ese mismo día.
+      const variosDias = !!end && isFinite(end.getTime()) && ymd(end) !== ymd(start);
+      setMulti(variosDias);
+      setEndsAt(variosDias && end ? end : start);
+      return;
+    }
     setWhen(atNoon(initialDay));
     setEndsAt(atNoon(initialDay));
     setTitle("");
     setPlace("");
     setAllDay(false);
     setMulti(false);
-    setPicker(null);
-  }, [visible, initialDay]);
+  }, [visible, initialDay, event]);
 
   const onChange = (_e: DateTimePickerEvent, d?: Date) => {
     const mode = picker;
@@ -356,14 +437,15 @@ function AddEvent({
     setBusy(true);
     try {
       const start = allDay ? startOfDay(when) : when;
-      await addEvent(hogarId, {
+      const datos = {
         title: title.trim(),
         startAt: start.toISOString(),
-        ownerName: userName,
         place: place.trim(),
         endAt: multi ? endOfDay(endsAt).toISOString() : allDay ? endOfDay(when).toISOString() : null,
         allDay,
-      });
+      };
+      if (event) await updateEvent(event.$id, datos);
+      else await addEvent(hogarId, { ...datos, ownerName: userName });
       onAdded();
       setTitle(""); setPlace("");
       onClose();
@@ -383,7 +465,7 @@ function AddEvent({
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
       <View className="rounded-t-sheet absolute left-0 right-0 bottom-0" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
         <SheetHeader
-          title="Nuevo evento"
+          title={event ? "Editar evento" : "Nuevo evento"}
           onClose={onClose}
           onSave={submit}
           dirty={title.trim().length > 0 || place.trim().length > 0}
@@ -452,6 +534,12 @@ function AddEvent({
             onChange={onChange}
             display={Platform.OS === "ios" ? "spinner" : "default"}
           />
+        )}
+
+        {event && onDelete && (
+          <Pressable onPress={() => onDelete(event)} disabled={busy} className="mt-2 items-center py-2">
+            <Text className="text-subhead font-medium" style={{ color: t.red }}>Borrar evento</Text>
+          </Pressable>
         )}
 
         </ScrollView>

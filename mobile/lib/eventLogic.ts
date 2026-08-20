@@ -1,12 +1,8 @@
 import type { Event } from "./events";
 
-/** Minutos de antelación del aviso de un evento. */
-export const LEAD_OPTIONS = [
-  { key: 0, label: "A la hora" },
-  { key: 15, label: "15 min antes" },
-  { key: 60, label: "1 h antes" },
-  { key: 1440, label: "1 día antes" },
-];
+// Las opciones de antelación son las mismas para eventos y para tareas: si cada
+// pantalla tuviera su lista, el usuario vería dos vocabularios para lo mismo.
+export { LEAD_OPTIONS } from "./leadTime";
 
 export interface EventReminder {
   id: string;

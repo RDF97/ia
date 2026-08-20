@@ -22,6 +22,7 @@ import { payingMembers } from "@/lib/members";
 import { balances, monthlyTotal, previousMonthTotal } from "@/lib/expenses";
 import { useHogarIcon, usePerfilIcon } from "@/lib/useAppearance";
 import { eventsOfDay, hhmm } from "@/lib/events";
+import { agendaItems, agendaSubtitle } from "@/lib/agenda";
 import { fmtKwh, tierOf } from "@/lib/luz";
 import { useTheme, type Theme } from "@/theme/theme";
 
@@ -156,7 +157,9 @@ function Dashboard({
   const bal = balances(expenses, members, settlements, memberNames).filter((b) => b.name !== userName);
   const now = new Date();
   const todayLabel = `${WEEKDAYS[now.getDay()]} ${now.getDate()}`;
-  const todayEvents = eventsOfDay(events, now);
+  // La misma mezcla que el Calendario: si aquí solo salieran los eventos, "Hoy"
+  // diría una cosa en Inicio y otra distinta al entrar en Calendario.
+  const todayEvents = eventsOfDay(agendaItems(events, tasks), now);
 
 
   let luzValue = "—";
@@ -231,22 +234,31 @@ function Dashboard({
         </View>
         {todayEvents.length === 0 ? (
           <Pressable onPress={() => router.navigate("/calendario")} className="py-2">
-            <Text className="text-tertiary">Sin eventos hoy · toca para añadir</Text>
+            <Text className="text-tertiary">Nada para hoy · toca para añadir</Text>
           </Pressable>
         ) : (
-          todayEvents.map((e, i) => (
+          todayEvents.map((item, i) => (
             <Pressable
-              key={e.$id}
-              onPress={() => router.navigate("/calendario")}
+              key={item.id}
+              onPress={() => router.navigate(item.kind === "task" ? "/tareas" : "/calendario")}
               className="flex-row items-center py-2.5"
               style={{ gap: 12, borderTopWidth: i ? 0.5 : 0, borderTopColor: t.separator }}
             >
-              <View style={{ width: 3, height: 32, borderRadius: 2, backgroundColor: stripeColor(t, e.ownerName) }} />
-              <Text className="text-footnote font-semibold text-secondary" style={{ width: 46, fontVariant: ["tabular-nums"] }}>{hhmm(e.startAt)}</Text>
+              <View
+                style={{
+                  width: 3,
+                  height: 32,
+                  borderRadius: 2,
+                  backgroundColor: item.kind === "task" ? t.purple : stripeColor(t, item.event.ownerName),
+                }}
+              />
+              <Text className="text-footnote font-semibold text-secondary" style={{ width: 46, fontVariant: ["tabular-nums"] }}>
+                {item.allDay ? "Todo" : hhmm(item.startAt)}
+              </Text>
               <View className="flex-1">
-                <Text className="text-body text-label">{e.title}</Text>
+                <Text className="text-body text-label">{item.title}</Text>
                 <Text className="text-caption1 text-secondary mt-0.5" numberOfLines={1}>
-                  {e.ownerName}{e.place ? ` · ${e.place}` : ""}
+                  {agendaSubtitle(item)}
                 </Text>
               </View>
             </Pressable>

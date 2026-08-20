@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Platform, View } from "react-native";
 import { Tabs } from "expo-router";
 import { BlurView } from "expo-blur";
@@ -7,6 +8,8 @@ import { useAuth } from "@/lib/auth";
 import { useHogar } from "@/lib/hogar";
 import { useExpenseAlerts } from "@/lib/expenseAlerts";
 import { useProfileSync } from "@/lib/useProfileSync";
+import { useTasks } from "@/lib/useTasks";
+import { syncTaskReminders } from "@/lib/taskReminders";
 import { useTheme } from "@/theme/theme";
 
 function icon(name: TabIconName) {
@@ -27,6 +30,15 @@ export default function TabsLayout() {
   // Publica mi nombre e icono en el hogar: Appwrite no deja que los demás los
   // lean de mi cuenta, así que sin esto todos salimos como "sin nombre".
   useProfileSync(active?.$id, user?.$id, user?.name || "", t.accent);
+
+  // Los avisos de tarea se sincronizan AQUÍ y no dentro de la pestaña Tareas:
+  // las pestañas se montan solo al visitarlas, así que si completabas o borrabas
+  // una tarea desde el Calendario sin haber entrado en Tareas, su aviso seguía
+  // programado y saltaba igual. Esto está siempre montado.
+  const { data: tasks } = useTasks(active?.$id);
+  useEffect(() => {
+    if (tasks) syncTaskReminders(tasks, user?.name || "Yo").catch(() => undefined);
+  }, [tasks, user?.name]);
 
   return (
     <Tabs
