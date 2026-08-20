@@ -16,19 +16,30 @@ export interface ReceiptData {
   lines: ReceiptLine[];
 }
 
-function errorText(code?: string): string {
-  switch (code) {
-    case "no-image":
-      return "No se recibió la foto del ticket.";
-    case "no-key":
-      return "Falta configurar la clave de OCR en el servidor.";
-    case "ocr":
-      return "El servicio de lectura no pudo leer la foto. Prueba con una más nítida y recta.";
-    case "auth":
-      return "Inicia sesión para escanear tickets.";
-    default:
-      return "No se pudo leer el ticket. Prueba con una foto más nítida y recta.";
-  }
+/**
+ * Mensaje para el usuario. `detail` es lo que dijo el servicio de lectura y se
+ * añade tal cual: antes se descartaba, así que cualquier causa —clave caducada,
+ * sin cuota, modelo retirado, foto demasiado grande— salía como el mismo
+ * "prueba con una foto más nítida", y no había forma de saber qué arreglar.
+ */
+export function errorText(code?: string, detail?: string): string {
+  const base = (() => {
+    switch (code) {
+      case "no-image":
+        return "No se recibió la foto del ticket.";
+      case "no-key":
+        return "Falta configurar la clave de OCR en el servidor (GEMINI_API_KEY).";
+      case "ocr":
+        return "El servicio de lectura no pudo leer la foto.";
+      case "auth":
+        return "Inicia sesión para escanear tickets.";
+      case "timeout":
+        return "El servicio de lectura tardó demasiado.";
+      default:
+        return "No se pudo leer el ticket.";
+    }
+  })();
+  return detail ? `${base}\n\n${detail}` : base;
 }
 
 /**
@@ -41,7 +52,7 @@ export async function scanReceipt(base64: string, mime = "image/jpeg"): Promise<
     functionId: SCAN_FUNCTION_ID,
     body: JSON.stringify({ image: base64, mime }),
   });
-  let out: { ok?: boolean; error?: string; data?: ReceiptData; text?: string } = {};
+  let out: { ok?: boolean; error?: string; detail?: string; data?: ReceiptData; text?: string } = {};
   try {
     out = JSON.parse(exec.responseBody || "{}");
   } catch {
@@ -49,7 +60,16 @@ export async function scanReceipt(base64: string, mime = "image/jpeg"): Promise<
   }
   if (out.ok && out.data) return out.data;
   if (out.ok && typeof out.text === "string") return parseReceipt(out.text);
-  throw new Error(errorText(out.error));
+
+  // Sin cuerpo JSON no hay ni código de error: casi siempre es que la función
+  // se quedó sin tiempo o reventó al arrancar. Decirlo ayuda más que callarlo.
+  if (!out.error && !exec.responseBody) {
+    const estado = exec.status ? ` (${exec.status})` : "";
+    throw new Error(
+      errorText(undefined, `La función no devolvió respuesta${estado}. Mira sus registros en Appwrite: puede haberse quedado sin tiempo.`),
+    );
+  }
+  throw new Error(errorText(out.error, out.detail));
 }
 
 // --- Parseo del texto del ticket (puro y testeable) ---

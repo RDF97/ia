@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
+import { useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Screen } from "@/components/Screen";
 import { PhaseCard } from "@/components/Card";
@@ -22,7 +23,7 @@ import { useEvents } from "@/lib/useEvents";
 import { useTasks } from "@/lib/useTasks";
 import { agendaItems, agendaSubtitle, upcomingCount, type AgendaItem } from "@/lib/agenda";
 import { completeTask, deleteTask } from "@/lib/tasks";
-import { addEvent, dayIndexLabel, daysWithEvents, deleteEvent, eventsOfDay, hhmm, ymd } from "@/lib/events";
+import { addEvent, dayIndexLabel, daysWithEvents, deleteEvent, eventsOfDay, hhmm, updateEvent, ymd, type Event } from "@/lib/events";
 import { SwipeToDelete } from "@/components/SwipeToDelete";
 import { ListGroup } from "@/components/List";
 import { SheetHeader } from "@/components/SheetHeader";
@@ -65,6 +66,7 @@ export default function Calendario() {
 
 function CalendarView({ hogarId, userName }: { hogarId: string; userName: string }) {
   const t = useTheme();
+  const router = useRouter();
   const qc = useQueryClient();
   const { data: events, isLoading: loadingEvents } = useEvents(hogarId);
   const { data: tasks, isLoading: loadingTasks } = useTasks(hogarId);
@@ -73,6 +75,8 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
   const [view, setView] = useState({ y: today.getFullYear(), m: today.getMonth() });
   const [selected, setSelected] = useState(new Date());
   const [addOpen, setAddOpen] = useState(false);
+  // Evento que se está editando (null = se está creando uno nuevo).
+  const [editing, setEditing] = useState<Event | null>(null);
   const [lead, setLead] = useState(15);
   const [leadOpen, setLeadOpen] = useState(false);
 
@@ -265,12 +269,20 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
                     backgroundColor: item.kind === "task" ? t.purple : t.accent,
                   }}
                 />
-                <View className="flex-1">
+                {/* Tocar abre el editor: un evento solo se podía borrar, y
+                    cambiar la hora obligaba a borrarlo y volver a crearlo. */}
+                <Pressable
+                  className="flex-1"
+                  onPress={() => {
+                    if (item.kind === "event") setEditing(item.event);
+                    else router.navigate("/tareas");
+                  }}
+                >
                   <Text className="text-body text-label">{item.title}</Text>
                   <Text className="text-caption1 text-secondary mt-0.5">
                     {[dayIndexLabel(item, selected), agendaSubtitle(item)].filter(Boolean).join(" · ")}
                   </Text>
-                </View>
+                </Pressable>
                 {item.kind === "task" ? (
                   <Pressable
                     onPress={() => complete(item)}
@@ -329,8 +341,16 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
       </Modal>
 
       <AddEvent
-        visible={addOpen}
-        onClose={() => setAddOpen(false)}
+        visible={addOpen || editing !== null}
+        event={editing}
+        onClose={() => {
+          setAddOpen(false);
+          setEditing(null);
+        }}
+        onDelete={(ev) => {
+          setEditing(null);
+          remove({ kind: "event", id: `event:${ev.$id}`, title: ev.title, startAt: ev.startAt, endAt: ev.endAt ?? null, allDay: !!ev.allDay, event: ev });
+        }}
         hogarId={hogarId}
         userName={userName}
         initialDay={selected}
@@ -342,14 +362,19 @@ function CalendarView({ hogarId, userName }: { hogarId: string; userName: string
 
 function AddEvent({
   visible,
+  event,
   onClose,
+  onDelete,
   hogarId,
   userName,
   initialDay,
   onAdded,
 }: {
   visible: boolean;
+  /** Si viene un evento, el formulario edita en vez de crear. */
+  event?: Event | null;
   onClose: () => void;
+  onDelete?: (event: Event) => void;
   hogarId: string;
   userName: string;
   initialDay: Date;
@@ -371,14 +396,28 @@ function AddEvent({
   // que abriste la app por primera vez.
   useEffect(() => {
     if (!visible) return;
+    setPicker(null);
+    if (event) {
+      const start = new Date(event.startAt);
+      const end = event.endAt ? new Date(event.endAt) : null;
+      setTitle(event.title);
+      setPlace(event.place ?? "");
+      setWhen(start);
+      setAllDay(!!event.allDay);
+      // Solo es "de varios días" si el fin cae en OTRO día que el inicio: a un
+      // evento de todo el día también se le guarda un fin, el de ese mismo día.
+      const variosDias = !!end && isFinite(end.getTime()) && ymd(end) !== ymd(start);
+      setMulti(variosDias);
+      setEndsAt(variosDias && end ? end : start);
+      return;
+    }
     setWhen(atNoon(initialDay));
     setEndsAt(atNoon(initialDay));
     setTitle("");
     setPlace("");
     setAllDay(false);
     setMulti(false);
-    setPicker(null);
-  }, [visible, initialDay]);
+  }, [visible, initialDay, event]);
 
   const onChange = (_e: DateTimePickerEvent, d?: Date) => {
     const mode = picker;
@@ -398,14 +437,15 @@ function AddEvent({
     setBusy(true);
     try {
       const start = allDay ? startOfDay(when) : when;
-      await addEvent(hogarId, {
+      const datos = {
         title: title.trim(),
         startAt: start.toISOString(),
-        ownerName: userName,
         place: place.trim(),
         endAt: multi ? endOfDay(endsAt).toISOString() : allDay ? endOfDay(when).toISOString() : null,
         allDay,
-      });
+      };
+      if (event) await updateEvent(event.$id, datos);
+      else await addEvent(hogarId, { ...datos, ownerName: userName });
       onAdded();
       setTitle(""); setPlace("");
       onClose();
@@ -425,7 +465,7 @@ function AddEvent({
       <Pressable className="flex-1" style={{ backgroundColor: t.overlay }} onPress={onClose} />
       <View className="rounded-t-sheet absolute left-0 right-0 bottom-0" style={{ paddingBottom: 32 + kb, backgroundColor: t.bg }}>
         <SheetHeader
-          title="Nuevo evento"
+          title={event ? "Editar evento" : "Nuevo evento"}
           onClose={onClose}
           onSave={submit}
           dirty={title.trim().length > 0 || place.trim().length > 0}
@@ -494,6 +534,12 @@ function AddEvent({
             onChange={onChange}
             display={Platform.OS === "ios" ? "spinner" : "default"}
           />
+        )}
+
+        {event && onDelete && (
+          <Pressable onPress={() => onDelete(event)} disabled={busy} className="mt-2 items-center py-2">
+            <Text className="text-subhead font-medium" style={{ color: t.red }}>Borrar evento</Text>
+          </Pressable>
         )}
 
         </ScrollView>

@@ -54,6 +54,31 @@ export async function addEvent(
   }
 }
 
+/**
+ * Edita un evento. `endAt`/`allDay` van aparte porque puede que la colección
+ * todavía no los tenga: si se mandan y no existen, Appwrite rechaza el
+ * documento entero y se perdería también el cambio de título o de hora.
+ */
+export async function updateEvent(
+  id: string,
+  data: { title: string; startAt: string; place?: string | null; endAt?: string | null; allDay?: boolean },
+): Promise<Event> {
+  const base = {
+    title: data.title,
+    startAt: data.startAt,
+    place: data.place || null,
+  };
+  try {
+    return await databases.updateDocument<Event>(DB_ID, EVENTS_COL, id, {
+      ...base,
+      endAt: data.endAt ?? null,
+      allDay: data.allDay ?? false,
+    });
+  } catch {
+    return databases.updateDocument<Event>(DB_ID, EVENTS_COL, id, base);
+  }
+}
+
 export async function deleteEvent(id: string): Promise<void> {
   await databases.deleteDocument(DB_ID, EVENTS_COL, id);
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Modal, Platform, Pressable, ScrollView, Switch, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
@@ -105,40 +105,72 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
     ]);
   const all = expenses ?? [];
   const cats = categories ?? [];
-  const monthDate = new Date(month.y, month.m, 15);
+
+  // TODO lo que sigue se recalculaba en cada render, y esta pantalla se repinta
+  // con cada tecla que escribes en cualquiera de sus hojas. Con doscientos gastos
+  // eso son varios recorridos completos de la lista por pulsación, y se nota.
+  // Memoizado, solo se rehace cuando cambian los datos de verdad.
+  const memberKey = memberNames.join("|");
+  const monthDate = useMemo(() => new Date(month.y, month.m, 15), [month.y, month.m]);
+
   // Solo los gastos del mes que se está viendo.
-  const list = all.filter((e) => {
-    const d = new Date(expenseDate(e));
-    return d.getFullYear() === month.y && d.getMonth() === month.m;
-  });
-  const total = list.reduce((s, e) => s + e.amount, 0);
-  const bal = balances(all, members, settlements ?? [], memberNames);
-  const accTotals = accountTotals(list, monthDate);
+  const list = useMemo(
+    () =>
+      all.filter((e) => {
+        const d = new Date(expenseDate(e));
+        return d.getFullYear() === month.y && d.getMonth() === month.m;
+      }),
+    [all, month.y, month.m],
+  );
+  const total = useMemo(() => list.reduce((s, e) => s + e.amount, 0), [list]);
+  const bal = useMemo(
+    () => balances(all, members, settlements ?? [], memberNames),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [all, members, settlements, memberKey],
+  );
+  const accTotals = useMemo(() => accountTotals(list, monthDate), [list, monthDate]);
   // Gasto individual DE CADA UNO: se atribuye a su titular, no a quien lo pagó.
-  const perPerson = individualByPerson(list, memberNames.length ? memberNames : [userName]);
-  const people = Object.keys(perPerson).sort((a, b) => (a === userName ? -1 : b === userName ? 1 : a.localeCompare(b)));
+  const perPerson = useMemo(
+    () => individualByPerson(list, memberNames.length ? memberNames : [userName]),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [list, memberKey, userName],
+  );
+  const people = useMemo(
+    () =>
+      Object.keys(perPerson).sort((a, b) => (a === userName ? -1 : b === userName ? 1 : a.localeCompare(b))),
+    [perPerson, userName],
+  );
   // Lo que sale del bolsillo de cada uno este mes: su parte de la cuenta
   // conjunta más lo que es suyo. Es la cifra que se descuenta de su ingreso.
   const myJointShare = members > 0 ? accTotals.joint / members : 0;
-  const shareByPerson: Record<string, number> = {};
-  for (const [name, own] of Object.entries(perPerson)) shareByPerson[name] = own + myJointShare;
-  const byAccount = filter === "all" ? list : list.filter((e) => effectiveAccount(e) === filter);
-  // Ojo: `budgetStatus` agrega por nombre normalizado y en minúsculas, así que
-  // aquí hay que comparar igual. Si no, una tarjeta puede decir 80 € y la lista
-  // salir vacía por una mayúscula o un espacio de más.
-  const catKey = catFilter ? normalizeName(catFilter).toLowerCase() : null;
-  const byCat = catKey
-    ? byAccount.filter((e) => normalizeName(e.category ?? "").toLowerCase() === catKey)
-    : byAccount;
-  const movements = who ? byCat.filter((e) => expenseInvolves(e, who)) : byCat;
+  const shareByPerson = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const [name, own] of Object.entries(perPerson)) out[name] = own + myJointShare;
+    return out;
+  }, [perPerson, myJointShare]);
 
-  const rows = budgetStatus(cats, list, monthDate);
+  const movements = useMemo(() => {
+    const byAccount = filter === "all" ? list : list.filter((e) => effectiveAccount(e) === filter);
+    // Ojo: `budgetStatus` agrega por nombre normalizado y en minúsculas, así que
+    // aquí hay que comparar igual. Si no, una tarjeta puede decir 80 € y la lista
+    // salir vacía por una mayúscula o un espacio de más.
+    const catKey = catFilter ? normalizeName(catFilter).toLowerCase() : null;
+    const byCat = catKey
+      ? byAccount.filter((e) => normalizeName(e.category ?? "").toLowerCase() === catKey)
+      : byAccount;
+    return who ? byCat.filter((e) => expenseInvolves(e, who)) : byCat;
+  }, [list, filter, catFilter, who]);
+
+  const rows = useMemo(() => budgetStatus(cats, list, monthDate), [cats, list, monthDate]);
   // Se muestran las categorías donde HA HABIDO gasto este mes, de mayor a menor.
   // Antes se listaban las que tenían presupuesto asignado, que es otra cosa: una
   // categoría con límite y cero gasto ocupaba sitio, y en la que más te has
   // gastado no salía por no tener límite puesto.
-  const spentRows = rows.filter((r) => r.spent > 0).sort((a, b) => b.spent - a.spent);
-  const totals = budgetTotals(rows);
+  const spentRows = useMemo(
+    () => rows.filter((r) => r.spent > 0).sort((a, b) => b.spent - a.spent),
+    [rows],
+  );
+  const totals = useMemo(() => budgetTotals(rows), [rows]);
   // Si la categoría filtrada deja de estar en pantalla (cambias de mes, o la
   // borras), el filtro se quedaba activo sin nada que lo indicara ni forma de
   // quitarlo: la lista salía vacía y parecía que no había gastos.
