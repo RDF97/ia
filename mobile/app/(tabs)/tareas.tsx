@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
@@ -7,7 +7,7 @@ import { PhaseCard, cardShadow } from "@/components/Card";
 import { Avatar, AvatarStack, CheckCircle, SectionTitle } from "@/components/ui";
 import { AddBar } from "@/components/AddBar";
 import { SwipeToDelete } from "@/components/SwipeToDelete";
-import { ListGroup, Row } from "@/components/List";
+import { ListGroup, Row, RowIcon } from "@/components/List";
 import { Segmented } from "@/components/Segmented";
 import { TaskEditor } from "@/components/tareas/TaskEditor";
 import { useHogar } from "@/lib/hogar";
@@ -17,8 +17,8 @@ import { useTasks } from "@/lib/useTasks";
 import { completeTask, createTask, deleteTask, setTaskDone, type Task } from "@/lib/tasks";
 import { useMembers } from "@/lib/useMembers";
 import { payingMembers } from "@/lib/members";
-import { dueInfo, groupTasks, repeatLabel, type TaskFilter } from "@/lib/taskLogic";
-import { syncTaskReminders } from "@/lib/taskReminders";
+import { dueInfo, groupTasks, hiddenNoDate, repeatLabel, type TaskFilter } from "@/lib/taskLogic";
+import { leadLabel } from "@/lib/leadTime";
 import { useTheme } from "@/theme/theme";
 
 export default function Tareas() {
@@ -54,11 +54,6 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
   const refresh = () => qc.invalidateQueries({ queryKey: ["tasks", hogarId] });
   // Siempre me incluyo: si los miembros aún no han cargado, al menos estoy yo.
   const members = [...new Set([userName, ...payingMembers(useMembers(hogarId).data ?? [])])];
-
-  // Programa/actualiza los recordatorios locales según las tareas.
-  useEffect(() => {
-    if (tasks) syncTaskReminders(tasks, userName).catch(() => undefined);
-  }, [tasks, userName]);
 
   const add = async () => {
     const val = title.trim();
@@ -105,6 +100,10 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
   const all = tasks ?? [];
   const pending = all.filter((x) => !x.done);
   const groups = groupTasks(all, filter);
+  // Las que no tienen fecha solo salen en "Todas". Si hay alguna escondida hay
+  // que decirlo aquí mismo: si no, añades una desde la barra y parece que la app
+  // se la ha tragado.
+  const sinFecha = hiddenNoDate(all, filter);
 
   return (
     <Screen
@@ -145,12 +144,32 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
         <ActivityIndicator color={t.accent} style={{ marginTop: 24 }} />
       ) : groups.length === 0 ? (
         <Text className="text-center text-tertiary mt-8">
-          {pending.length === 0 ? "No hay tareas todavía. ¡Añade la primera!" : "Nada en este periodo. Cambia de pestaña."}
+          {pending.length === 0
+            ? "No hay tareas todavía. ¡Añade la primera!"
+            : sinFecha > 0
+              ? "Nada con fecha en este periodo."
+              : "Nada en este periodo. Cambia de pestaña."}
         </Text>
       ) : (
         groups.map((g) => (
           <Section key={g.key} title={g.title} tasks={g.tasks} members={members} onToggle={toggle} onEdit={setEditing} onDelete={remove} />
         ))
+      )}
+
+      {/* Se pinta SIEMPRE que haya alguna escondida, con lista o sin ella: el
+          estado vacío no basta, porque con una sola tarea atrasada ya no se
+          dibuja y es justo el caso en el que se pierde la recién añadida. */}
+      {!isLoading && sinFecha > 0 && (
+        <ListGroup>
+          <Row
+            first
+            leading={<RowIcon icon="albums-outline" color={t.gray} />}
+            title={`${sinFecha} ${sinFecha === 1 ? "tarea sin fecha" : "tareas sin fecha"}`}
+            subtitle="Solo se ven en Todas"
+            chevron
+            onPress={() => setFilter("all")}
+          />
+        </ListGroup>
       )}
 
       <TaskEditor
@@ -246,7 +265,14 @@ function TaskMeta({ task, members }: { task: Task; members: string[] }) {
           </Text>
         </View>
       )}
-      {task.notify && <Ionicons name="notifications" size={11} color={t.labelSecondary} />}
+      {task.notify && (
+        <View className="flex-row items-center" style={{ gap: 3 }}>
+          <Ionicons name="notifications" size={11} color={t.labelSecondary} />
+          {(task.notifyLead ?? 0) > 0 && (
+            <Text className="text-caption2 text-secondary">{leadLabel(task.notifyLead ?? 0)}</Text>
+          )}
+        </View>
+      )}
       {assignee ? (
         <View className="flex-row items-center" style={{ gap: 4 }}>
           <Avatar name={assignee} size={16} />

@@ -212,6 +212,18 @@ curl -sS -X POST "$EP/databases/$DB/collections/settlements/indexes" "${H[@]}" \
 ```
 
 ### Nuevos atributos de `tasks` (fechas, asignación, recurrencia y avisos)
+
+> **Lo más fácil es no hacer esto a mano.** `scripts/appwrite-setup.sh` crea
+> TODAS las colecciones y atributos de la app, y es idempotente (lo que ya existe
+> devuelve "already exists", que es inofensivo):
+>
+> ```bash
+> read -rsp "API key: " KEY; echo
+> PID=tu_project_id KEY="$KEY" bash scripts/appwrite-setup.sh; unset KEY
+> ```
+>
+> Lo de abajo es la ruta manual, por si prefieres ir atributo a atributo.
+
 Añádelos a la colección `tasks` que ya existe. Si `assignedToName` ya estaba
 creado, ese comando dará error de "ya existe": es normal, ignóralo.
 
@@ -221,13 +233,21 @@ creado, ese comando dará error de "ya existe": es normal, ignóralo.
 | `dueAt` | Datetime | — | no | — |
 | `repeat` | String | 20 | no | `none` |
 | `notify` | Boolean | — | no | `false` |
+| `repeatUntil` | Datetime | — | no | — |
+| `notifyLead` | Integer | min 0, max 10080 | no | `0` |
 
 ```bash
 curl -sS -X POST "$EP/databases/$DB/collections/tasks/attributes/string"   "${H[@]}" -d '{"key":"assignedToName","size":255,"required":false}'; echo
 curl -sS -X POST "$EP/databases/$DB/collections/tasks/attributes/datetime" "${H[@]}" -d '{"key":"dueAt","required":false}'; echo
 curl -sS -X POST "$EP/databases/$DB/collections/tasks/attributes/string"   "${H[@]}" -d '{"key":"repeat","size":20,"required":false,"default":"none"}'; echo
 curl -sS -X POST "$EP/databases/$DB/collections/tasks/attributes/boolean"  "${H[@]}" -d '{"key":"notify","required":false,"default":false}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/tasks/attributes/datetime" "${H[@]}" -d '{"key":"repeatUntil","required":false}'; echo
+curl -sS -X POST "$EP/databases/$DB/collections/tasks/attributes/integer"  "${H[@]}" -d '{"key":"notifyLead","required":false,"default":0,"min":0,"max":10080}'; echo
 ```
+
+`repeatUntil` es hasta cuándo se repite una tarea recurrente; `notifyLead`, los
+minutos de antelación del aviso (0 = a la hora, 60 = una hora antes, 1440 = un
+día antes).
 
 > **OCR de tickets** (pendiente): requiere un proveedor externo (Mindee / Google
 > Vision) con API key, llamado desde una Appwrite Function para no exponer la

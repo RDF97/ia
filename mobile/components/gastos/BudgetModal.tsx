@@ -72,7 +72,9 @@ export function BudgetModal({
             </View>
             <View className="flex-1">
               <Text className="text-subhead text-label">Presupuesto mensual</Text>
-              <Text className="text-caption1 text-secondary mt-0.5">Muestra cuánto llevas gastado de cada límite</Text>
+              <Text className="text-caption1 text-secondary mt-0.5">
+                Enseña el total del mes frente a los límites que pongas
+              </Text>
             </View>
             <Toggle value={enabled} onChange={onToggle} />
           </View>

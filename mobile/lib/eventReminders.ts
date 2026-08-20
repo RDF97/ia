@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Linking } from "react-native";
-import { cancelScheduled, notificationsGranted, scheduleAt } from "./notifications";
+import { HOGAR_CHANNEL, cancelScheduled, notificationsGranted, scheduleAt } from "./notifications";
 import { eventReminderPlan, googleCalendarUrl } from "./eventLogic";
 import type { Event } from "./events";
 
@@ -42,7 +42,7 @@ export async function syncEventReminders(events: Event[], leadMinutes: number): 
   }
   for (const p of plan) {
     if (next[p.id]) continue;
-    const notifId = await scheduleAt(p.date, p.title, p.body);
+    const notifId = await scheduleAt(p.date, p.title, p.body, HOGAR_CHANNEL);
     if (notifId) next[p.id] = { notifId, sig: p.sig };
   }
   await AsyncStorage.setItem(KEY, JSON.stringify(next));

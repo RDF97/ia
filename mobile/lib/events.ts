@@ -99,13 +99,15 @@ export function eventDays(e: Span): string[] {
 /** ¿Cae este día dentro del evento? (vale también para los de varios días) */
 export const eventCoversDay = (e: Span, day: Date): boolean => eventDays(e).includes(ymd(day));
 
-export function eventsOfDay(events: Event[], day: Date): Event[] {
+// Genéricas sobre `Span` (lo único que miran es startAt/endAt) para que valgan
+// igual con eventos y con la agenda mezclada de eventos y tareas.
+export function eventsOfDay<T extends Span>(events: T[], day: Date): T[] {
   return events
     .filter((e) => eventCoversDay(e, day))
     .sort((a, b) => a.startAt.localeCompare(b.startAt));
 }
 
-export function daysWithEvents(events: Event[]): Set<string> {
+export function daysWithEvents<T extends Span>(events: T[]): Set<string> {
   const out = new Set<string>();
   for (const e of events) for (const d of eventDays(e)) out.add(d);
   return out;

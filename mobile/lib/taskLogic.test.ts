@@ -1,4 +1,4 @@
-import { dueInfo, groupTasks, nextDue, nextDueAfter, sortPending, taskReminderPlan } from "./taskLogic";
+import { dueInfo, groupTasks, hiddenNoDate, nextDue, nextDueAfter, sortPending, taskReminderPlan } from "./taskLogic";
 
 describe("nextDue", () => {
   it("avanza según la periodicidad", () => {
@@ -58,7 +58,104 @@ describe("taskReminderPlan", () => {
 
   it("la firma cambia con la fecha o el título", () => {
     const [r] = taskReminderPlan([mk({ id: "a", title: "Basura", dueAt: "2026-07-16T09:00:00.000Z" })], "Rubén", now);
-    expect(r.sig).toBe("2026-07-16T09:00:00.000Z|Basura");
+    expect(r.sig).toBe("2026-07-16T09:00:00.000Z|Basura|0");
+  });
+
+  it("resta la antelación: a las 09:00 con 1 h antes, el aviso es a las 08:00", () => {
+    const [r] = taskReminderPlan(
+      [mk({ id: "a", dueAt: "2026-07-16T09:00:00.000Z", notifyLead: 60 })],
+      "Rubén",
+      now,
+    );
+    expect(r.date.toISOString()).toBe("2026-07-16T08:00:00.000Z");
+  });
+
+  it("una antelación ausente, nula o fuera de la lista equivale a 'a la hora'", () => {
+    for (const lead of [undefined, null, NaN, 7, -30]) {
+      const [r] = taskReminderPlan([mk({ id: "a", dueAt: "2026-07-16T09:00:00.000Z", notifyLead: lead })], "Rubén", now);
+      expect(r.date.toISOString()).toBe("2026-07-16T09:00:00.000Z");
+    }
+  });
+
+  // Sin esto, cambiar la antelación no reprogramaría nada: `syncTaskReminders`
+  // solo cancela y vuelve a programar cuando la firma cambia.
+  it("la firma cambia si SOLO cambia la antelación", () => {
+    // Fecha a dos días vista: con "1 día antes" el aviso sigue estando en el
+    // futuro, que si no la tarea se descarta y no habría firma que comparar.
+    const task = { id: "a", title: "Basura", dueAt: "2026-07-17T09:00:00.000Z" };
+    const [a] = taskReminderPlan([mk({ ...task, notifyLead: 0 })], "Rubén", now);
+    const [b] = taskReminderPlan([mk({ ...task, notifyLead: 1440 })], "Rubén", now);
+    expect(a.sig).not.toBe(b.sig);
+  });
+
+  it("descarta la tarea cuyo AVISO ya pasó, aunque la fecha sea futura", () => {
+    // Falta media hora para la tarea, pero el aviso era una hora antes: ya no
+    // llega a tiempo. Si se colara, `scheduleAt` lo rechazaría y se reintentaría
+    // en cada sincronización.
+    const plan = taskReminderPlan(
+      [mk({ id: "a", dueAt: "2026-07-15T12:30:00.000Z", notifyLead: 60 })],
+      "Rubén",
+      now,
+    );
+    expect(plan).toEqual([]);
+  });
+
+  it("con antelación, el aviso dice a qué hora toca", () => {
+    const [r] = taskReminderPlan(
+      [mk({ id: "a", title: "Basura", dueAt: "2026-07-17T09:00:00.000Z", notifyLead: 1440, assignedToName: null })],
+      "Rubén",
+      now,
+    );
+    expect(r.body).toContain("Basura");
+    expect(r.body).toMatch(/\d{2}:\d{2}/);
+  });
+
+  it("una tarea diaria con '1 día antes' avisa: salta a la ocurrencia que llega a tiempo", () => {
+    // Sin el salto no avisaría nunca: al rodar, el aviso de la ocurrencia actual
+    // ya está vencido y se descartaba en cada sincronización.
+    const plan = taskReminderPlan(
+      [mk({ id: "a", dueAt: "2026-07-15T20:00:00.000Z", notifyLead: 1440, repeat: "daily" })],
+      "Rubén",
+      now,
+    );
+    expect(plan).toHaveLength(1);
+    expect(plan[0].date.getTime()).toBeGreaterThan(now.getTime());
+  });
+
+  it("no salta más allá de la fecha límite de la repetición", () => {
+    const plan = taskReminderPlan(
+      [
+        mk({
+          id: "a",
+          dueAt: "2026-07-15T20:00:00.000Z",
+          notifyLead: 1440,
+          repeat: "daily",
+          repeatUntil: "2026-07-15T00:00:00.000Z",
+        }),
+      ],
+      "Rubén",
+      now,
+    );
+    expect(plan).toEqual([]);
+  });
+
+  it("una tarea que NO se repite no salta a ninguna parte", () => {
+    const plan = taskReminderPlan(
+      [mk({ id: "a", dueAt: "2026-07-15T12:30:00.000Z", notifyLead: 60, repeat: "none" })],
+      "Rubén",
+      now,
+    );
+    expect(plan).toEqual([]);
+  });
+
+  it("sigue filtrando por hecha, sin aviso y de otra persona aunque haya antelación", () => {
+    const tasks = [
+      mk({ id: "hecha", dueAt: "2026-07-16T09:00:00.000Z", notifyLead: 60, done: true }),
+      mk({ id: "sinaviso", dueAt: "2026-07-16T09:00:00.000Z", notifyLead: 60, notify: false }),
+      mk({ id: "deotra", dueAt: "2026-07-16T09:00:00.000Z", notifyLead: 60, assignedToName: "María" }),
+      mk({ id: "buena", dueAt: "2026-07-16T09:00:00.000Z", notifyLead: 60, assignedToName: null }),
+    ];
+    expect(taskReminderPlan(tasks, "Rubén", now).map((r) => r.id)).toEqual(["buena"]);
   });
 });
 
@@ -92,25 +189,23 @@ describe("groupTasks", () => {
     T({ $id: "hecha", done: true, dueAt: "2026-07-13T09:00:00.000Z" }),
   ];
 
-  it("filtro 'today' → atrasadas y hoy, con las que no tienen fecha dentro de Hoy", () => {
+  it("filtro 'today' → solo atrasadas y hoy; las que no tienen fecha no se cuelan", () => {
     const g = groupTasks(tasks, "today", now);
     expect(g.map((x) => x.key)).toEqual(["overdue", "today"]);
-    expect(g[1].tasks.map((t) => t.$id).sort()).toEqual(["hoy", "sinfecha"]);
+    expect(g.find((x) => x.key === "today")?.tasks.map((t) => t.$id)).toEqual(["hoy"]);
   });
 
   it("filtro 'week' → hasta esta semana, sin 'más adelante' ni completadas", () => {
     const g = groupTasks(tasks, "week", now);
     expect(g.map((x) => x.key)).toEqual(["overdue", "today", "tomorrow", "week"]);
-    expect(g[1].tasks.map((t) => t.$id)).toContain("sinfecha");
   });
 
-  // Una tarea añadida rápido desde la barra no tiene fecha: si no saliera en
-  // "Hoy" parecería que la barra de añadir no funciona.
-  it("una tarea sin fecha nunca se queda escondida", () => {
-    for (const f of ["today", "week", "all"] as const) {
-      const g = groupTasks(tasks, f, now);
-      expect(g.some((x) => x.tasks.some((t) => t.$id === "sinfecha"))).toBe(true);
-    }
+  // Guardián de la queja original: una tarea añadida deprisa nace sin fecha, y
+  // tiene que estar donde se vea a la primera, no enterrada al final.
+  it("una tarea sin fecha aparece la primera de todo en 'Todas'", () => {
+    const g = groupTasks(tasks, "all", now);
+    expect(g[0].key).toBe("noDate");
+    expect(g[0].tasks.map((t) => t.$id)).toEqual(["sinfecha"]);
   });
 
   it("en 'Todas' sí se separan las que no tienen fecha", () => {
@@ -119,10 +214,37 @@ describe("groupTasks", () => {
     expect(g.find((x) => x.key === "today")?.tasks.map((t) => t.$id)).toEqual(["hoy"]);
   });
 
-  it("filtro 'all' → todos los grupos + Completadas al final", () => {
+  it("filtro 'all' → 'Sin fecha' primero y Completadas al final", () => {
     const g = groupTasks(tasks, "all", now);
-    expect(g.map((x) => x.key)).toEqual(["overdue", "today", "tomorrow", "week", "later", "noDate", "done"]);
-    expect(g[g.length - 1].tasks.map((t) => t.$id)).toEqual(["hecha"]);
+    expect(g.map((x) => x.key)).toEqual(["noDate", "overdue", "today", "tomorrow", "week", "later", "done"]);
+    expect(g.find((x) => x.key === "done")?.tasks.map((t) => t.$id)).toEqual(["hecha"]);
+  });
+});
+
+describe("hiddenNoDate · las que el filtro no enseña", () => {
+  const T = (o: Partial<{ $id: string; done: boolean; dueAt: string | null }>) => ({
+    $id: o.$id ?? "x",
+    done: o.done ?? false,
+    dueAt: o.dueAt ?? null,
+  });
+  const tasks = [
+    T({ $id: "sin1" }),
+    T({ $id: "sin2" }),
+    T({ $id: "conFecha", dueAt: "2026-07-14T09:00:00.000Z" }),
+    T({ $id: "hechaSinFecha", done: true }),
+  ];
+
+  it("cuenta las pendientes sin fecha en 'Hoy' y en 'Semana'", () => {
+    expect(hiddenNoDate(tasks, "today")).toBe(2);
+    expect(hiddenNoDate(tasks, "week")).toBe(2);
+  });
+
+  it("en 'Todas' no cuenta ninguna, porque ahí se ven", () => {
+    expect(hiddenNoDate(tasks, "all")).toBe(0);
+  });
+
+  it("no cuenta las completadas", () => {
+    expect(hiddenNoDate([T({ done: true })], "today")).toBe(0);
   });
 });
 

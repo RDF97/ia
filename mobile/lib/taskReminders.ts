@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { cancelScheduled, notificationsGranted, scheduleAt } from "./notifications";
+import { HOGAR_CHANNEL, cancelScheduled, notificationsGranted, scheduleAt } from "./notifications";
 import { taskReminderPlan } from "./taskLogic";
 import type { Task } from "./tasks";
 
@@ -37,7 +37,7 @@ export async function syncTaskReminders(tasks: Task[], myName: string): Promise<
   // Programa lo nuevo o reprogramado.
   for (const p of plan) {
     if (next[p.id]) continue;
-    const notifId = await scheduleAt(p.date, p.title, p.body);
+    const notifId = await scheduleAt(p.date, p.title, p.body, HOGAR_CHANNEL);
     if (notifId) next[p.id] = { notifId, sig: p.sig };
   }
 
