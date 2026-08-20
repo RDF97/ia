@@ -7,11 +7,22 @@ import https from "https";
 // Env vars:
 //   GEMINI_API_KEY  → clave gratuita de https://aistudio.google.com/app/apikey
 //   GEMINI_MODEL    → opcional; modelo(s) preferido(s), separados por comas.
-//                     Si no, prueba una lista de modelos hasta que uno funcione.
+//                     Es la vía rápida cuando Google retira un modelo: se pone
+//                     aquí uno que exista y no hace falta volver a desplegar.
+//                     Para ver cuáles hay:
+//                       curl -s "https://generativelanguage.googleapis.com/v1beta/models?key=TU_CLAVE" \
+//                         | grep -o '"name": "models/[^"]*"'
+//                     Si no se pone, se prueba la lista de abajo y, si falla
+//                     entera, se le pregunta a la API qué modelos existen hoy.
 //
 // Permiso de ejecución: Users. Recomendado timeout ≥ 30 s.
 
 // Se prueban en orden; si uno da 404 (retirado) o 429 (sin cuota), pasa al siguiente.
+//
+// OJO: esta lista CADUCA. Google retira modelos y entonces todos devuelven
+// 404 NOT_FOUND y el escáner deja de funcionar de un día para otro sin que
+// nadie haya tocado nada. Por eso, si fallan todos, se le pregunta a la propia
+// API qué modelos hay disponibles (`descubrirModelos`) y se reintenta con ellos.
 const DEFAULT_MODELS = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.0-flash-lite", "gemini-2.0-flash"];
 
 const PROMPT = `Eres un experto en leer tickets de compra y facturas de España a partir de una imagen o PDF.
@@ -53,6 +64,45 @@ const SCHEMA = {
 // Tope por modelo. Sin esto, un modelo que se cuelga se lleva por delante todo
 // el tiempo de la función y el usuario ve una respuesta vacía sin explicación.
 const MODEL_TIMEOUT_MS = 25_000;
+
+/** GET sencillo, para preguntarle a la API qué modelos existen. */
+function httpGet(path) {
+  return new Promise((resolve, reject) => {
+    const req = https.request(
+      { hostname: "generativelanguage.googleapis.com", path, method: "GET" },
+      (r) => {
+        let d = "";
+        r.on("data", (c) => (d += c));
+        r.on("end", () => resolve(d));
+      },
+    );
+    req.setTimeout(10_000, () => req.destroy(new Error("sin respuesta al listar modelos")));
+    req.on("error", reject);
+    req.end();
+  });
+}
+
+/**
+ * Pregunta a Gemini qué modelos hay ahora mismo y devuelve los que sirven para
+ * esto: los que aceptan `generateContent`, dejando fuera embeddings, imagen y
+ * audio. Se prefieren los "flash" (rápidos y baratos) sobre los "pro".
+ */
+async function descubrirModelos(apiKey) {
+  const raw = await httpGet(`/v1beta/models?key=${apiKey}&pageSize=100`);
+  const parsed = JSON.parse(raw);
+  if (parsed.error) {
+    const e = new Error(`${parsed.error.code || ""} ${parsed.error.status || parsed.error.message || ""}`.trim());
+    e.apiError = true;
+    throw e;
+  }
+  const nombres = (parsed.models || [])
+    .filter((m) => (m.supportedGenerationMethods || []).includes("generateContent"))
+    .map((m) => String(m.name || "").replace(/^models\//, ""))
+    .filter((n) => n && !/embedding|aqa|image|imagen|tts|audio|veo|learnlm/i.test(n));
+
+  const peso = (n) => (/flash/i.test(n) ? 0 : /pro/i.test(n) ? 1 : 2);
+  return nombres.sort((a, b) => peso(a) - peso(b) || a.localeCompare(b));
+}
 
 function callGemini(model, base64, mime, apiKey) {
   const payload = JSON.stringify({
@@ -120,7 +170,13 @@ export default async ({ req, res, log, error }) => {
     const models = [...new Set([...preferred, ...DEFAULT_MODELS])];
 
     let lastDetail = "sin respuesta";
-    for (const model of models) {
+    const probados = [];
+    // Se recorre la lista con un índice porque, si todos fallan por 404, se le
+    // añaden al vuelo los modelos que la API diga que existen ahora.
+    let descubiertos = false;
+    for (let i = 0; i < models.length; i++) {
+      const model = models[i];
+      probados.push(model);
       let parsed;
       try {
         parsed = JSON.parse(await callGemini(model, image, mime, apiKey));
@@ -131,6 +187,28 @@ export default async ({ req, res, log, error }) => {
       if (parsed.error) {
         lastDetail = `${model}: ${parsed.error.code || ""} ${parsed.error.status || parsed.error.message || ""}`.trim();
         log(lastDetail);
+        // Si se acabó la lista escrita a mano y todo fueron fallos, se le
+        // pregunta a la API qué modelos existen HOY y se reintenta con ellos.
+        // Sin esto, el día que Google retira un modelo el escáner muere y hay
+        // que redesplegar la función para revivirlo.
+        if (!descubiertos && i === models.length - 1) {
+          descubiertos = true;
+          try {
+            const vivos = await descubrirModelos(apiKey);
+            const nuevos = vivos.filter((m) => !models.includes(m)).slice(0, 3);
+            if (nuevos.length) {
+              log(`Modelos disponibles ahora: ${vivos.slice(0, 8).join(", ")}`);
+              models.push(...nuevos);
+            } else {
+              lastDetail += ` · la API no ofrece ningún modelo con generateContent`;
+            }
+          } catch (e) {
+            // Si ni siquiera se puede listar, el problema es la clave, no el modelo.
+            lastDetail = e?.apiError
+              ? `no se pudieron listar los modelos (${e.message}). Revisa GEMINI_API_KEY.`
+              : `${lastDetail} · fallo al listar modelos: ${e?.message || e}`;
+          }
+        }
         continue; // 404 (retirado) o 429 (sin cuota) → probar siguiente
       }
       const textOut = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -158,7 +236,7 @@ export default async ({ req, res, log, error }) => {
               return { description: String(l.description ?? "").trim(), qty, unitPrice, total };
             })
         : [];
-      log(`OK con modelo ${model}`);
+      log(`OK con modelo ${model}${probados.length > 1 ? ` (tras probar ${probados.length})` : ""}`);
       return res.json({
         ok: true,
         data: {
@@ -171,7 +249,7 @@ export default async ({ req, res, log, error }) => {
       });
     }
 
-    const resumen = `Probados: ${models.join(", ")}. Último fallo → ${lastDetail}. Imagen ~${kb(image)} KB.`;
+    const resumen = `Probados: ${probados.join(", ")}. Último fallo → ${lastDetail}. Imagen ~${kb(image)} KB.`;
     error(`Ningún modelo funcionó. ${resumen}`);
     return res.json({ ok: false, error: "ocr", detail: resumen }, 502);
   } catch (e) {
