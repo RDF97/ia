@@ -190,6 +190,14 @@ export function TaskEditor({
               <Chip key={m} on={assigned === m} label={m} avatar onPress={() => setAssigned(m)} />
             ))}
           </ScrollView>
+          {memberList.length === 1 && (
+            // Salir solo tú parece un fallo de la app, y en la práctica lo era:
+            // Appwrite no nos da el nombre de los demás. Decir dónde se arregla
+            // evita la búsqueda a ciegas por los ajustes.
+            <Text className="text-caption1 text-tertiary px-4 pb-2">
+              ¿Falta alguien? Ponle nombre en Perfil › Tu hogar y aparecerá aquí.
+            </Text>
+          )}
 
           {/* Fecha */}
           <View className="bg-card rounded-lg2 px-4 py-3 mb-3 flex-row items-center" style={{ gap: 12 }}>

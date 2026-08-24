@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,7 +14,7 @@ import { IconPickerModal } from "@/components/IconPickerModal";
 import { Segmented } from "@/components/Segmented";
 import { getThemeChoice, setThemeChoice, THEME_OPTIONS, type ThemeChoice } from "@/lib/themePref";
 import { listMembers, memberLabel, type Member } from "@/lib/members";
-import { syncMyProfile } from "@/lib/profiles";
+import { setProfileName, syncMyProfile } from "@/lib/profiles";
 import { retryProfileSync, useProfileSyncError } from "@/lib/useProfileSync";
 import {
   setHogarIcon,
@@ -30,6 +31,7 @@ export default function Perfil() {
   const router = useRouter();
   const { user, logout, updateName } = useAuth();
   const { active, leaveHogar } = useHogar();
+  const qc = useQueryClient();
   const [inviteOpen, setInviteOpen] = useState(false);
   const hogarIcon = useHogarIcon(active?.$id, t.accent).data ?? { icon: "home" as const, color: t.accent };
   const perfilIcon = usePerfilIcon(t.accent).data ?? null;
@@ -40,6 +42,8 @@ export default function Perfil() {
   const [theme, setTheme] = useState<ThemeChoice>("system");
   const [members, setMembers] = useState<Member[] | null>(null);
   const [editName, setEditName] = useState<string | null>(null);
+  // Miembro al que le estoy poniendo el nombre yo (userId → texto escrito).
+  const [naming, setNaming] = useState<{ userId: string; text: string } | null>(null);
 
   useEffect(() => {
     getThemeChoice().then(setTheme).catch(() => undefined);
@@ -50,6 +54,25 @@ export default function Perfil() {
     if (!active) return;
     listMembers(active.$id).then(setMembers).catch(() => setMembers([]));
   }, [active]);
+
+  /**
+   * Guarda el nombre que le pongo yo a otra persona del hogar. Su ficha queda
+   * con permisos del hogar, así que ella lo puede corregir luego desde su móvil.
+   */
+  const saveMemberName = async (userId: string, text: string) => {
+    const val = text.trim();
+    if (!val || !active) return;
+    const res = await setProfileName(active.$id, userId, val);
+    if (!res.ok) {
+      Alert.alert("No se pudo guardar", res.error);
+      return;
+    }
+    setNaming(null);
+    // Recarga aquí y no en otro sitio: la lista de miembros es lo que alimenta
+    // los repartos de gastos y a quién se puede asignar una tarea.
+    qc.invalidateQueries({ queryKey: ["members", active.$id] });
+    listMembers(active.$id).then(setMembers).catch(() => undefined);
+  };
 
   const saveName = async () => {
     const val = (editName ?? "").trim();
@@ -245,12 +268,35 @@ export default function Perfil() {
                     subtitle={
                       m.email ? (
                         <Text className="text-footnote text-secondary mt-0.5" numberOfLines={1}>{m.email}</Text>
+                      ) : naming?.userId === m.userId ? (
+                        <View className="flex-row items-center mt-1" style={{ gap: 8 }}>
+                          <TextInput
+                            autoFocus
+                            value={naming.text}
+                            onChangeText={(text) => setNaming({ userId: m.userId, text })}
+                            placeholder="Su nombre"
+                            placeholderTextColor={t.labelTertiary}
+                            className="flex-1 bg-bg rounded-lg2 px-3 py-1.5 text-callout text-label"
+                            onSubmitEditing={() => saveMemberName(m.userId, naming.text)}
+                            returnKeyType="done"
+                          />
+                          <Pressable onPress={() => saveMemberName(m.userId, naming.text)} hitSlop={8}>
+                            <Ionicons name="checkmark-circle" size={24} color={t.green} />
+                          </Pressable>
+                          <Pressable onPress={() => setNaming(null)} hitSlop={8}>
+                            <Ionicons name="close-circle" size={24} color={t.labelTertiary} />
+                          </Pressable>
+                        </View>
                       ) : !m.name ? (
-                        // Appwrite no nos deja leer su nombre: solo aparece cuando esa
-                        // persona abre la app y publica su ficha en el hogar.
-                        <Text className="text-footnote mt-0.5" style={{ color: t.orange }}>
-                          {syncError ? "Nombres sin guardar (mira el aviso de arriba)" : "Aún no ha abierto esta versión"}
-                        </Text>
+                        // Antes esto afirmaba "Aún no ha abierto esta versión", que muchas
+                        // veces era mentira y además dejaba al usuario sin nada que hacer.
+                        // Appwrite no deja leer el nombre de otra cuenta, pero quien está
+                        // mirando la pantalla sabe perfectamente quién es: que lo escriba.
+                        <Pressable onPress={() => setNaming({ userId: m.userId, text: "" })} hitSlop={6}>
+                          <Text className="text-footnote mt-0.5" style={{ color: t.accent }}>
+                            Appwrite no nos da su nombre · tocar para ponerlo
+                          </Text>
+                        </Pressable>
                       ) : null
                     }
                     trailing={

@@ -26,26 +26,6 @@ export const memberLabel = (m: Pick<Member, "name" | "email">): string =>
   m.name || m.email || "Miembro sin nombre";
 
 /**
- * Personas que cuentan para repartir dinero: las que están confirmadas y de las
- * que sabemos el nombre. Una invitación pendiente todavía no es nadie, y a quien
- * no podemos nombrar tampoco podemos cobrarle.
- */
-export const payingMembers = (members: Member[]): string[] =>
-  [...new Set(members.filter((m) => m.confirmed && m.name).map((m) => m.name))];
-
-/**
- * A quién se le puede asignar una tarea: cualquiera del hogar del que sepamos el
- * nombre.
- *
- * Es una lista más ancha que la del dinero a propósito. Cobrarle a alguien que
- * aún no ha entrado sería un error; pedirle que saque la basura, no. Antes las
- * tareas usaban la lista del dinero y por eso no se podía asignar nada a quien
- * tuviera la invitación a medias.
- */
-export const householdNames = (members: Member[]): string[] =>
-  [...new Set(members.filter((m) => m.name).map((m) => m.name))];
-
-/**
  * Junta las membresías del equipo con las fichas del hogar.
  *
  * Appwrite devuelve `userName` y `userEmail` vacíos a la propia app (no expone
