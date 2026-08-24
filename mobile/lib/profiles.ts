@@ -123,6 +123,7 @@ export async function syncMyProfile(
   userId: string,
   name: string,
   style?: { icon?: string | null; iconColor?: string | null },
+  memberIds: string[] = [],
 ): Promise<ProfileSyncResult> {
   const clean = name.trim();
   if (!hogarId || !userId || !clean) return { ok: true, skipped: true };
@@ -131,7 +132,7 @@ export async function syncMyProfile(
     data.icon = style.icon ?? null;
     data.iconColor = style.iconColor ?? null;
   }
-  return upsertProfile(hogarId, userId, data);
+  return upsertProfile(hogarId, userId, data, memberIds);
 }
 
 /**
@@ -144,59 +145,96 @@ export async function syncMyProfile(
  * consulta puede devolver vacío por permisos y hacer creer que no hay nada.
  * Es exactamente lo que llenaba la base de datos de fichas repetidas.
  */
-async function upsertProfile(
-  hogarId: string,
-  userId: string,
-  data: Record<string, string | null>,
-): Promise<ProfileSyncResult> {
-  const id = profileDocId(hogarId, userId);
+export function profilePerms(hogarId: string, userId: string, memberIds: string[]): string[] {
   const perms = [
     Permission.read(Role.team(hogarId)),
     Permission.update(Role.team(hogarId)),
     Permission.delete(Role.team(hogarId)),
-    // Y además a nombre propio: sin esto, si la membresía del equipo no está
-    // confirmada Appwrite no da el rol del hogar y esa persona no podía leer ni
-    // su PROPIA ficha, así que se veía a sí misma como "Miembro sin nombre".
+    // A nombre propio, además del equipo: Appwrite NO concede el rol del equipo
+    // mientras la membresía siga sin confirmar, y sin él una persona no podía
+    // leer ni su propia ficha: se veía a sí misma como "Miembro sin nombre".
     Permission.read(Role.user(userId)),
     Permission.update(Role.user(userId)),
   ];
-  try {
-    await databases.updateDocument(DB_ID, PROFILES_COL, id, data);
-    return { ok: true };
-  } catch (eUpdate) {
+  // Y uno por cada miembro del hogar, por su id de usuario. Es lo que hace que
+  // leer la ficha de otro no dependa del rol del equipo. Se nombra a cada
+  // persona en vez de abrirlo a `users` en general: así no se le enseñan los
+  // nombres de la casa a cualquiera que tenga cuenta en el servidor.
+  for (const id of memberIds) {
+    if (id && id !== userId) perms.push(Permission.read(Role.user(id)));
+  }
+  return [...new Set(perms)];
+}
+
+const mismos = (a: string[], b: string[]): boolean =>
+  a.length === b.length && [...a].sort().join("|") === [...b].sort().join("|");
+
+/**
+ * Escribe una ficha en su id fijo.
+ *
+ * Primero mira si ya está y si hay algo que cambiar: si el nombre, el icono y
+ * los permisos ya son los que tocan, no se escribe nada. Un arranque normal no
+ * toca la base de datos.
+ *
+ * Aquí NO se consulta por atributos para saber si existe. Esa consulta puede
+ * devolver vacío por permisos y hacer creer que no hay ficha, y es justo lo que
+ * llenaba la base de datos de fichas repetidas mientras nadie tenía nombre.
+ */
+async function upsertProfile(
+  hogarId: string,
+  userId: string,
+  data: Record<string, string | null>,
+  memberIds: string[] = [],
+): Promise<ProfileSyncResult> {
+  const id = profileDocId(hogarId, userId);
+  const perms = profilePerms(hogarId, userId, memberIds);
+
+  const actual = await databases
+    .getDocument<Profile>(DB_ID, PROFILES_COL, id)
+    .catch(() => null);
+
+  if (actual) {
+    const igual =
+      Object.entries(data).every(([k, v]) => (actual as unknown as Record<string, unknown>)[k] === v) &&
+      mismos(actual.$permissions ?? [], perms);
+    if (igual) return { ok: true, skipped: true };
     try {
-      await databases.createDocument(DB_ID, PROFILES_COL, id, data, perms);
+      await databases.updateDocument(DB_ID, PROFILES_COL, id, data, perms);
       return { ok: true };
-    } catch (eCreate) {
-      // Si la creación falla por existir ya, manda el fallo de la actualización:
-      // ese es el que dice de verdad qué pasa (permisos, columna que falta…).
-      const msg = String((eCreate as { message?: string })?.message ?? "");
-      return { ok: false, error: describeProfileError(/exist/i.test(msg) ? eUpdate : eCreate) };
+    } catch (e) {
+      return { ok: false, error: describeProfileError(e) };
     }
+  }
+
+  try {
+    await databases.createDocument(DB_ID, PROFILES_COL, id, data, perms);
+    return { ok: true };
+  } catch (eCreate) {
+    // Puede existir y no habérnosla dejado leer: entonces crear falla por
+    // duplicado y lo que toca es actualizarla.
+    const msg = String((eCreate as { message?: string })?.message ?? "");
+    if (/exist/i.test(msg)) {
+      try {
+        await databases.updateDocument(DB_ID, PROFILES_COL, id, data, perms);
+        return { ok: true };
+      } catch (eUpdate) {
+        return { ok: false, error: describeProfileError(eUpdate) };
+      }
+    }
+    return { ok: false, error: describeProfileError(eCreate) };
   }
 }
 
-/**
- * Pone el nombre de OTRA persona del hogar.
- *
- * Normalmente cada uno publica su propia ficha al entrar. Pero eso depende de
- * que su móvil tenga una versión de la app que lo haga, y mientras no la tenga
- * no hay manera de saber cómo se llama: Appwrite no lo cuenta, y esa persona
- * aparece como "Miembro sin nombre" sin que nadie pueda hacer nada.
- *
- * Quien está mirando la pantalla sí sabe quién es. Esto le deja escribirlo. La
- * ficha se guarda con permisos del hogar, así que la otra persona la puede
- * corregir después desde su móvil sin problemas.
- */
 export async function setProfileName(
   hogarId: string,
   userId: string,
   name: string,
+  memberIds: string[] = [],
 ): Promise<ProfileSyncResult> {
   const clean = name.trim();
   if (!hogarId || !userId || !clean) return { ok: true, skipped: true };
   // Solo el nombre: el icono es cosa suya, que lo elija ella desde su móvil.
-  return upsertProfile(hogarId, userId, { hogarId, userId, name: clean });
+  return upsertProfile(hogarId, userId, { hogarId, userId, name: clean }, memberIds);
 }
 
 /**
