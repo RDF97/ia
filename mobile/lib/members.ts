@@ -1,5 +1,5 @@
 import { teams } from "./appwrite";
-import { listProfiles, type HouseholdPerson } from "./profiles";
+import { readProfiles, type HouseholdPerson } from "./profiles";
 
 export interface Member {
   id: string; // id de la membresía
@@ -54,12 +54,26 @@ export function mergeMembers(
   });
 }
 
-/** Miembros del hogar (para saber quién más está dentro). */
-export async function listMembers(hogarId: string): Promise<Member[]> {
-  const [res, profiles] = await Promise.all([
-    teams.listMemberships(hogarId),
-    listProfiles(hogarId),
-  ]);
+/** Miembros del hogar, y qué falló al leer sus fichas (null si nada). */
+export interface MemberList {
+  members: Member[];
+  profilesError: string | null;
+}
+
+/**
+ * Miembros del hogar.
+ *
+ * Las membresías van PRIMERO, no en paralelo con las fichas, porque de ellas
+ * salen los `userId` con los que se puede pedir cada ficha por su id fijo. Ese
+ * camino no necesita ni permiso para listar ni índice, así que aguanta cuando
+ * la consulta por atributos no.
+ */
+export async function listMembersDetailed(hogarId: string): Promise<MemberList> {
+  const res = await teams.listMemberships(hogarId);
+  const { people: profiles, error: profilesError } = await readProfiles(
+    hogarId,
+    res.memberships.map((m) => m.userId).filter(Boolean),
+  );
   const memberships = res.memberships.map((m) => ({
     id: m.$id,
     userId: m.userId,
@@ -69,7 +83,12 @@ export async function listMembers(hogarId: string): Promise<Member[]> {
     joinedAt: m.$createdAt,
     confirmed: m.confirm ?? true,
   }));
-  return mergeMembers(memberships, profiles);
+  return { members: mergeMembers(memberships, profiles), profilesError };
+}
+
+/** Igual, cuando solo hacen falta los miembros. */
+export async function listMembers(hogarId: string): Promise<Member[]> {
+  return (await listMembersDetailed(hogarId)).members;
 }
 
 /** Quita a alguien del hogar (solo si tienes permiso de propietario). */
