@@ -144,7 +144,7 @@ async function descubrirModelos(apiKey) {
   );
 }
 
-function callGemini(model, base64, mime, apiKey) {
+function callGemini(model, base64, mime, apiKey, pensar = false) {
   const payload = JSON.stringify({
     contents: [
       {
@@ -154,7 +154,21 @@ function callGemini(model, base64, mime, apiKey) {
         ],
       },
     ],
-    generationConfig: { responseMimeType: "application/json", responseSchema: SCHEMA, temperature: 0 },
+    generationConfig: {
+      responseMimeType: "application/json",
+      responseSchema: SCHEMA,
+      temperature: 0,
+      // Un ticket de la compra semanal son 40 o 50 líneas de JSON. Sin este
+      // límite explícito manda el del modelo, y al pasarse corta la respuesta
+      // por la mitad: llega un JSON incompleto que no se puede leer. Es
+      // exactamente por lo que los tickets cortos iban y los largos no.
+      maxOutputTokens: 16384,
+      // Y esto es lo que se comía el presupuesto: en los modelos 2.5 el
+      // razonamiento gasta de la MISMA bolsa que la respuesta. Con un ticket
+      // largo se lo llevaba entero y no quedaba nada para el JSON. Copiar los
+      // datos de un ticket a un esquema fijo no necesita pensar.
+      ...(pensar ? {} : { thinkingConfig: { thinkingBudget: 0 } }),
+    },
   });
 
   return new Promise((resolve, reject) => {
@@ -247,6 +261,14 @@ export default async ({ req, res, log, error }) => {
       let parsed;
       try {
         parsed = JSON.parse(await callGemini(model, image, mime, apiKey));
+        // `thinkingConfig` solo existe en los modelos 2.5 en adelante. Uno más
+        // antiguo devuelve 400 por ese campo, y sin este reintento un modelo
+        // que funcionaba perfectamente quedaría descartado por un ajuste que
+        // solo es una optimización.
+        if (parsed?.error?.code === 400 && /thinking/i.test(JSON.stringify(parsed.error))) {
+          log(`${model}: no acepta thinkingConfig; reintento sin él`);
+          parsed = JSON.parse(await callGemini(model, image, mime, apiKey, true));
+        }
       } catch (e) {
         lastDetail = `${model}: ${e?.message || "error red"}`;
         fallos.push(lastDetail);
@@ -280,9 +302,23 @@ export default async ({ req, res, log, error }) => {
         }
         continue; // 404 (retirado) o 429 (sin cuota) → probar siguiente
       }
-      const textOut = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+      const cand = parsed?.candidates?.[0];
+      // Las partes se juntan: una respuesta larga puede venir troceada, y
+      // quedarse solo con la primera daba un JSON cortado que no se podía leer.
+      const textOut = (cand?.content?.parts || [])
+        .map((p) => p?.text || "")
+        .join("");
+      const fin = cand?.finishReason;
       if (!textOut) {
-        lastDetail = `${model}: respuesta vacía`;
+        // Decir el motivo importa: "MAX_TOKENS" señala a un ticket demasiado
+        // largo (súbele maxOutputTokens) y "SAFETY" a otra cosa muy distinta.
+        // Sin esto, todos los finales acababan en el mismo "no se pudo leer".
+        lastDetail = `${model}: respuesta vacía${fin ? ` (${fin})` : ""}`;
+        fallos.push(lastDetail);
+        continue;
+      }
+      if (fin === "MAX_TOKENS") {
+        lastDetail = `${model}: el ticket es demasiado largo y la respuesta se cortó (MAX_TOKENS)`;
         fallos.push(lastDetail);
         continue;
       }
@@ -290,7 +326,7 @@ export default async ({ req, res, log, error }) => {
       try {
         data = JSON.parse(String(textOut).replace(/^```json\s*|\s*```$/g, ""));
       } catch {
-        lastDetail = `${model}: JSON inválido`;
+        lastDetail = `${model}: JSON inválido${fin ? ` (fin: ${fin})` : ""}`;
         fallos.push(lastDetail);
         continue;
       }

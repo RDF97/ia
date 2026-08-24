@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "@/theme/theme";
 import { cardShadow } from "@/components/Card";
+import { SectionTitle } from "@/components/ui";
 import { useLuzPrices } from "@/lib/useLuzPrices";
 import type { LuzSource } from "@/lib/luzData";
 import { PriceChart } from "@/components/luz/PriceChart";
@@ -39,12 +40,6 @@ type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
 const sourceLabel = (s: LuzSource) =>
   s === "real" ? "PVPC · datos reales (REE)" : s === "pdl" ? "PVPC · datos reales" : "PVPC · datos de ejemplo";
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <SectionTitle>{children}</SectionTitle>
-  );
-}
 
 export default function Luz() {
   const t = useTheme();
