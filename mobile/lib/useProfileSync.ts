@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { teams } from "./appwrite";
 import { syncMyProfile, type ProfileSyncResult } from "./profiles";
 import { getPerfilIcon } from "./appearance";
 
@@ -27,17 +28,26 @@ export function useProfileSync(
     (async () => {
       const style = await getPerfilIcon(accentColor).catch(() => null);
       if (cancelled) return;
-      const res = await syncMyProfile(hogarId, userId, name, {
-        icon: style?.icon ?? null,
-        iconColor: style?.color ?? null,
-      });
+      // Los miembros se piden aquí a pelo, no con el hook de react-query: este
+      // efecto invalida esa consulta al terminar, y leerla desde aquí montaría
+      // un ciclo de refresco sin fin.
+      const memberIds = await memberUserIds(hogarId);
+      if (cancelled) return;
+      const res = await syncMyProfile(
+        hogarId,
+        userId,
+        name,
+        { icon: style?.icon ?? null, iconColor: style?.color ?? null },
+        memberIds,
+      );
       if (cancelled) return;
       // El fallo se guarda para que Perfil pueda enseñarlo: si no, el hogar
       // sale lleno de "Miembro sin nombre" y nada dice que la causa está en
       // la base de datos, no en que el otro no haya abierto la app.
       setProfileSyncError(res.ok ? null : res.error);
-      // Que la lista de miembros recoja el nombre recién publicado.
-      qc.invalidateQueries({ queryKey: ["members", hogarId] });
+      // Solo si se escribió algo: invalidar cuando no ha cambiado nada es
+      // trabajo de red para nada en cada arranque.
+      if (res.ok && !res.skipped) qc.invalidateQueries({ queryKey: ["members", hogarId] });
     })();
     return () => {
       cancelled = true;
@@ -80,10 +90,27 @@ export async function retryProfileSync(
   accentColor: string,
 ): Promise<ProfileSyncResult> {
   const style = await getPerfilIcon(accentColor).catch(() => null);
-  const res = await syncMyProfile(hogarId, userId, name, {
-    icon: style?.icon ?? null,
-    iconColor: style?.color ?? null,
-  });
+  const res = await syncMyProfile(
+    hogarId,
+    userId,
+    name,
+    { icon: style?.icon ?? null, iconColor: style?.color ?? null },
+    await memberUserIds(hogarId),
+  );
   setProfileSyncError(res.ok ? null : res.error);
   return res;
+}
+
+/**
+ * Los `userId` de quienes están en el hogar, para dar a cada uno permiso de
+ * lectura sobre mi ficha. Si falla, se sigue sin ellos: la ficha se guarda
+ * igual con los permisos del equipo, que es lo que había hasta ahora.
+ */
+async function memberUserIds(hogarId: string): Promise<string[]> {
+  try {
+    const res = await teams.listMemberships(hogarId);
+    return res.memberships.map((m) => m.userId).filter(Boolean);
+  } catch {
+    return [];
+  }
 }

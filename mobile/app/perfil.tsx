@@ -53,6 +53,10 @@ export default function Perfil() {
   }, []);
 
   // Quién más está en el hogar.
+  // Los ids de quienes están en el hogar, para que la ficha que se escriba deje
+  // leerla a cada uno de ellos por nombre propio y no solo por el rol del equipo.
+  const memberIds = useCallback(() => (members ?? []).map((m) => m.userId).filter(Boolean), [members]);
+
   const reloadMembers = useCallback(() => {
     if (!active) return;
     listMembersDetailed(active.$id)
@@ -72,7 +76,7 @@ export default function Perfil() {
   const saveMemberName = async (userId: string, text: string) => {
     const val = text.trim();
     if (!val || !active) return;
-    const res = await setProfileName(active.$id, userId, val);
+    const res = await setProfileName(active.$id, userId, val, memberIds());
     if (!res.ok) {
       Alert.alert("No se pudo guardar", res.error);
       return;
@@ -91,7 +95,7 @@ export default function Perfil() {
       await updateName(val);
       setEditName(null);
       if (active && user) {
-        await syncMyProfile(active.$id, user.$id, val);
+        await syncMyProfile(active.$id, user.$id, val, undefined, memberIds());
         reloadMembers();
       }
     } catch (e) {
