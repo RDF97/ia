@@ -16,6 +16,11 @@ import type { Category } from "@/lib/categories";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 const eur = (v: number) => `${v.toFixed(2).replace(".", ",")} €`;
+// El texto de un ticket es grande, así que no hace falta más resolución para
+// leerlo; lo que sobra solo hace la petición más lenta.
+const MAX_LADO = 2200;
+const MAX_ANCHO = 1400;
+
 type Step = "choose" | "scanning" | "review";
 type Source = "camera" | "library" | "pdf";
 
@@ -90,9 +95,20 @@ export function ScanModal({
             : await ImagePicker.launchImageLibraryAsync({ quality: 1, mediaTypes: ["images"] });
         if (res.canceled) return;
         setStep("scanning");
+        // Un ticket es una tira muy alta y estrecha. Fijando solo el ancho, uno
+        // largo salía de 1400 × 4000 y pico: muchísimos píxeles que el servicio
+        // de lectura tiene que trocear, y es lo que hace que tarde tanto que la
+        // función se queda sin tiempo. Se limita el lado LARGO, que es el que
+        // manda aquí, y así una foto normal y una de un ticket kilométrico
+        // pesan parecido.
+        const { width = 0, height = 0 } = res.assets[0];
+        const resize =
+          height > width && height > MAX_LADO
+            ? { height: MAX_LADO }
+            : { width: Math.min(width || MAX_ANCHO, MAX_ANCHO) };
         const shrunk = await ImageManipulator.manipulateAsync(
           res.assets[0].uri,
-          [{ resize: { width: 1400 } }],
+          [{ resize }],
           { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG, base64: true },
         );
         base64 = shrunk.base64 ?? "";

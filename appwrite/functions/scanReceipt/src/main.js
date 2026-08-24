@@ -65,7 +65,18 @@ const SCHEMA = {
 
 // Tope por modelo. Sin esto, un modelo que se cuelga se lleva por delante todo
 // el tiempo de la función y el usuario ve una respuesta vacía sin explicación.
-const MODEL_TIMEOUT_MS = 25_000;
+const MODEL_TIMEOUT_MS = Number(process.env.SCAN_MODEL_TIMEOUT_MS || 20_000);
+
+/**
+ * Presupuesto total de la función, algo por debajo del timeout configurado en
+ * Appwrite (por defecto 15 s, que NO da para leer un ticket: hay que subirlo).
+ *
+ * Importa porque cuando Appwrite mata la función no hay respuesta ninguna: el
+ * usuario ve "la función no devolvió respuesta" y no sabe si es la foto, la
+ * clave o el tiempo. Parando nosotros a tiempo, se puede contestar con un JSON
+ * que lo diga.
+ */
+const BUDGET_MS = Number(process.env.SCAN_BUDGET_MS || 50_000);
 
 /** GET sencillo, para preguntarle a la API qué modelos existen. */
 function httpGet(path) {
@@ -193,6 +204,9 @@ export default async ({ req, res, log, error }) => {
     const preferred = (process.env.GEMINI_MODEL || "").split(",").map((s) => s.trim()).filter(Boolean);
     const models = [...new Set([...preferred, ...DEFAULT_MODELS])];
 
+    const arranque = Date.now();
+    const restante = () => BUDGET_MS - (Date.now() - arranque);
+
     let lastDetail = "sin respuesta";
     // Un fallo por modelo. Antes solo se guardaba el último, así que el mensaje
     // culpaba siempre al modelo del final de la lista y se perdía por qué
@@ -204,6 +218,21 @@ export default async ({ req, res, log, error }) => {
     let descubiertos = false;
     for (let i = 0; i < models.length; i++) {
       const model = models[i];
+      // Si no queda tiempo para otro intento, se para y se contesta. Insistir
+      // solo llevaría a que Appwrite corte la función a media respuesta.
+      if (restante() < 5_000 && probados.length) {
+        const gastado = Math.round((Date.now() - arranque) / 1000);
+        return res.json(
+          {
+            ok: false,
+            error: "timeout",
+            detail:
+              `Se agotó el tiempo tras ${gastado} s probando ${probados.join(", ")}. ` +
+              `Sube el timeout de la función en Appwrite (Settings → Timeout) a 60 s o más.`,
+          },
+          504,
+        );
+      }
       probados.push(model);
       let parsed;
       try {
