@@ -23,7 +23,9 @@ import https from "https";
 // 404 NOT_FOUND y el escáner deja de funcionar de un día para otro sin que
 // nadie haya tocado nada. Por eso, si fallan todos, se le pregunta a la propia
 // API qué modelos hay disponibles (`descubrirModelos`) y se reintenta con ellos.
-const DEFAULT_MODELS = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.0-flash-lite", "gemini-2.0-flash"];
+// Los alias "latest" van primero a propósito: Google los mantiene apuntando al
+// modelo vigente, así que sobreviven al siguiente retiro sin tocar nada.
+const DEFAULT_MODELS = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-flash-lite-latest", "gemini-pro-latest"];
 
 const PROMPT = `Eres un experto en leer tickets de compra y facturas de España a partir de una imagen o PDF.
 Extrae los datos y devuélvelos SOLO en JSON según el esquema. Reglas:
@@ -95,13 +97,35 @@ async function descubrirModelos(apiKey) {
     e.apiError = true;
     throw e;
   }
+  // Fuera todo lo que no sirve para leer un ticket: embeddings, generación de
+  // imagen, voz, audio en directo, vídeo, robótica y control del ordenador.
+  const DESCARTAR = /embedding|aqa|imagen|image|tts|audio|live|veo|learnlm|robotics|computer-use|translate/i;
   const nombres = (parsed.models || [])
     .filter((m) => (m.supportedGenerationMethods || []).includes("generateContent"))
     .map((m) => String(m.name || "").replace(/^models\//, ""))
-    .filter((n) => n && !/embedding|aqa|image|imagen|tts|audio|veo|learnlm/i.test(n));
+    .filter((n) => n && !DESCARTAR.test(n));
 
-  const peso = (n) => (/flash/i.test(n) ? 0 : /pro/i.test(n) ? 1 : 2);
-  return nombres.sort((a, b) => peso(a) - peso(b) || a.localeCompare(b));
+  // Primero los "flash" (rápidos y con más cuota gratis), luego los "pro". Y
+  // dentro de cada grupo, el más NUEVO primero: ordenar por nombre pondría el
+  // 2.5 por delante del 3.7, que es justo al revés de lo que interesa. Los
+  // "latest" van los primeros de todos: son alias que Google mantiene al día,
+  // así que sobreviven al siguiente retiro sin tocar nada.
+  const version = (n) => {
+    const m = n.match(/(\d+(?:\.\d+)?)/);
+    return m ? parseFloat(m[1]) : 0;
+  };
+  const familia = (n) => (/flash/i.test(n) ? 0 : /pro/i.test(n) ? 1 : 2);
+  const esAlias = (n) => (/latest/i.test(n) ? 0 : 1);
+  const esPreview = (n) => (/preview/i.test(n) ? 1 : 0);
+
+  return nombres.sort(
+    (a, b) =>
+      familia(a) - familia(b) ||
+      esAlias(a) - esAlias(b) ||
+      esPreview(a) - esPreview(b) ||
+      version(b) - version(a) ||
+      a.localeCompare(b),
+  );
 }
 
 function callGemini(model, base64, mime, apiKey) {
@@ -170,6 +194,10 @@ export default async ({ req, res, log, error }) => {
     const models = [...new Set([...preferred, ...DEFAULT_MODELS])];
 
     let lastDetail = "sin respuesta";
+    // Un fallo por modelo. Antes solo se guardaba el último, así que el mensaje
+    // culpaba siempre al modelo del final de la lista y se perdía por qué
+    // habían fallado los de delante, que es justo lo que hacía falta saber.
+    const fallos = [];
     const probados = [];
     // Se recorre la lista con un índice porque, si todos fallan por 404, se le
     // añaden al vuelo los modelos que la API diga que existen ahora.
@@ -182,10 +210,12 @@ export default async ({ req, res, log, error }) => {
         parsed = JSON.parse(await callGemini(model, image, mime, apiKey));
       } catch (e) {
         lastDetail = `${model}: ${e?.message || "error red"}`;
+        fallos.push(lastDetail);
         continue;
       }
       if (parsed.error) {
         lastDetail = `${model}: ${parsed.error.code || ""} ${parsed.error.status || parsed.error.message || ""}`.trim();
+        fallos.push(lastDetail);
         log(lastDetail);
         // Si se acabó la lista escrita a mano y todo fueron fallos, se le
         // pregunta a la API qué modelos existen HOY y se reintenta con ellos.
@@ -214,6 +244,7 @@ export default async ({ req, res, log, error }) => {
       const textOut = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!textOut) {
         lastDetail = `${model}: respuesta vacía`;
+        fallos.push(lastDetail);
         continue;
       }
       let data;
@@ -221,6 +252,7 @@ export default async ({ req, res, log, error }) => {
         data = JSON.parse(String(textOut).replace(/^```json\s*|\s*```$/g, ""));
       } catch {
         lastDetail = `${model}: JSON inválido`;
+        fallos.push(lastDetail);
         continue;
       }
       const num = (v) => (typeof v === "number" && isFinite(v) ? v : null);
@@ -249,7 +281,7 @@ export default async ({ req, res, log, error }) => {
       });
     }
 
-    const resumen = `Probados: ${probados.join(", ")}. Último fallo → ${lastDetail}. Imagen ~${kb(image)} KB.`;
+    const resumen = `${fallos.length ? fallos.join(" · ") : lastDetail}. Imagen ~${kb(image)} KB.`;
     error(`Ningún modelo funcionó. ${resumen}`);
     return res.json({ ok: false, error: "ocr", detail: resumen }, 502);
   } catch (e) {
