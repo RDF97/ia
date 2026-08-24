@@ -16,7 +16,7 @@ import { appwriteConfigured } from "@/lib/appwrite";
 import { useTasks } from "@/lib/useTasks";
 import { completeTask, createTask, deleteTask, setTaskDone, type Task } from "@/lib/tasks";
 import { useMembers } from "@/lib/useMembers";
-import { payingMembers } from "@/lib/members";
+import { householdNames } from "@/lib/members";
 import { dueInfo, groupTasks, hiddenNoDate, repeatLabel, type TaskFilter } from "@/lib/taskLogic";
 import { leadLabel } from "@/lib/leadTime";
 import { useTheme } from "@/theme/theme";
@@ -53,7 +53,7 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["tasks", hogarId] });
   // Siempre me incluyo: si los miembros aún no han cargado, al menos estoy yo.
-  const members = [...new Set([userName, ...payingMembers(useMembers(hogarId).data ?? [])])];
+  const members = [...new Set([userName, ...householdNames(useMembers(hogarId).data ?? [])])];
 
   const add = async () => {
     const val = title.trim();

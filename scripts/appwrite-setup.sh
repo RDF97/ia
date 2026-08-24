@@ -209,6 +209,10 @@ done
 echo ""
 if [ "$ALL_OK" = 1 ]; then
   echo "TODO CORRECTO. Recarga la app: tareas, eventos, precios y Liquidar deben ir."
-else
-  echo "Hay algo mal (líneas con ✗). Pega esta comprobación en el chat."
+  exit 0
 fi
+echo "Hay algo mal (líneas con ✗). Pega esta comprobación en el chat."
+# Sale con error a propósito: quien llame a este script (homie-setup.sh) tiene
+# que enterarse. Devolviendo 0 siempre, un fallo aquí acababa en un "✅ todo en
+# orden" final que no era verdad.
+exit 1

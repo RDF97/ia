@@ -1,4 +1,4 @@
-import { memberLabel, payingMembers, type Member } from "./members";
+import { householdNames, memberLabel, payingMembers, type Member } from "./members";
 
 const M = (p: Partial<Member>): Member => ({
   id: "m",
@@ -42,5 +42,20 @@ describe("memberLabel · cómo se le llama en pantalla", () => {
 
   test("y si no hay nada, se dice claramente", () => {
     expect(memberLabel({ name: "", email: "" })).toBe("Miembro sin nombre");
+  });
+});
+
+describe("householdNames · a quién se le puede asignar una tarea", () => {
+  it("incluye a quien tiene la invitación a medias", () => {
+    // Es el caso que rompía "asignar a cualquiera del hogar": Appwrite deja
+    // `confirm: false` hasta que se abre el email, aunque la persona ya use la app.
+    expect(householdNames([M({ name: "Clara" }), M({ name: "Ana", confirmed: false })])).toEqual([
+      "Clara",
+      "Ana",
+    ]);
+  });
+
+  it("sigue dejando fuera a quien no tiene nombre", () => {
+    expect(householdNames([M({ name: "Clara" }), M({ name: "" })])).toEqual(["Clara"]);
   });
 });

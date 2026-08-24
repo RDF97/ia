@@ -48,10 +48,6 @@ export async function listProfiles(hogarId: string): Promise<HouseholdPerson[]> 
   }
 }
 
-/**
- * Deja mi ficha al día. Se llama al entrar y al cambiarme el nombre.
- * No lanza: que falle no puede impedir usar la app.
- */
 /** Cómo fue la publicación de mi ficha, para poder decirlo en pantalla. */
 export type ProfileSyncResult =
   | { ok: true; skipped?: boolean }

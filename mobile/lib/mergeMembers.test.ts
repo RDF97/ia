@@ -59,3 +59,19 @@ describe("mergeMembers · el nombre bueno es el de la ficha del hogar", () => {
     expect(memberLabel(out[1])).toBe("Miembro sin nombre");
   });
 });
+
+describe("mergeMembers · tener ficha demuestra que estás dentro", () => {
+  it("da por confirmado a quien ha publicado su ficha", () => {
+    const out = mergeMembers(
+      [M({ userId: "u2", name: "", confirmed: false })],
+      [{ userId: "u2", name: "Clara", icon: null, iconColor: null }],
+    );
+    expect(out[0].confirmed).toBe(true);
+    expect(payingMembers(out)).toEqual(["Clara"]);
+  });
+
+  it("no confirma a quien no tiene ficha", () => {
+    const out = mergeMembers([M({ userId: "u3", name: "Ana", confirmed: false })], []);
+    expect(out[0].confirmed).toBe(false);
+  });
+});
