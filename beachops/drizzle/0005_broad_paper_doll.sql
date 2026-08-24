@@ -1,0 +1,1 @@
+ALTER TABLE "raw_emails" ADD COLUMN "parse_attempts" integer DEFAULT 0 NOT NULL;

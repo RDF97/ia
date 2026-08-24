@@ -76,6 +76,8 @@ export default async function EmailsPage() {
             <span className="font-semibold">
               ⚠ {failed.length} email{failed.length > 1 ? "s" : ""} no se pudieron leer
             </span>
+            {/* El worker ya los reintenta solo; el botón es para no esperar. */}
+            <span className="text-xs text-red-500">se reintentan solos cada poco</span>
             <div className="ml-auto flex gap-2">
               <form action={retryAllFailed}>
                 <SubmitButton
@@ -107,7 +109,10 @@ export default async function EmailsPage() {
                       {r.subject ?? "(sin asunto)"}
                     </Link>
                   </td>
-                  <td className="py-1.5 pr-2 text-xs text-red-500 max-w-52 truncate">{r.parseError}</td>
+                  <td className="py-1.5 pr-2 text-xs text-red-500 max-w-52 truncate">
+                    {r.parseError}
+                    {r.parseAttempts > 1 && ` · ${r.parseAttempts} intentos`}
+                  </td>
                   <td className="py-1.5 whitespace-nowrap text-right">
                     <span className="flex gap-1 justify-end">
                       <form action={reprocessEmail.bind(null, r.id)}>
