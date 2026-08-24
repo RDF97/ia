@@ -101,6 +101,11 @@ docker compose logs -f web     # comprobar que arranca sin errores
 
 - Las **migraciones** de base de datos se aplican solas al arrancar el `worker`.
 - El **volumen `pgdata` persiste**: los datos y reservas no se pierden al reconstruir.
+- Al arrancar, el worker **reintenta todos los emails que no se pudieron leer**:
+  si el fallo era que el parser no sabía leer esa plantilla, la versión recién
+  desplegada puede que ya sepa. Después sigue reintentándolos él solo, esperando
+  cada vez un poco más, hasta ocho intentos. En el log verás
+  `Reintentados N emails que habían fallado.`
 
 ### Parche de datos tras un cambio de configuración
 

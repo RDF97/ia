@@ -152,6 +152,8 @@ export const rawEmails = pgTable(
       .notNull()
       .default("pending"),
     parseError: text("parse_error"),
+    /** Veces que se ha intentado leer sin conseguirlo (para reintentar con calma). */
+    parseAttempts: integer("parse_attempts").notNull().default(0),
     parsedPayload: jsonb("parsed_payload"),
     bookingId: uuid("booking_id"),
     processedAt: timestamp("processed_at", { withTimezone: true }),

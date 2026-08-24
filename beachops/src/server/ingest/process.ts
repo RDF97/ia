@@ -5,7 +5,7 @@ import { applyMappingRules, resolveTimeSlot } from "../mapping/engine";
 import { detectLocation, productInLocation } from "../mapping/location";
 import { isSantanyi } from "../board/rules";
 import { bestBody, fullText } from "../parsers/html";
-import { detectParser, looksLikeBooking } from "../parsers/registry";
+import { classifyUnknown, detectParser } from "../parsers/registry";
 import { ParseError, ParsedBooking } from "../parsers/types";
 import { sendPushToOrg } from "../push";
 
@@ -15,12 +15,64 @@ function isRecent(receivedAt: Date | null): boolean {
 }
 
 /**
+ * Marca el email como "no se pudo leer" y cuenta el intento. La cuenta es lo
+ * que permite reintentarlo solo más tarde (ver `retryFailedEmails`) sin
+ * quedarse dando vueltas eternamente sobre el mismo email imposible.
+ */
+async function markFailed(
+  raw: RawEmail,
+  source: RawEmail["detectedSource"] | undefined,
+  message: string,
+  avisar: boolean,
+  kind?: RawEmail["detectedKind"],
+): Promise<void> {
+  const db = await getDb();
+  await db
+    .update(schema.rawEmails)
+    .set({
+      ...(source ? { detectedSource: source } : {}),
+      ...(kind ? { detectedKind: kind } : {}),
+      parseStatus: "failed",
+      parseError: message,
+      parseAttempts: raw.parseAttempts + 1,
+      processedAt: new Date(),
+    })
+    .where(eq(schema.rawEmails.id, raw.id));
+  if (avisar) {
+    await sendPushToOrg(raw.orgId, {
+      title: "⚠ Email sin procesar",
+      body: raw.subject ?? message,
+      url: "/emails",
+      tag: `email-${raw.id}`,
+    });
+  }
+}
+
+/**
  * Procesa un email crudo: detecta la plataforma, parsea la reserva, aplica el
  * mapeo a producto/playa/franja y hace upsert de la reserva. Idempotente:
  * reprocesar el mismo email o recibir un duplicado actualiza, nunca duplica.
  */
-export async function processRawEmail(raw: RawEmail): Promise<void> {
+export async function processRawEmail(
+  raw: RawEmail,
+  /** Un reintento no vuelve a avisar: el aviso ya se dio la primera vez. */
+  opts: { retry?: boolean } = {},
+): Promise<void> {
+  try {
+    await runPipeline(raw, opts);
+  } catch (err) {
+    // Un email nunca se queda a medias. Si algo revienta de forma inesperada
+    // (una plantilla rarísima, un tropiezo de la base de datos), se marca como
+    // fallido —y el reintento automático volverá a por él— en vez de tumbar el
+    // ciclo de sincronización y dejar el resto del correo sin entrar.
+    console.error(`Email ${raw.id} reventó al procesarse:`, err);
+    await markFailed(raw, undefined, `Error inesperado: ${String(err)}`, false);
+  }
+}
+
+async function runPipeline(raw: RawEmail, opts: { retry?: boolean }): Promise<void> {
   const db = await getDb();
+  const avisar = isRecent(raw.receivedAt) && !opts.retry;
   const email = {
     fromAddress: raw.fromAddress,
     subject: raw.subject,
@@ -30,8 +82,9 @@ export async function processRawEmail(raw: RawEmail): Promise<void> {
 
   const parser = detectParser(email);
   if (!parser) {
-    // Respuestas directas de clientes al buzón ("RE: ...") → mensaje con aviso
-    if (/^\s*(re|rv|fw|fwd)\s*:/i.test(raw.subject ?? "")) {
+    // Ninguna plataforma lo reclama: o es alguien escribiendo, o es una reserva
+    // de un sitio que todavía no sabemos leer.
+    if (classifyUnknown(email) === "message") {
       await db
         .update(schema.rawEmails)
         .set({
@@ -39,13 +92,16 @@ export async function processRawEmail(raw: RawEmail): Promise<void> {
           detectedKind: "message",
           parseStatus: "ignored",
           parseError: null,
+          parseAttempts: 0,
           processedAt: new Date(),
         })
         .where(eq(schema.rawEmails.id, raw.id));
-      if (isRecent(raw.receivedAt)) {
+      // Solo se avisa de las personas; los boletines y notificaciones de
+      // plataformas no merecen una notificación en el móvil.
+      if (avisar && !/(no-?reply|noreply|do-?not-?reply|notifications?@|mailer)/i.test(raw.fromAddress ?? "")) {
         const sender = raw.fromAddress?.replace(/\s*<[^>]*>/, "").replace(/"/g, "") ?? "Cliente";
         await sendPushToOrg(raw.orgId, {
-          title: `💬 Respuesta de cliente — ${sender}`,
+          title: `💬 Mensaje de cliente — ${sender}`,
           body: raw.subject ?? "Nuevo mensaje",
           url: "/emails",
           tag: `msg-${raw.id}`,
@@ -53,26 +109,12 @@ export async function processRawEmail(raw: RawEmail): Promise<void> {
       }
       return;
     }
-    const failed = looksLikeBooking(email);
-    await db
-      .update(schema.rawEmails)
-      .set({
-        detectedSource: "unknown",
-        parseStatus: failed ? "failed" : "ignored",
-        parseError: failed
-          ? "Parece una reserva pero no es de una plataforma conocida"
-          : null,
-        processedAt: new Date(),
-      })
-      .where(eq(schema.rawEmails.id, raw.id));
-    if (failed && isRecent(raw.receivedAt)) {
-      await sendPushToOrg(raw.orgId, {
-        title: "⚠ Email sin procesar",
-        body: raw.subject ?? "Un email de reserva no se pudo interpretar",
-        url: "/emails",
-        tag: `email-${raw.id}`,
-      });
-    }
+    await markFailed(
+      raw,
+      "unknown",
+      "Parece una reserva pero no es de una plataforma conocida",
+      avisar,
+    );
     return;
   }
 
@@ -87,10 +129,11 @@ export async function processRawEmail(raw: RawEmail): Promise<void> {
         detectedKind: "message",
         parseStatus: "ignored",
         parseError: null,
+        parseAttempts: 0,
         processedAt: new Date(),
       })
       .where(eq(schema.rawEmails.id, raw.id));
-    if (isRecent(raw.receivedAt)) {
+    if (avisar) {
       const sender = raw.fromAddress?.replace(/\s*<[^>]*>/, "").replace(/"/g, "") ?? "Cliente";
       await sendPushToOrg(raw.orgId, {
         title: `💬 Consulta de cliente — ${sender}`,
@@ -123,24 +166,7 @@ export async function processRawEmail(raw: RawEmail): Promise<void> {
   } catch (err) {
     const message =
       err instanceof ParseError ? `Campo "${err.field}": ${err.message}` : String(err);
-    await db
-      .update(schema.rawEmails)
-      .set({
-        detectedSource: parser.source,
-        detectedKind: parser.classify(email),
-        parseStatus: "failed",
-        parseError: message,
-        processedAt: new Date(),
-      })
-      .where(eq(schema.rawEmails.id, raw.id));
-    if (isRecent(raw.receivedAt)) {
-      await sendPushToOrg(raw.orgId, {
-        title: "⚠ Email sin procesar",
-        body: raw.subject ?? message,
-        url: "/emails",
-        tag: `email-${raw.id}`,
-      });
-    }
+    await markFailed(raw, parser.source, message, avisar, parser.classify(email));
     return;
   }
 
@@ -153,7 +179,7 @@ export async function processRawEmail(raw: RawEmail): Promise<void> {
   );
   const bookingId = result.bookingId;
 
-  if (isRecent(raw.receivedAt)) {
+  if (avisar) {
     await notifyBookingEvent(raw.orgId, parsed, bookingId);
     if (result.adHocCreated) {
       await sendPushToOrg(raw.orgId, {
@@ -188,6 +214,7 @@ export async function processRawEmail(raw: RawEmail): Promise<void> {
       detectedKind: parsed.kind,
       parseStatus: "parsed",
       parseError: null,
+      parseAttempts: 0,
       parsedPayload: parsed,
       bookingId,
       processedAt: new Date(),

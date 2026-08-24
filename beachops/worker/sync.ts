@@ -6,6 +6,7 @@
 import { runMigrations } from "../src/server/db/migrate";
 import { ensureBeachConfig } from "../src/server/config/beaches";
 import { reprocessBookingEmails } from "../src/server/ingest/reprocess";
+import { retryFailedEmails } from "../src/server/ingest/retry";
 import { syncAllAccounts } from "../src/server/gmail/sync";
 
 const INTERVAL = Number(process.env.SYNC_INTERVAL_MS ?? 60_000);
@@ -25,6 +26,13 @@ async function main() {
     })
     .catch((err) => console.error("ensureBeachConfig/reprocess falló (se continúa):", err));
 
+  // Al arrancar (o sea, tras cada despliegue) se reintentan TODOS los emails
+  // que no se pudieron leer, sin esperas: si el fallo era que el parser no
+  // sabía leer esa plantilla, la versión nueva puede que ya sepa.
+  retryFailedEmails({ ignoreBackoff: true, limit: 500 })
+    .then((n) => n > 0 && console.log(`Reintentados ${n} emails que habían fallado.`))
+    .catch((err) => console.error("Reintento inicial falló (se continúa):", err));
+
   console.log(`Worker de sincronización arrancado (cada ${INTERVAL / 1000}s)`);
   for (;;) {
     const started = Date.now();
@@ -32,6 +40,13 @@ async function main() {
       await syncAllAccounts();
     } catch (err) {
       console.error("Ciclo de sync falló:", err);
+    }
+    // Y en cada ciclo, los que ya han cumplido su espera.
+    try {
+      const n = await retryFailedEmails();
+      if (n > 0) console.log(`Reintentados ${n} emails que habían fallado.`);
+    } catch (err) {
+      console.error("Reintento falló (se continúa):", err);
     }
     const elapsed = Date.now() - started;
     await new Promise((r) => setTimeout(r, Math.max(1_000, INTERVAL - elapsed)));
