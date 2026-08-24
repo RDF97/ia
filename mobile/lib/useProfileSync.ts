@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { syncMyProfile } from "./profiles";
+import { syncMyProfile, type ProfileSyncResult } from "./profiles";
 import { getPerfilIcon } from "./appearance";
 
 /**
@@ -27,11 +27,15 @@ export function useProfileSync(
     (async () => {
       const style = await getPerfilIcon(accentColor).catch(() => null);
       if (cancelled) return;
-      await syncMyProfile(hogarId, userId, name, {
+      const res = await syncMyProfile(hogarId, userId, name, {
         icon: style?.icon ?? null,
         iconColor: style?.color ?? null,
       });
       if (cancelled) return;
+      // El fallo se guarda para que Perfil pueda enseñarlo: si no, el hogar
+      // sale lleno de "Miembro sin nombre" y nada dice que la causa está en
+      // la base de datos, no en que el otro no haya abierto la app.
+      setProfileSyncError(res.ok ? null : res.error);
       // Que la lista de miembros recoja el nombre recién publicado.
       qc.invalidateQueries({ queryKey: ["members", hogarId] });
     })();
@@ -39,4 +43,47 @@ export function useProfileSync(
       cancelled = true;
     };
   }, [hogarId, userId, name, accentColor, qc]);
+}
+
+// --- Último resultado de la publicación, para poder enseñarlo en Perfil ---
+
+let lastError: string | null = null;
+const oyentes = new Set<(e: string | null) => void>();
+
+function setProfileSyncError(e: string | null) {
+  lastError = e;
+  for (const o of oyentes) o(e);
+}
+
+/** El fallo de la última publicación de mi ficha, o null si fue bien. */
+export function useProfileSyncError(): string | null {
+  const [error, setError] = useState<string | null>(lastError);
+  useEffect(() => {
+    oyentes.add(setError);
+    setError(lastError);
+    return () => {
+      oyentes.delete(setError);
+    };
+  }, []);
+  return error;
+}
+
+/**
+ * Reintenta publicar la ficha ahora mismo. Sirve para justo después de arreglar
+ * la base de datos: sin esto habría que cerrar y volver a abrir la app para que
+ * se reintentara, y no es evidente que haya que hacerlo.
+ */
+export async function retryProfileSync(
+  hogarId: string,
+  userId: string,
+  name: string,
+  accentColor: string,
+): Promise<ProfileSyncResult> {
+  const style = await getPerfilIcon(accentColor).catch(() => null);
+  const res = await syncMyProfile(hogarId, userId, name, {
+    icon: style?.icon ?? null,
+    iconColor: style?.color ?? null,
+  });
+  setProfileSyncError(res.ok ? null : res.error);
+  return res;
 }

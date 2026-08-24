@@ -14,6 +14,7 @@ import { Segmented } from "@/components/Segmented";
 import { getThemeChoice, setThemeChoice, THEME_OPTIONS, type ThemeChoice } from "@/lib/themePref";
 import { listMembers, memberLabel, type Member } from "@/lib/members";
 import { syncMyProfile } from "@/lib/profiles";
+import { retryProfileSync, useProfileSyncError } from "@/lib/useProfileSync";
 import {
   setHogarIcon,
   setPerfilIcon,
@@ -33,6 +34,8 @@ export default function Perfil() {
   const hogarIcon = useHogarIcon(active?.$id, t.accent).data ?? { icon: "home" as const, color: t.accent };
   const perfilIcon = usePerfilIcon(t.accent).data ?? null;
   const refreshAppearance = useRefreshAppearance();
+  // Si tu ficha no se pudo publicar, TODOS salen sin nombre. Hay que decirlo.
+  const syncError = useProfileSyncError();
   const [pick, setPick] = useState<"hogar" | "perfil" | null>(null);
   const [theme, setTheme] = useState<ThemeChoice>("system");
   const [members, setMembers] = useState<Member[] | null>(null);
@@ -172,6 +175,41 @@ export default function Perfil() {
         {active && (
           <>
             <SectionTitle>Tu hogar</SectionTitle>
+            {syncError && (
+              <View
+                className="mx-4 mb-3 rounded-lg2 px-4 py-3 flex-row"
+                style={{ gap: 10, backgroundColor: t.orange + "1F" }}
+              >
+                <Ionicons name="warning-outline" size={19} color={t.orange} />
+                <View className="flex-1">
+                  <Text className="text-subhead font-semibold" style={{ color: t.orange }}>
+                    Los nombres del hogar no se están guardando
+                  </Text>
+                  <Text className="text-caption1 text-secondary mt-1">{syncError}</Text>
+                  <Text className="text-caption1 text-tertiary mt-1">
+                    Hasta que se arregle, todos os veréis como “Miembro sin nombre” y no se podrá
+                    asignar tareas ni repartir gastos entre vosotros.
+                  </Text>
+                  <Pressable
+                    onPress={async () => {
+                      if (!active || !user) return;
+                      const res = await retryProfileSync(active.$id, user.$id, user.name || "", t.accent);
+                      if (res.ok) {
+                        listMembers(active.$id).then(setMembers).catch(() => undefined);
+                        Alert.alert("Listo", "Tu nombre ya está publicado en el hogar.");
+                      } else {
+                        Alert.alert("Sigue sin poder guardarse", res.error);
+                      }
+                    }}
+                    className="rounded-pill self-start mt-2 px-3 py-1.5"
+                    style={{ backgroundColor: t.orange }}
+                  >
+                    <Text className="text-footnote font-semibold text-white">Reintentar</Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
+
             <ListGroup>
               <Row
                 first
@@ -211,7 +249,7 @@ export default function Perfil() {
                         // Appwrite no nos deja leer su nombre: solo aparece cuando esa
                         // persona abre la app y publica su ficha en el hogar.
                         <Text className="text-footnote mt-0.5" style={{ color: t.orange }}>
-                          Aún no ha abierto esta versión
+                          {syncError ? "Nombres sin guardar (mira el aviso de arriba)" : "Aún no ha abierto esta versión"}
                         </Text>
                       ) : null
                     }
