@@ -38,7 +38,11 @@ if not d.get('documentSecurity'):
 
 echo ""
 echo "═══ 2. Las fichas guardadas ═══"
-DOCS="$(curl -sS "$EP/databases/$DB/collections/profiles/documents?queries%5B%5D=limit%28100%29" "${H[@]}")"
+# Sin parámetros de consulta a propósito: la sintaxis de `queries[]` ha
+# cambiado entre versiones de Appwrite, y si aquí falla parecería que no hay
+# fichas cuando el problema sería la propia consulta del diagnóstico. Por
+# defecto devuelve 25, de sobra para un hogar.
+DOCS="$(curl -sS "$EP/databases/$DB/collections/profiles/documents" "${H[@]}")"
 printf '%s' "$DOCS" | python3 -c "
 import json,sys
 d=json.load(sys.stdin)
