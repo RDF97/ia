@@ -21,8 +21,7 @@ import { appwriteConfigured } from "@/lib/appwrite";
 import { useExpenses } from "@/lib/useExpenses";
 import { useCategories } from "@/lib/useCategories";
 import { useSettlements } from "@/lib/useSettlements";
-import { useMembers } from "@/lib/useMembers";
-import { payingMembers } from "@/lib/members";
+import { useHouseholdNames } from "@/lib/useHousehold";
 import { accountTotals, addExpense, balances, deleteExpense, effectiveAccount, equalSplits, expenseDate, expenseInvolves, expenseOwner, individualByPerson, parseExpenseItems, parseSplits, stringifySplits, updateExpense, type Account, type Expense, type ExpenseSplit } from "@/lib/expenses";
 import { monthBalance, scheduleMonthSummary } from "@/lib/income";
 import { saveIncome } from "@/lib/incomes";
@@ -69,7 +68,9 @@ function GastosView({ hogarId, members, userName }: { hogarId: string; members: 
   const { data: categories } = useCategories(hogarId);
   const { data: settlements } = useSettlements(hogarId);
   // Solo cuentan para el dinero los miembros confirmados y con nombre.
-  const memberNames = payingMembers(useMembers(hogarId).data ?? []);
+  // De todas las fuentes: si Clara ha apuntado un gasto, su nombre está en la
+  // base de datos aunque su móvil no haya publicado ficha todavía.
+  const memberNames = useHouseholdNames(hogarId, userName);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [budgetOpen, setBudgetOpen] = useState(false);

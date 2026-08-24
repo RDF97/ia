@@ -101,6 +101,55 @@ export async function syncMyProfile(
   }
 }
 
+
+/**
+ * Pone el nombre de OTRA persona del hogar.
+ *
+ * Normalmente cada uno publica su propia ficha al entrar. Pero eso depende de
+ * que su móvil tenga una versión de la app que lo haga, y mientras no la tenga
+ * no hay manera de saber cómo se llama: Appwrite no lo cuenta, y esa persona
+ * aparece como "Miembro sin nombre" sin que nadie pueda hacer nada.
+ *
+ * Quien está mirando la pantalla sí sabe quién es. Esto le deja escribirlo. La
+ * ficha se guarda con permisos del hogar, así que la otra persona la puede
+ * corregir después desde su móvil sin problemas.
+ */
+export async function setProfileName(
+  hogarId: string,
+  userId: string,
+  name: string,
+): Promise<ProfileSyncResult> {
+  const clean = name.trim();
+  if (!hogarId || !userId || !clean) return { ok: true, skipped: true };
+  try {
+    const res = await databases.listDocuments<Profile>(DB_ID, PROFILES_COL, [
+      Query.equal("hogarId", hogarId),
+      Query.equal("userId", userId),
+      Query.limit(1),
+    ]);
+    const suya = res.documents[0];
+    if (suya) {
+      await databases.updateDocument(DB_ID, PROFILES_COL, suya.$id, { name: clean });
+    } else {
+      // Sin icono: es suyo, que lo elija ella. Aquí solo se pone el nombre.
+      await databases.createDocument(
+        DB_ID,
+        PROFILES_COL,
+        ID.unique(),
+        { hogarId, userId, name: clean },
+        [
+          Permission.read(Role.team(hogarId)),
+          Permission.update(Role.team(hogarId)),
+          Permission.delete(Role.team(hogarId)),
+        ],
+      );
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: describeProfileError(e) };
+  }
+}
+
 /**
  * Traduce el error de Appwrite a algo con lo que se pueda hacer algo. Los dos
  * casos reales son que la colección no exista (falta pasar el script) o que le

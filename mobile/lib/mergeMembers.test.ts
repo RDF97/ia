@@ -1,4 +1,4 @@
-import { mergeMembers, memberLabel, payingMembers, type Member } from "./members";
+import { memberLabel, mergeMembers, type Member } from "./members";
 
 type Membership = Omit<Member, "icon" | "iconColor">;
 
@@ -50,12 +50,15 @@ describe("mergeMembers · el nombre bueno es el de la ficha del hogar", () => {
     expect(out[0]).toMatchObject({ icon: "heart", iconColor: "#FF2D55" });
   });
 
-  test("quien todavía no tiene ficha no entra en el reparto de gastos", () => {
+  test("a quien no se le sabe el nombre se le deja vacío, no se inventa", () => {
+    // El texto "Miembro sin nombre" es SOLO para la interfaz. Si `mergeMembers`
+    // lo pusiera en `name`, entraría en el reparto de gastos como una persona
+    // más y aparecería un fantasma debiendo dinero: pasó de verdad.
     const out = mergeMembers(
       [M({ id: "a", userId: "u1" }), M({ id: "b", userId: "u2" })],
       [{ userId: "u1", name: "Rubén" }],
     );
-    expect(payingMembers(out)).toEqual(["Rubén"]);
+    expect(out.map((m) => m.name)).toEqual(["Rubén", ""]);
     expect(memberLabel(out[1])).toBe("Miembro sin nombre");
   });
 });
@@ -67,7 +70,7 @@ describe("mergeMembers · tener ficha demuestra que estás dentro", () => {
       [{ userId: "u2", name: "Clara", icon: null, iconColor: null }],
     );
     expect(out[0].confirmed).toBe(true);
-    expect(payingMembers(out)).toEqual(["Clara"]);
+    expect(out.map((m) => m.name)).toEqual(["Clara"]);
   });
 
   it("no confirma a quien no tiene ficha", () => {

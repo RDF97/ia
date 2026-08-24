@@ -17,8 +17,7 @@ import { useShopping } from "@/lib/useShopping";
 import { useEvents } from "@/lib/useEvents";
 import { useLuzPrices } from "@/lib/useLuzPrices";
 import { useSettlements } from "@/lib/useSettlements";
-import { useMembers } from "@/lib/useMembers";
-import { payingMembers } from "@/lib/members";
+import { useHouseholdNames } from "@/lib/useHousehold";
 import { balances, monthlyTotal, previousMonthTotal } from "@/lib/expenses";
 import { useHogarIcon, usePerfilIcon } from "@/lib/useAppearance";
 import { eventsOfDay, hhmm } from "@/lib/events";
@@ -153,7 +152,7 @@ function Dashboard({
   const shopPreview = shopping.filter((s) => !s.done).slice(0, 3).map((s) => s.name).join(" · ");
   const shopStore = shopping.filter((s) => !s.done).find((s) => s.store)?.store ?? null;
   // Sin los nombres del hogar, quien no ha pagado nunca no aparecería debiendo.
-  const memberNames = payingMembers(useMembers(hogarId).data ?? []);
+  const memberNames = useHouseholdNames(hogarId, userName);
   const bal = balances(expenses, members, settlements, memberNames).filter((b) => b.name !== userName);
   const now = new Date();
   const todayLabel = `${WEEKDAYS[now.getDay()]} ${now.getDate()}`;

@@ -15,8 +15,7 @@ import { useAuth } from "@/lib/auth";
 import { appwriteConfigured } from "@/lib/appwrite";
 import { useTasks } from "@/lib/useTasks";
 import { completeTask, createTask, deleteTask, setTaskDone, type Task } from "@/lib/tasks";
-import { useMembers } from "@/lib/useMembers";
-import { householdNames } from "@/lib/members";
+import { useHouseholdNames } from "@/lib/useHousehold";
 import { dueInfo, groupTasks, hiddenNoDate, repeatLabel, type TaskFilter } from "@/lib/taskLogic";
 import { leadLabel } from "@/lib/leadTime";
 import { useTheme } from "@/theme/theme";
@@ -52,8 +51,10 @@ function TareasList({ hogarId, userName }: { hogarId: string; userName: string }
   const [filter, setFilter] = useState<TaskFilter>("today");
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["tasks", hogarId] });
-  // Siempre me incluyo: si los miembros aún no han cargado, al menos estoy yo.
-  const members = [...new Set([userName, ...householdNames(useMembers(hogarId).data ?? [])])];
+  // Todo el que tenga nombre en el hogar, venga de donde venga: de su ficha, de
+  // la membresía, o de un gasto o una tarea que lleve su nombre escrito. Con
+  // solo la ficha, quien tuviera el móvil sin actualizar no salía en la lista.
+  const members = useHouseholdNames(hogarId, userName);
 
   const add = async () => {
     const val = title.trim();
