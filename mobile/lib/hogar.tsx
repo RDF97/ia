@@ -10,6 +10,7 @@ import {
 import { ID, type Models } from "react-native-appwrite";
 import { teams } from "./appwrite";
 import { useAuth } from "./auth";
+import { pickHogar } from "./hogarPick";
 
 export type Hogar = Models.Team<Models.Preferences>;
 
@@ -62,7 +63,9 @@ export function HogarProvider({ children }: { children: ReactNode }) {
   // Salir del hogar: si eres el único miembro se elimina el hogar entero;
   // si hay más, se borra solo tu membresía.
   const leaveHogar = useCallback(async () => {
-    const h = hogares[0];
+    // El mismo que se está usando, no el primero de la lista: si no, "Salir del
+    // hogar" podía borrar el otro.
+    const h = pickHogar(hogares);
     if (!h || !user) return;
     if (h.total <= 1) {
       await teams.delete(h.$id);
@@ -76,7 +79,7 @@ export function HogarProvider({ children }: { children: ReactNode }) {
   }, [hogares, user, reload]);
 
   const value = useMemo<HogarContextValue>(
-    () => ({ hogares, active: hogares[0] ?? null, loading, reload, createHogar, leaveHogar }),
+    () => ({ hogares, active: pickHogar(hogares), loading, reload, createHogar, leaveHogar }),
     [hogares, loading, reload, createHogar, leaveHogar],
   );
 

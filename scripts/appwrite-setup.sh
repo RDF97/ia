@@ -146,12 +146,33 @@ attr settlements float    '{"key":"amount","required":true}'
 attr settlements string   '{"key":"hogarId","size":50,"required":true}'
 attr settlements datetime '{"key":"at","required":true}'
 
-echo "== índices (esperando a que los atributos estén listos) =="
-sleep 5
-for C in events products price_points settlements incomes profiles; do
+echo "== índices =="
+# Antes esto era un `sleep 5` a ciegas. Appwrite construye los atributos en
+# segundo plano y un índice sobre un atributo que aún no está listo se rechaza:
+# si la carrera se perdía, el índice no se creaba y nadie se enteraba. Ahora se
+# espera a que estén de verdad.
+espera_atributos() {
+  local C="$1"
+  for _ in $(seq 1 20); do
+    local A N
+    A="$(curl -sS "$EP/databases/$DB/collections/$C/attributes" "${H[@]}" 2>/dev/null)"
+    N="$(printf '%s' "$A" | tr ',' '\n' | grep '"status"' | grep -c 'processing')"
+    [ "${N:-0}" -eq 0 ] && return 0
+    sleep 3
+  done
+  echo "  ⚠ [$C] los atributos siguen construyéndose; sus índices pueden fallar."
+}
+
+# Los índices que hacen falta son los de los atributos por los que la app
+# consulta o por los que ordena. Faltaban los de tasks, shopping_items, expenses,
+# categories e invites: la app los consulta por `hogarId` en cada pantalla.
+for C in tasks shopping_items expenses events products price_points categories settlements invites incomes profiles; do
+  espera_atributos "$C"
   idx "$C" '{"key":"hogarId_idx","type":"key","attributes":["hogarId"],"orders":["ASC"]}'
 done
 idx price_points '{"key":"productId_idx","type":"key","attributes":["productId"],"orders":["ASC"]}'
+# `profiles` se consulta también por usuario.
+idx profiles '{"key":"userId_idx","type":"key","attributes":["userId"],"orders":["ASC"]}'
 
 echo ""
 echo "======================= COMPROBACIÓN ======================="

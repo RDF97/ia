@@ -92,7 +92,35 @@ for m in d.get('memberships',[]):
 done
 
 echo ""
-echo "═══ 4. Veredicto ═══"
+echo "═══ 4. Hogares repetidos ═══"
+# La app usa SIEMPRE el primero que le devuelve Appwrite (`hogares[0]`). Con dos
+# hogares del mismo nombre, cada cuenta puede acabar mirando uno distinto sin que
+# nada lo indique: las fichas están en uno y la app las busca en el otro.
+TEAMS="$(curl -sS "$EP/teams" "${H[@]}" 2>/dev/null)"
+python3 - "$TEAMS" <<'PY_TEAMS'
+import json, sys
+from collections import Counter
+try:
+    ts = json.loads(sys.argv[1]).get("teams", [])
+except Exception:
+    ts = []
+c = Counter(t["name"] for t in ts)
+rep = [n for n, k in c.items() if k > 1]
+if not rep:
+    print("  ok  ningun nombre de hogar repetido")
+else:
+    for n in rep:
+        print("  AVISO  hay %d hogares llamados %r:" % (c[n], n))
+        for t in ts:
+            if t["name"] == n:
+                print("      %s  ·  %s miembro(s)" % (t["$id"], t["total"]))
+    print("    La app usa el PRIMERO que le da Appwrite. Si cada movil entra con")
+    print("    una cuenta distinta, pueden estar mirando hogares distintos, y las")
+    print("    fichas estaran en uno solo. Sobra el que tenga 1 miembro.")
+PY_TEAMS
+
+echo ""
+echo "═══ 5. Veredicto ═══"
 python3 - "$DOCS" <<'PY'
 import json,sys
 try: docs=json.loads(sys.argv[1]).get('documents') or []
