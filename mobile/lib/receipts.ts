@@ -64,9 +64,17 @@ export async function scanReceipt(base64: string, mime = "image/jpeg"): Promise<
   // Sin cuerpo JSON no hay ni código de error: casi siempre es que la función
   // se quedó sin tiempo o reventó al arrancar. Decirlo ayuda más que callarlo.
   if (!out.error && !exec.responseBody) {
+    // Sin cuerpo no hay ni código de error. Con diferencia, la causa más común
+    // es el tiempo: Appwrite corta las funciones a los 15 s por defecto y leer
+    // un ticket con visión pasa de ahí. Decirlo con el remedio concreto ahorra
+    // ir a mirar registros para acabar en el mismo sitio.
     const estado = exec.status ? ` (${exec.status})` : "";
     throw new Error(
-      errorText(undefined, `La función no devolvió respuesta${estado}. Mira sus registros en Appwrite: puede haberse quedado sin tiempo.`),
+      errorText(
+        "timeout",
+        `La función se cortó sin contestar${estado}. Casi siempre es el tiempo: ` +
+          `en Appwrite, Functions → scanReceipt → Settings → Timeout, súbelo a 60 s o más.`,
+      ),
     );
   }
   throw new Error(errorText(out.error, out.detail));
