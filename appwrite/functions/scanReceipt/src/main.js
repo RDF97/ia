@@ -6,7 +6,8 @@ import https from "https";
 //
 // Env vars:
 //   GEMINI_API_KEY  → clave gratuita de https://aistudio.google.com/app/apikey
-//   GEMINI_MODEL    → opcional; modelo(s) preferido(s), separados por comas.
+//   GEMINI_MODEL    → opcional; modelo(s) a usar, separados por comas. Si se
+//                     pone, sustituye a la lista de abajo (no se añade a ella).
 //                     Es la vía rápida cuando Google retira un modelo: se pone
 //                     aquí uno que exista y no hace falta volver a desplegar.
 //                     Para ver cuáles hay:
@@ -201,8 +202,12 @@ export default async ({ req, res, log, error }) => {
     }
 
     const mime = body.mime || "image/jpeg";
+    // Si se fija GEMINI_MODEL, manda ELLA SOLA: antes se ponía delante y detrás
+    // seguían los cuatro por defecto, así que en el peor caso se encadenaban
+    // cinco intentos y la ejecución se pasaba de tiempo aunque el modelo
+    // elegido fuera bueno. Para probar varios, se separan por comas.
     const preferred = (process.env.GEMINI_MODEL || "").split(",").map((s) => s.trim()).filter(Boolean);
-    const models = [...new Set([...preferred, ...DEFAULT_MODELS])];
+    const models = preferred.length ? [...new Set(preferred)] : [...DEFAULT_MODELS];
 
     const arranque = Date.now();
     const restante = () => BUDGET_MS - (Date.now() - arranque);
