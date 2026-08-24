@@ -1,4 +1,4 @@
-import { ID, Permission, Query, Role, type Models } from "react-native-appwrite";
+import { Permission, Query, Role, type Models } from "react-native-appwrite";
 import { DB_ID, PROFILES_COL, databases } from "./db";
 
 /**
@@ -28,24 +28,80 @@ export interface HouseholdPerson {
   iconColor?: string | null;
 }
 
-export async function listProfiles(hogarId: string): Promise<HouseholdPerson[]> {
-  try {
-    const res = await databases.listDocuments<Profile>(DB_ID, PROFILES_COL, [
-      Query.equal("hogarId", hogarId),
-      Query.limit(50),
-    ]);
-    return res.documents
-      .map((d) => ({
-        userId: d.userId,
-        name: (d.name || "").trim(),
-        icon: d.icon ?? null,
-        iconColor: d.iconColor ?? null,
-      }))
-      .filter((p) => p.userId && p.name);
-  } catch {
-    // La colección todavía no existe: se sigue con lo que dé Appwrite.
-    return [];
+/**
+ * Identificador FIJO de la ficha de alguien en un hogar.
+ *
+ * Antes era `ID.unique()`, y eso escondía el fallo que nos ha tenido dando
+ * vueltas: si la consulta de "¿tengo ya ficha?" devolvía vacío —da igual si por
+ * permisos o porque no había ninguna—, la app creaba otra. En cada arranque.
+ * Escribía bien, nadie veía un error, y la base de datos se iba llenando de
+ * fichas repetidas mientras todos seguían como "Miembro sin nombre".
+ *
+ * Con un id fijo, la ficha de una persona en un hogar es UNA, siempre la misma:
+ * repetirla es imposible, y se puede pedir directamente por su id sin depender
+ * de que la consulta por atributos funcione.
+ *
+ * Appwrite admite 36 caracteres, y los ids que genera son de 20: caben el del
+ * usuario entero y los primeros 15 del hogar, de sobra para no chocar.
+ */
+export const profileDocId = (hogarId: string, userId: string): string =>
+  `${userId}_${hogarId.slice(0, 15)}`;
+
+/** Cómo fue leer las fichas, para poder decirlo en pantalla en vez de callarlo. */
+export type ProfilesRead = { people: HouseholdPerson[]; error: string | null };
+
+const toPerson = (d: Profile): HouseholdPerson => ({
+  userId: d.userId,
+  name: (d.name || "").trim(),
+  icon: d.icon ?? null,
+  iconColor: d.iconColor ?? null,
+});
+
+/**
+ * Las fichas del hogar.
+ *
+ * Se buscan por dos caminos porque cada uno falla de una forma distinta:
+ *
+ *  · La consulta por `hogarId` las trae todas de una vez, incluidas las viejas
+ *    con id aleatorio, pero necesita permiso para listar y depende del índice.
+ *  · Pedir cada ficha por su id fijo no necesita ni lo uno ni lo otro, pero solo
+ *    encuentra las nuevas y hace falta saber de antemano los `userId`.
+ *
+ * Se hacen los dos y se junta el resultado. Con uno que funcione, hay nombres.
+ */
+export async function readProfiles(hogarId: string, userIds: string[] = []): Promise<ProfilesRead> {
+  let error: string | null = null;
+
+  const porConsulta = await databases
+    .listDocuments<Profile>(DB_ID, PROFILES_COL, [Query.equal("hogarId", hogarId), Query.limit(50)])
+    .then((r) => r.documents.map(toPerson))
+    .catch((e) => {
+      error = describeProfileError(e);
+      return [] as HouseholdPerson[];
+    });
+
+  const porId = await Promise.all(
+    userIds.map((uid) =>
+      databases
+        .getDocument<Profile>(DB_ID, PROFILES_COL, profileDocId(hogarId, uid))
+        .then(toPerson)
+        // Que no exista es normal (ficha vieja o persona que aún no ha entrado):
+        // no es un error que merezca contarse en pantalla.
+        .catch(() => null),
+    ),
+  );
+
+  const porUsuario = new Map<string, HouseholdPerson>();
+  for (const p of [...porConsulta, ...porId.filter((p): p is HouseholdPerson => !!p)]) {
+    if (p.userId && p.name) porUsuario.set(p.userId, p);
   }
+  const people = [...porUsuario.values()];
+  // Si por algún camino salieron nombres, no hay nada que contar.
+  return { people, error: people.length ? null : error };
+}
+
+export async function listProfiles(hogarId: string, userIds: string[] = []): Promise<HouseholdPerson[]> {
+  return (await readProfiles(hogarId, userIds)).people;
 }
 
 /** Cómo fue la publicación de mi ficha, para poder decirlo en pantalla. */
@@ -75,32 +131,50 @@ export async function syncMyProfile(
     data.icon = style.icon ?? null;
     data.iconColor = style.iconColor ?? null;
   }
-  try {
-    const res = await databases.listDocuments<Profile>(DB_ID, PROFILES_COL, [
-      Query.equal("hogarId", hogarId),
-      Query.equal("userId", userId),
-      Query.limit(1),
-    ]);
-    const mine = res.documents[0];
-    if (mine) {
-      // Solo se escribe si algo cambió: si no, cada arranque sería una escritura.
-      const same =
-        mine.name === clean &&
-        (!style || ((mine.icon ?? null) === (style.icon ?? null) && (mine.iconColor ?? null) === (style.iconColor ?? null)));
-      if (!same) await databases.updateDocument(DB_ID, PROFILES_COL, mine.$id, data);
-      return { ok: true };
-    }
-    await databases.createDocument(DB_ID, PROFILES_COL, ID.unique(), data, [
-      Permission.read(Role.team(hogarId)),
-      Permission.update(Role.team(hogarId)),
-      Permission.delete(Role.team(hogarId)),
-    ]);
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, error: describeProfileError(e) };
-  }
+  return upsertProfile(hogarId, userId, data);
 }
 
+/**
+ * Escribe una ficha en su id fijo: primero intenta actualizar y, si no existe,
+ * la crea.
+ *
+ * Ese orden importa. Al revés —crear y si falla actualizar— cada arranque
+ * empezaría con un error en el registro de Appwrite, y lo normal es que la ficha
+ * ya exista. Y sobre todo: aquí no se consulta antes "¿existe?", porque esa
+ * consulta puede devolver vacío por permisos y hacer creer que no hay nada.
+ * Es exactamente lo que llenaba la base de datos de fichas repetidas.
+ */
+async function upsertProfile(
+  hogarId: string,
+  userId: string,
+  data: Record<string, string | null>,
+): Promise<ProfileSyncResult> {
+  const id = profileDocId(hogarId, userId);
+  const perms = [
+    Permission.read(Role.team(hogarId)),
+    Permission.update(Role.team(hogarId)),
+    Permission.delete(Role.team(hogarId)),
+    // Y además a nombre propio: sin esto, si la membresía del equipo no está
+    // confirmada Appwrite no da el rol del hogar y esa persona no podía leer ni
+    // su PROPIA ficha, así que se veía a sí misma como "Miembro sin nombre".
+    Permission.read(Role.user(userId)),
+    Permission.update(Role.user(userId)),
+  ];
+  try {
+    await databases.updateDocument(DB_ID, PROFILES_COL, id, data);
+    return { ok: true };
+  } catch (eUpdate) {
+    try {
+      await databases.createDocument(DB_ID, PROFILES_COL, id, data, perms);
+      return { ok: true };
+    } catch (eCreate) {
+      // Si la creación falla por existir ya, manda el fallo de la actualización:
+      // ese es el que dice de verdad qué pasa (permisos, columna que falta…).
+      const msg = String((eCreate as { message?: string })?.message ?? "");
+      return { ok: false, error: describeProfileError(/exist/i.test(msg) ? eUpdate : eCreate) };
+    }
+  }
+}
 
 /**
  * Pone el nombre de OTRA persona del hogar.
@@ -121,33 +195,8 @@ export async function setProfileName(
 ): Promise<ProfileSyncResult> {
   const clean = name.trim();
   if (!hogarId || !userId || !clean) return { ok: true, skipped: true };
-  try {
-    const res = await databases.listDocuments<Profile>(DB_ID, PROFILES_COL, [
-      Query.equal("hogarId", hogarId),
-      Query.equal("userId", userId),
-      Query.limit(1),
-    ]);
-    const suya = res.documents[0];
-    if (suya) {
-      await databases.updateDocument(DB_ID, PROFILES_COL, suya.$id, { name: clean });
-    } else {
-      // Sin icono: es suyo, que lo elija ella. Aquí solo se pone el nombre.
-      await databases.createDocument(
-        DB_ID,
-        PROFILES_COL,
-        ID.unique(),
-        { hogarId, userId, name: clean },
-        [
-          Permission.read(Role.team(hogarId)),
-          Permission.update(Role.team(hogarId)),
-          Permission.delete(Role.team(hogarId)),
-        ],
-      );
-    }
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, error: describeProfileError(e) };
-  }
+  // Solo el nombre: el icono es cosa suya, que lo elija ella desde su móvil.
+  return upsertProfile(hogarId, userId, { hogarId, userId, name: clean });
 }
 
 /**

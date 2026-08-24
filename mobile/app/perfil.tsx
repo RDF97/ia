@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -13,7 +13,7 @@ import { ListGroup, Row, RowIcon } from "@/components/List";
 import { IconPickerModal } from "@/components/IconPickerModal";
 import { Segmented } from "@/components/Segmented";
 import { getThemeChoice, setThemeChoice, THEME_OPTIONS, type ThemeChoice } from "@/lib/themePref";
-import { listMembers, memberLabel, type Member } from "@/lib/members";
+import { listMembersDetailed, memberLabel, type Member } from "@/lib/members";
 import { setProfileName, syncMyProfile } from "@/lib/profiles";
 import { retryProfileSync, useProfileSyncError } from "@/lib/useProfileSync";
 import {
@@ -41,6 +41,9 @@ export default function Perfil() {
   const [pick, setPick] = useState<"hogar" | "perfil" | null>(null);
   const [theme, setTheme] = useState<ThemeChoice>("system");
   const [members, setMembers] = useState<Member[] | null>(null);
+  // Lo que falló al LEER las fichas. Va aparte del fallo al escribirlas:
+  // escribir bien y no poder leer es justo el caso que nos tuvo a ciegas.
+  const [readError, setReadError] = useState<string | null>(null);
   const [editName, setEditName] = useState<string | null>(null);
   // Miembro al que le estoy poniendo el nombre yo (userId → texto escrito).
   const [naming, setNaming] = useState<{ userId: string; text: string } | null>(null);
@@ -50,10 +53,17 @@ export default function Perfil() {
   }, []);
 
   // Quién más está en el hogar.
-  useEffect(() => {
+  const reloadMembers = useCallback(() => {
     if (!active) return;
-    listMembers(active.$id).then(setMembers).catch(() => setMembers([]));
+    listMembersDetailed(active.$id)
+      .then(({ members: ms, profilesError }) => {
+        setMembers(ms);
+        setReadError(profilesError);
+      })
+      .catch(() => setMembers([]));
   }, [active]);
+
+  useEffect(reloadMembers, [reloadMembers]);
 
   /**
    * Guarda el nombre que le pongo yo a otra persona del hogar. Su ficha queda
@@ -71,7 +81,7 @@ export default function Perfil() {
     // Recarga aquí y no en otro sitio: la lista de miembros es lo que alimenta
     // los repartos de gastos y a quién se puede asignar una tarea.
     qc.invalidateQueries({ queryKey: ["members", active.$id] });
-    listMembers(active.$id).then(setMembers).catch(() => undefined);
+    reloadMembers();
   };
 
   const saveName = async () => {
@@ -82,7 +92,7 @@ export default function Perfil() {
       setEditName(null);
       if (active && user) {
         await syncMyProfile(active.$id, user.$id, val);
-        listMembers(active.$id).then(setMembers).catch(() => undefined);
+        reloadMembers();
       }
     } catch (e) {
       Alert.alert("No se pudo cambiar el nombre", e instanceof Error ? e.message : "Inténtalo de nuevo.");
@@ -198,7 +208,7 @@ export default function Perfil() {
         {active && (
           <>
             <SectionTitle>Tu hogar</SectionTitle>
-            {syncError && (
+            {(syncError || readError) && (
               <View
                 className="mx-4 mb-3 rounded-lg2 px-4 py-3 flex-row"
                 style={{ gap: 10, backgroundColor: t.orange + "1F" }}
@@ -206,9 +216,9 @@ export default function Perfil() {
                 <Ionicons name="warning-outline" size={19} color={t.orange} />
                 <View className="flex-1">
                   <Text className="text-subhead font-semibold" style={{ color: t.orange }}>
-                    Los nombres del hogar no se están guardando
+                    {syncError ? "Los nombres del hogar no se están guardando" : "Los nombres están guardados pero no se pueden leer"}
                   </Text>
-                  <Text className="text-caption1 text-secondary mt-1">{syncError}</Text>
+                  <Text className="text-caption1 text-secondary mt-1">{syncError ?? readError}</Text>
                   <Text className="text-caption1 text-tertiary mt-1">
                     Hasta que se arregle, todos os veréis como “Miembro sin nombre” y no se podrá
                     asignar tareas ni repartir gastos entre vosotros.
@@ -218,7 +228,7 @@ export default function Perfil() {
                       if (!active || !user) return;
                       const res = await retryProfileSync(active.$id, user.$id, user.name || "", t.accent);
                       if (res.ok) {
-                        listMembers(active.$id).then(setMembers).catch(() => undefined);
+                        reloadMembers();
                         Alert.alert("Listo", "Tu nombre ya está publicado en el hogar.");
                       } else {
                         Alert.alert("Sigue sin poder guardarse", res.error);
