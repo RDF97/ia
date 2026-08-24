@@ -30,7 +30,7 @@ export default function Perfil() {
   const t = useTheme();
   const router = useRouter();
   const { user, logout, updateName } = useAuth();
-  const { active, leaveHogar } = useHogar();
+  const { active, hogares, leaveHogar } = useHogar();
   const qc = useQueryClient();
   const [inviteOpen, setInviteOpen] = useState(false);
   const hogarIcon = useHogarIcon(active?.$id, t.accent).data ?? { icon: "home" as const, color: t.accent };
@@ -212,6 +212,22 @@ export default function Perfil() {
         {active && (
           <>
             <SectionTitle>Tu hogar</SectionTitle>
+            {hogares.length > 1 && (
+              // Tener dos hogares se nota en todo y no se ve en ninguna parte:
+              // los nombres, los gastos y las tareas viven en uno solo, y la app
+              // podría estar enseñando el otro. Al menos que se sepa cuál es.
+              <View className="mx-4 mb-3 rounded-lg2 px-4 py-3" style={{ backgroundColor: t.fill }}>
+                <Text className="text-footnote text-label">
+                  Estás en {hogares.length} hogares. La app usa este:{" "}
+                  <Text className="font-semibold">{active.name}</Text> ({active.total}{" "}
+                  {active.total === 1 ? "miembro" : "miembros"}).
+                </Text>
+                <Text className="text-caption1 text-tertiary mt-1">
+                  Los de una sola persona suelen sobrar de alguna prueba. Sal de ellos para
+                  quitarlos de en medio.
+                </Text>
+              </View>
+            )}
             {(syncError || readError) && (
               <View
                 className="mx-4 mb-3 rounded-lg2 px-4 py-3 flex-row"
