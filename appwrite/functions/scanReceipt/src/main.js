@@ -66,7 +66,11 @@ const SCHEMA = {
 
 // Tope por modelo. Sin esto, un modelo que se cuelga se lleva por delante todo
 // el tiempo de la función y el usuario ve una respuesta vacía sin explicación.
-const MODEL_TIMEOUT_MS = Number(process.env.SCAN_MODEL_TIMEOUT_MS || 20_000);
+// 20 s se quedó corto con las fotos que manda la app hoy (un ticket largo sale
+// de casi 6 megapíxeles y el servicio lo trocea en una docena de cuadros). Con
+// la foto ya recortada por el lado largo sobra de largo, pero el margen no
+// estorba: si acaba antes, se devuelve antes.
+const MODEL_TIMEOUT_MS = Number(process.env.SCAN_MODEL_TIMEOUT_MS || 45_000);
 
 /**
  * Presupuesto total de la función, algo por debajo del timeout configurado en
@@ -77,7 +81,7 @@ const MODEL_TIMEOUT_MS = Number(process.env.SCAN_MODEL_TIMEOUT_MS || 20_000);
  * clave o el tiempo. Parando nosotros a tiempo, se puede contestar con un JSON
  * que lo diga.
  */
-const BUDGET_MS = Number(process.env.SCAN_BUDGET_MS || 50_000);
+const BUDGET_MS = Number(process.env.SCAN_BUDGET_MS || 100_000);
 
 /** GET sencillo, para preguntarle a la API qué modelos existen. */
 function httpGet(path) {
@@ -233,7 +237,8 @@ export default async ({ req, res, log, error }) => {
             error: "timeout",
             detail:
               `Se agotó el tiempo tras ${gastado} s probando ${probados.join(", ")}. ` +
-              `Sube el timeout de la función en Appwrite (Settings → Timeout) a 60 s o más.`,
+              `Sube el timeout de la función en Appwrite (Settings → Timeout) a 120 s, ` +
+              `y prueba un modelo más rápido con GEMINI_MODEL=gemini-flash-lite-latest.`,
           },
           504,
         );

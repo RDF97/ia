@@ -52,14 +52,28 @@ export async function listProfiles(hogarId: string): Promise<HouseholdPerson[]> 
  * Deja mi ficha al día. Se llama al entrar y al cambiarme el nombre.
  * No lanza: que falle no puede impedir usar la app.
  */
+/** Cómo fue la publicación de mi ficha, para poder decirlo en pantalla. */
+export type ProfileSyncResult =
+  | { ok: true; skipped?: boolean }
+  | { ok: false; error: string };
+
+/**
+ * Publica mi ficha en el hogar.
+ *
+ * Devuelve el resultado en vez de tragarse el fallo. Antes no lanzaba ni
+ * informaba, así que si la colección `profiles` no existía o le faltaban
+ * permisos, todos seguían saliendo como "Miembro sin nombre" sin que nada
+ * dijera por qué, y no había manera de distinguirlo de "aún no ha abierto la
+ * app". Eso es lo que hacía el problema imposible de arreglar desde fuera.
+ */
 export async function syncMyProfile(
   hogarId: string,
   userId: string,
   name: string,
   style?: { icon?: string | null; iconColor?: string | null },
-): Promise<void> {
+): Promise<ProfileSyncResult> {
   const clean = name.trim();
-  if (!hogarId || !userId || !clean) return;
+  if (!hogarId || !userId || !clean) return { ok: true, skipped: true };
   const data: Record<string, string | null> = { hogarId, userId, name: clean };
   if (style) {
     data.icon = style.icon ?? null;
@@ -78,14 +92,34 @@ export async function syncMyProfile(
         mine.name === clean &&
         (!style || ((mine.icon ?? null) === (style.icon ?? null) && (mine.iconColor ?? null) === (style.iconColor ?? null)));
       if (!same) await databases.updateDocument(DB_ID, PROFILES_COL, mine.$id, data);
-      return;
+      return { ok: true };
     }
     await databases.createDocument(DB_ID, PROFILES_COL, ID.unique(), data, [
       Permission.read(Role.team(hogarId)),
       Permission.update(Role.team(hogarId)),
       Permission.delete(Role.team(hogarId)),
     ]);
-  } catch {
-    /* sin colección seguimos con los nombres que dé Appwrite (vacíos) */
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: describeProfileError(e) };
   }
+}
+
+/**
+ * Traduce el error de Appwrite a algo con lo que se pueda hacer algo. Los dos
+ * casos reales son que la colección no exista (falta pasar el script) o que le
+ * falten permisos de escritura para el rol `users`.
+ */
+export function describeProfileError(e: unknown): string {
+  const msg = String((e as { message?: string })?.message ?? e);
+  if (/not be found|not_found|collection with the requested id/i.test(msg)) {
+    return "La colección \"profiles\" no existe todavía en Appwrite. Hay que pasar scripts/appwrite-setup.sh.";
+  }
+  if (/unauthor|permission|missing scope|not allowed/i.test(msg)) {
+    return "La colección \"profiles\" existe pero no deja escribir. Vuelve a pasar scripts/appwrite-setup.sh, que arregla los permisos.";
+  }
+  if (/attribute/i.test(msg)) {
+    return `A la colección "profiles" le falta alguna columna (${msg.slice(0, 120)}). Pasa scripts/appwrite-setup.sh.`;
+  }
+  return msg.slice(0, 200);
 }
