@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Receipt shape with zig-zag bottom edge -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,22 h48 c2.2,0 4,1.8 4,4 v58 l-7,-6 -7,6 -7,-6 -7,6 -7,-6 -7,6 -7,-6 -7,6 v-58 c0,-2.2 1.8,-4 4,-4 z" />
+    <path
+        android:fillColor="#007AFF"
+        android:pathData="M38,36 h32 a2.5,2.5 0 0 1 0,5 h-32 a2.5,2.5 0 0 1 0,-5 z" />
+    <path
+        android:fillColor="#007AFF"
+        android:pathData="M38,47 h32 a2.5,2.5 0 0 1 0,5 h-32 a2.5,2.5 0 0 1 0,-5 z" />
+    <path
+        android:fillColor="#007AFF"
+        android:pathData="M38,58 h18 a2.5,2.5 0 0 1 0,5 h-18 a2.5,2.5 0 0 1 0,-5 z" />
+</vector>
