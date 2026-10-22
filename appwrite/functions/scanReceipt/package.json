@@ -1,7 +1,0 @@
-{
-  "name": "scan-receipt",
-  "version": "1.0.0",
-  "description": "OCR de tickets con OCR.space: devuelve el texto crudo del recibo.",
-  "type": "module",
-  "main": "src/main.js"
-}

@@ -1,17 +1,14 @@
-# Homie
+# ia
 
-App para gestionar un hogar compartido: gastos, tareas, compra inteligente,
-calendario y precios de la luz con avisos para electrodomésticos.
+Repo de proyectos varios. Ahora mismo contiene:
 
-## Contenido del repositorio
-- **`index.html`** — Prototipo navegable (mockup Apple HIG) de las 6 pantallas,
-  incluida la sección **Luz** con precios PVPC reales y planificador de consumo.
-  Ábrelo en cualquier navegador.
-- **`mobile/`** — App real en **Expo / React Native** (en construcción). Ver
-  [`mobile/README.md`](mobile/README.md).
-- **`docs/PLAN.md`** — Plan de la app comercial: stack, arquitectura, modelo de
-  datos y roadmap por fases.
+- **`beachops/`** — Cuadro diario de reservas para empresas de kayak / paddle
+  surf, actualizado desde el correo. Ver [`beachops/README.md`](beachops/README.md).
+- **`deploy.sh`** — Despliegue de BeachOps en el VPS
+  ([`beachops/docs/DESPLIEGUE.md`](beachops/docs/DESPLIEGUE.md)).
 
-## Estado
-- ✅ Prototipo (HTML) con las 6 secciones y la sección Luz conectada a precios reales.
-- 🚧 App Expo: esqueleto navegable; Fase 1 (Luz) en desarrollo.
+## Homie se ha mudado
+La app **Homie** (prototipo `index.html`, app Expo `mobile/`, funciones de
+Appwrite, scripts y docs) vive ahora en su propio repo,
+[`RDF97/homie`](https://github.com/RDF97/homie), con todo su historial.
+Cualquier cambio de Homie se hace allí.
